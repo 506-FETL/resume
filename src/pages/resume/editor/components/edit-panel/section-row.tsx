@@ -4,11 +4,6 @@ import { ChevronDown, GripVertical } from 'lucide-react'
 import { Accordion as AccordionPrimitive } from 'radix-ui'
 import { AccordionContent, AccordionItem } from '@/components/ui/accordion'
 import { Switch } from '@/components/ui/switch'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import CheckFields from '../check-fields'
 
@@ -93,25 +88,18 @@ export function SectionRow({
           </AccordionPrimitive.Trigger>
 
           {!fixed && onToggleVisibility && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div
-                  onPointerDownCapture={(e) => e.stopPropagation()}
-                  className='shrink-0 pl-1'
-                >
-                  <Switch
-                    checked={visible}
-                    onCheckedChange={onToggleVisibility}
-                    aria-label={
-                      visible ? `隐藏「${label}」模块` : `显示「${label}」模块`
-                    }
-                  />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side='left'>
-                {visible ? '点击隐藏该模块' : '点击显示该模块'}
-              </TooltipContent>
-            </Tooltip>
+            <div
+              onPointerDownCapture={(e) => e.stopPropagation()}
+              className='shrink-0 pl-1'
+            >
+              <Switch
+                checked={visible}
+                onCheckedChange={onToggleVisibility}
+                aria-label={
+                  visible ? `隐藏「${label}」模块` : `显示「${label}」模块`
+                }
+              />
+            </div>
           )}
         </AccordionPrimitive.Header>
 

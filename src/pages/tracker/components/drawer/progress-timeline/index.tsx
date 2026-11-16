@@ -175,7 +175,6 @@ export default function ProgressTimeline({
                   <StepperTrigger
                     ref={current ? activeRef : undefined}
                     aria-label={`${APPLICATION_STATUS_CONFIG[status].label}，${stateLabel}`}
-                    title={`${APPLICATION_STATUS_CONFIG[status].label} · ${stateLabel}`}
                     aria-pressed={(viewingStage ?? job.status) === status}
                     onClick={() => onStageClick(status)}
                   >

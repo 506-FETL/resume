@@ -10,11 +10,6 @@ import {
 } from '@/components/ui/motion-reorder'
 import { Tab } from '@/components/ui/side-tabs'
 import { Switch } from '@/components/ui/switch'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 
 interface SortableTabProps {
   id: VisibilityItemsType
@@ -98,14 +93,13 @@ export function SortableTab({
         >
           <GripVertical className='size-4' />
         </span>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <div onPointerDownCapture={(event) => event.stopPropagation()}>
-              <Switch checked={visible} onCheckedChange={onToggleVisibility} />
-            </div>
-          </TooltipTrigger>
-          <TooltipContent>点击可隐藏模块</TooltipContent>
-        </Tooltip>
+        <div onPointerDownCapture={(event) => event.stopPropagation()}>
+          <Switch
+            aria-label={`${label}模块可见`}
+            checked={visible}
+            onCheckedChange={onToggleVisibility}
+          />
+        </div>
       </div>
 
       <Tab id={id} onClick={onActivate} disabled={!visible}>

@@ -87,11 +87,11 @@ export function ResumeHistoryVersionDropdown({
         <DropdownMenuTrigger asChild>
           <Button
             aria-label='历史版本'
+            aria-description={disabledReason}
             variant='outline'
             size={isMobile ? 'icon' : 'sm'}
             className={cn(isMobile && 'size-9')}
             disabled={!canUseHistory}
-            title={disabledReason}
           >
             <History data-icon='inline-start' />
             {!isMobile && <span>历史版本</span>}

@@ -49,7 +49,7 @@ export default function TemplateBadge({
         <Badge
           asChild
           variant='secondary'
-          title={title}
+          aria-label={title}
           className='max-w-full min-w-0 shrink text-muted-foreground transition-none'
         >
           <div>
@@ -74,7 +74,6 @@ export default function TemplateBadge({
               transitionDuration: reduceMotion ? '0s' : `${DURATION.fast}s`,
             }}
             aria-label='重试加载模板名称'
-            title='模板名称加载失败，点击重试'
             onClick={() => loadName(templateId, true)}
           >
             <RotateCw className='size-3' aria-hidden />

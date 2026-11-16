@@ -10,7 +10,6 @@ import Overview from '../overview'
 export default function Header() {
   const {
     resumeMap,
-    resumeOptionsLoaded,
     resumeOptionsLoading,
     resumeOptionsError,
     reloadResumeOptions,
@@ -30,15 +29,6 @@ export default function Header() {
               data-share-dialog-fallback=''
               onClick={() => setCreateDialogOpen(true)}
               disabled={!canCreate}
-              title={
-                canCreate
-                  ? undefined
-                  : resumeOptionsError
-                    ? '简历列表暂不可用'
-                    : resumeOptionsLoaded
-                      ? '请先创建或同步一份云端简历'
-                      : '正在加载简历列表'
-              }
             >
               <Plus data-icon='inline-start' />
               新建分享

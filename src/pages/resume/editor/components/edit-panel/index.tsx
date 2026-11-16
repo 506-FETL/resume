@@ -6,11 +6,6 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { memo, useCallback, useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { PresenceDiv } from '@/components/motion/presence-item'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { CollaborationControls } from '../collaboration/collaboration-controls'
@@ -193,21 +188,14 @@ function EditPanel({
                     plain
                     actions={<CheckModeToggle />}
                     headingAction={
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <Button
-                            variant='ghost'
-                            size='icon-sm'
-                            aria-label='收起编辑栏'
-                            onClick={onClose}
-                          >
-                            <ArrowRightToLine className='size-4' />
-                          </Button>
-                        </TooltipTrigger>
-                        <TooltipContent side='bottom'>
-                          收起编辑栏
-                        </TooltipContent>
-                      </Tooltip>
+                      <Button
+                        variant='ghost'
+                        size='icon-sm'
+                        aria-label='收起编辑栏'
+                        onClick={onClose}
+                      >
+                        <ArrowRightToLine className='size-4' />
+                      </Button>
                     }
                   />
                 </div>

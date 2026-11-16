@@ -40,9 +40,7 @@ export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
       </div>
       <div className='flex min-w-0 items-center gap-3 px-1 py-3'>
         <div className='min-w-0 flex-1'>
-          <h2 className='truncate text-sm font-semibold' title={item.name}>
-            {item.name}
-          </h2>
+          <h2 className='truncate text-sm font-semibold'>{item.name}</h2>
           <p className='mt-1 text-xs leading-5 text-muted-foreground'>
             {category ? `${category.style} · ${category.layout}` : '完整示例'}
           </p>

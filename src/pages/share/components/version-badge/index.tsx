@@ -1,11 +1,6 @@
 import type { ShareVersionSource } from '@/lib/supabase/resume/share.types'
 import { History, Pin, RefreshCw } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { formatShareVersionSource } from '../../utils'
 
 export default function VersionBadge({
@@ -17,14 +12,7 @@ export default function VersionBadge({
 }) {
   const badge =
     appearance === 'plain' ? (
-      <span
-        className='inline-flex min-w-0 items-center gap-1.5 text-xs'
-        title={
-          source.kind === 'history'
-            ? source.versionLabel
-            : '跟随云端已保存的简历内容更新'
-        }
-      >
+      <span className='inline-flex min-w-0 items-center gap-1.5 text-xs'>
         {source.kind === 'current' ? (
           <RefreshCw
             className='size-3.5 shrink-0 text-muted-foreground'
@@ -54,10 +42,5 @@ export default function VersionBadge({
 
   if (source.kind !== 'history' || source.versionId != null) return badge
 
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>{badge}</TooltipTrigger>
-      <TooltipContent>原历史版本已删除，链接仍保留发布时的快照</TooltipContent>
-    </Tooltip>
-  )
+  return badge
 }

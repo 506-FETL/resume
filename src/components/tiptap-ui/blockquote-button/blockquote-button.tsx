@@ -4,11 +4,8 @@ import type { ButtonProps } from '@/components/tiptap-ui-primitive/button'
 // --- Tiptap UI ---
 import type { UseBlockquoteConfig } from '@/components/tiptap-ui/blockquote-button'
 import * as React from 'react'
-
 import { Badge } from '@/components/tiptap-ui-primitive/badge'
-
 import { Button } from '@/components/tiptap-ui-primitive/button'
-
 import {
   BLOCKQUOTE_SHORTCUT_KEY,
   useBlockquote,
@@ -99,7 +96,6 @@ export function BlockquoteButton({
       data-disabled={!canToggle}
       aria-label={label}
       aria-pressed={isActive}
-      tooltip='Blockquote'
       onClick={handleClick}
       {...buttonProps}
       ref={ref}

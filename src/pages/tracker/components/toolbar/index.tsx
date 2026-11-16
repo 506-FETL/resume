@@ -5,11 +5,6 @@ import { useShallow } from 'zustand/react/shallow'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -95,92 +90,62 @@ export default function TrackerToolbar() {
     transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
   }
 
-  const tooltipAnimation = {
-    animationDuration: `${reduce ? 0 : DURATION.fast}s`,
-    animationTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,
-  }
-
   const actionTools = (
     <div
       role='group'
       aria-label='职位工具'
       className='ml-auto flex shrink-0 items-center gap-1'
     >
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            id='tracker-focus-filter'
-            variant={focusedOnly ? 'secondary' : 'ghost'}
-            size='icon'
-            aria-label='重点关注'
-            aria-pressed={focusedOnly}
-            className={cn(
-              'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
-              focusedOnly
-                ? 'text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400'
-                : 'text-muted-foreground',
-            )}
-            style={actionTransition}
-            onClick={() =>
-              useTrackerStore.getState().setFocusedOnly(!focusedOnly)
-            }
-          >
-            <Flag
-              className='size-4'
-              fill={focusedOnly ? 'currentColor' : 'none'}
-              aria-hidden
-            />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent style={tooltipAnimation}>
-          {focusedOnly ? '显示全部职位' : '只看重点关注'}
-        </TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={showArchived ? 'secondary' : 'ghost'}
-            size='icon'
-            className={cn(
-              'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
-              !showArchived && 'text-muted-foreground',
-            )}
-            style={actionTransition}
-            aria-label='已归档'
-            aria-pressed={showArchived}
-            onClick={() => setShowArchived(!showArchived)}
-          >
-            <Archive className='size-4' aria-hidden />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent style={tooltipAnimation}>
-          {showArchived
-            ? '返回在办职位'
-            : `已归档（${isInitialized ? archivedCount : '—'}）`}
-        </TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant={isSelectMode ? 'secondary' : 'ghost'}
-            size='icon'
-            className={cn(
-              'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
-              !isSelectMode && 'text-muted-foreground',
-            )}
-            style={actionTransition}
-            aria-pressed={isSelectMode}
-            id='tracker-batch-toggle'
-            aria-label={isSelectMode ? '退出批量管理' : '批量管理'}
-            onClick={isSelectMode ? exitSelectMode : enterSelectMode}
-          >
-            <CheckSquare className='size-4' aria-hidden />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent style={tooltipAnimation}>
-          {isSelectMode ? '退出批量管理' : '批量管理'}
-        </TooltipContent>
-      </Tooltip>
+      <Button
+        id='tracker-focus-filter'
+        variant={focusedOnly ? 'secondary' : 'ghost'}
+        size='icon'
+        aria-label='重点关注'
+        aria-pressed={focusedOnly}
+        className={cn(
+          'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
+          focusedOnly
+            ? 'text-red-600 hover:text-red-600 dark:text-red-400 dark:hover:text-red-400'
+            : 'text-muted-foreground',
+        )}
+        style={actionTransition}
+        onClick={() => useTrackerStore.getState().setFocusedOnly(!focusedOnly)}
+      >
+        <Flag
+          className='size-4'
+          fill={focusedOnly ? 'currentColor' : 'none'}
+          aria-hidden
+        />
+      </Button>
+      <Button
+        variant={showArchived ? 'secondary' : 'ghost'}
+        size='icon'
+        className={cn(
+          'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
+          !showArchived && 'text-muted-foreground',
+        )}
+        style={actionTransition}
+        aria-label={`已归档，${archivedCount} 个职位`}
+        aria-pressed={showArchived}
+        onClick={() => setShowArchived(!showArchived)}
+      >
+        <Archive className='size-4' aria-hidden />
+      </Button>
+      <Button
+        variant={isSelectMode ? 'secondary' : 'ghost'}
+        size='icon'
+        className={cn(
+          'size-9 rounded-lg md:size-10 md:@min-[620px]/tracker:size-9 md:[@media(pointer:coarse)]:size-11',
+          !isSelectMode && 'text-muted-foreground',
+        )}
+        style={actionTransition}
+        aria-pressed={isSelectMode}
+        id='tracker-batch-toggle'
+        aria-label={isSelectMode ? '退出批量管理' : '批量管理'}
+        onClick={isSelectMode ? exitSelectMode : enterSelectMode}
+      >
+        <CheckSquare className='size-4' aria-hidden />
+      </Button>
     </div>
   )
 

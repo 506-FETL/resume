@@ -335,6 +335,7 @@ export function installComposerSessions(store: StoreApi<AssistantStore>) {
       draftStorageFailed: failedDrafts.has(keyFor(null) ?? ''),
       activeConversationId: null,
       conversationViewVersion: current.conversationViewVersion + 1,
+      contextCompaction: null,
       streaming: false,
       abortController: null,
       pendingConfirm: null,

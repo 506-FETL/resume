@@ -18,11 +18,6 @@ import {
   DrawerTitle,
 } from '@/components/ui/drawer'
 import { Tabs, TabsContent } from '@/components/ui/tabs'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { CONTENT_SWITCH, DURATION, EASE } from '@/lib/motion'
 import { CANVAS_MAX_WIDTH, CANVAS_MIN_WIDTH, CHAT_MIN_WIDTH } from '../../const'
 import { useCanvasModel } from '../../hooks/use-canvas-model'
@@ -301,25 +296,20 @@ export default function AssistantCanvas() {
             />
             <div className='flex h-12 shrink-0 items-center justify-between border-b px-3'>
               <span className='text-sm font-medium'>画布</span>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant='ghost'
-                    size='icon-sm'
-                    aria-label='收起画布'
-                    onClick={() => {
-                      document
-                        .getElementById('assistant-canvas-trigger')
-                        ?.focus({ preventScroll: true })
+              <Button
+                variant='ghost'
+                size='icon-sm'
+                aria-label='收起画布'
+                onClick={() => {
+                  document
+                    .getElementById('assistant-canvas-trigger')
+                    ?.focus({ preventScroll: true })
 
-                      setCanvasOpen(false)
-                    }}
-                  >
-                    <PanelRightClose />
-                  </Button>
-                </TooltipTrigger>
-                <TooltipContent side='left'>收起画布</TooltipContent>
-              </Tooltip>
+                  setCanvasOpen(false)
+                }}
+              >
+                <PanelRightClose />
+              </Button>
             </div>
             <CanvasInner />
           </div>

@@ -79,10 +79,7 @@ export default function RecentResumeCard({ resume }: { resume: Resume }) {
             <Icon className='size-3' />
             {appearance.label}
           </Badge>
-          <h3
-            className='line-clamp-2 text-base leading-6 font-semibold break-words'
-            title={resume.display_name || '未命名简历'}
-          >
+          <h3 className='line-clamp-2 text-base leading-6 font-semibold break-words'>
             {resume.display_name || '未命名简历'}
           </h3>
           <p className='mt-1 text-xs text-muted-foreground'>

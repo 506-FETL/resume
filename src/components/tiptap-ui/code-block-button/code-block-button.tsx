@@ -3,12 +3,9 @@ import type { ButtonProps } from '@/components/tiptap-ui-primitive/button'
 
 // --- Tiptap UI ---
 import type { UseCodeBlockConfig } from '@/components/tiptap-ui/code-block-button'
-
 import * as React from 'react'
-
 import { Badge } from '@/components/tiptap-ui-primitive/badge'
 import { Button } from '@/components/tiptap-ui-primitive/button'
-
 import {
   CODE_BLOCK_SHORTCUT_KEY,
   useCodeBlock,
@@ -97,7 +94,6 @@ export function CodeBlockButton({
       tabIndex={-1}
       aria-label={label}
       aria-pressed={isActive}
-      tooltip='Code Block'
       onClick={handleClick}
       {...buttonProps}
       ref={ref}

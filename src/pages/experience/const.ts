@@ -11,7 +11,7 @@ export const EXPERIENCE_DESCRIPTION =
   '保存周报、项目记录和旧简历，写简历时随时取用。'
 
 export const EXPERIENCE_GRID_CLASS =
-  'grid grid-cols-1 gap-4 @min-[560px]/workspace:grid-cols-2 @min-[1020px]/workspace:grid-cols-3'
+  'grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-4'
 
 export const EXPERIENCE_SOURCE_APPEARANCE = {
   image: {

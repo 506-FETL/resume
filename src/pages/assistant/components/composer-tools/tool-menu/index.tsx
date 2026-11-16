@@ -29,11 +29,11 @@ export function ComposerTools({
   const reduceMotion = useReducedMotion()
   const [selection, setSelection] = useState({ query: '', value: '' })
   const categories = [...new Set(tools.map((tool) => tool.category))]
-  const firstValue = tools[0]?.name ?? ''
+  const firstValue = tools.find((tool) => !tool.disabled)?.name ?? ''
 
   const selectedValue =
     selection.query === query &&
-    tools.some((tool) => tool.name === selection.value)
+    tools.some((tool) => tool.name === selection.value && !tool.disabled)
       ? selection.value
       : firstValue
 
@@ -96,6 +96,7 @@ export function ComposerTools({
                   <CommandItem
                     key={tool.name}
                     value={tool.name}
+                    disabled={tool.disabled}
                     onMouseDown={(event) => {
                       if (queryMode) event.preventDefault()
                     }}

@@ -83,6 +83,11 @@ export interface AssistantStore extends ComposerSlice {
   canvasTabPinned: boolean
   usageByMessageId: Record<string, TokenUsage>
   streamingUsage: TokenUsage | null
+  contextCompaction: {
+    conversationId: string
+    viewVersion: number
+    messageCount: number
+  } | null
   canvasRefreshTick: number
   previewResumeId: string | null
   pendingConversationId: string | null
@@ -171,6 +176,7 @@ const useAssistantStore = create<AssistantStore>()((set, get, api) => ({
   ),
   usageByMessageId: {},
   streamingUsage: null,
+  contextCompaction: null,
   canvasRefreshTick: 0,
   previewResumeId: null,
   pendingConversationId: null,
@@ -232,6 +238,7 @@ const useAssistantStore = create<AssistantStore>()((set, get, api) => ({
       loadingMessages: false,
       composerSkillIds: [],
       conversationViewVersion: state.conversationViewVersion + 1,
+      contextCompaction: null,
       explicitPreviewResumeId: null,
       annotationTarget: null,
     })),
@@ -256,7 +263,13 @@ const useAssistantStore = create<AssistantStore>()((set, get, api) => ({
     set((state) => ({ messages: state.messages.filter((m) => m.id !== id) })),
   setStreaming: (value) => set({ streaming: value }),
   setStreamingText: (text) => set({ streamingText: text }),
-  setStreamingParts: (parts) => set({ streamingParts: parts }),
+  setStreamingParts: (parts) =>
+    set((state) => ({
+      streamingParts: parts,
+      contextCompaction: parts.some((part) => part.type === 'context-usage')
+        ? null
+        : state.contextCompaction,
+    })),
   setPendingConfirm: (p) => set({ pendingConfirm: p }),
   setInitializing: (value) => set({ initializing: value }),
   setLoadingConversations: (value) => set({ loadingConversations: value }),
@@ -342,6 +355,7 @@ const useAssistantStore = create<AssistantStore>()((set, get, api) => ({
       streamingParts: [],
       composerSkillIds: [],
       streamingUsage: null,
+      contextCompaction: null,
       pendingConversationId: null,
       conversationLoadRequestId: null,
       targetMessageId: null,

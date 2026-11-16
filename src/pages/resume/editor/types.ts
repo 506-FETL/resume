@@ -14,7 +14,6 @@ export interface CollaborationPanelContextValue {
   collaborationConnectionPhase: CollaborationPhase
   collaborationConnectionLabel: string | null
   collabDisabledReason: string | null
-  shareButtonTooltip: string
   participantCount: number
   shareUrl: string | null
   collaborationRole: 'host' | 'guest' | null

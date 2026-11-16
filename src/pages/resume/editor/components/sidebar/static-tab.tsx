@@ -2,11 +2,6 @@ import type { ReactNode } from 'react'
 import type { VisibilityItemsType } from '@/lib/schema'
 import { Tab } from '@/components/ui/side-tabs'
 import { Switch } from '@/components/ui/switch'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 
 interface StaticTabProps {
   id: VisibilityItemsType
@@ -34,14 +29,13 @@ export function StaticTab({
       className='flex flex-col items-center justify-end gap-2 select-none'
       data-active={active}
     >
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div>
-            <Switch checked={visible} onCheckedChange={onToggleVisibility} />
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>点击可隐藏模块</TooltipContent>
-      </Tooltip>
+      <div>
+        <Switch
+          aria-label={`${label}模块可见`}
+          checked={visible}
+          onCheckedChange={onToggleVisibility}
+        />
+      </div>
 
       <Tab id={id} onClick={onActivate} disabled={!visible}>
         {icon}

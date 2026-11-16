@@ -18,11 +18,6 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { formatDateTime } from '@/utils/date'
 import { DURATION, EASE } from '@/lib/motion'
 import { AnimatedContent } from '@/components/motion/animated-content'
@@ -146,14 +141,9 @@ export function LinkRow({ ref, share, busy }: LinkRowProps) {
       </div>
 
       <div className='grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1.5'>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <code className='block min-w-0 truncate rounded bg-muted px-2 py-1 text-xs'>
-              {formatShareUrlForDisplay(url)}
-            </code>
-          </TooltipTrigger>
-          <TooltipContent className='max-w-sm break-all'>{url}</TooltipContent>
-        </Tooltip>
+        <code className='block min-w-0 truncate rounded bg-muted px-2 py-1 text-xs'>
+          {formatShareUrlForDisplay(url)}
+        </code>
         <Button
           size='icon-sm'
           variant='ghost'

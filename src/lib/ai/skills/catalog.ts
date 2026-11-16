@@ -6,7 +6,7 @@ export const BUILTIN_SKILLS: readonly SkillDefinition[] = [
     version: '1.0.0',
     displayName: 'ASu 简历提升',
     description: '基于真实经历和证据边界，重组岗位定位、简历要点与求职沟通文案。',
-    sourceLabel: 'Hisn00w/ASu-skills（MIT，产品适配）',
+    sourceLabel: 'Hisn00w/ASu-skills',
     sourceUrl: 'https://github.com/Hisn00w/ASu-skills/tree/fb7f6cc443b3618f1944ff9897597a58e4ca083b/skills/great-resume',
     resources: [
       { path: 'references/claim-evidence-ledger.md', title: '主张与证据清单' },

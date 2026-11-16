@@ -54,6 +54,14 @@ export default function ContextUsage() {
 
   const phase = useAssistantStore((state) => state.runPhase)
 
+  const compaction = useAssistantStore((state) =>
+    state.contextCompaction?.conversationId === state.activeConversationId &&
+    state.contextCompaction?.viewVersion === state.conversationViewVersion &&
+    !state.pendingConversationId
+      ? state.contextCompaction
+      : null,
+  )
+
   const previousUsage = useMemo(() => {
     const assistant = [...messages]
       .reverse()
@@ -111,6 +119,15 @@ export default function ContextUsage() {
           (used / MODEL_CONTEXT_LIMITS.taskContextTokens) * 100,
         )
 
+  const indicator =
+    phase === 'compacting'
+      ? '压缩中'
+      : compaction
+        ? '已压缩'
+        : percent == null
+          ? status
+          : `${totalPrefix}${percent}%`
+
   return (
     <HoverCard
       open={open}
@@ -125,11 +142,7 @@ export default function ContextUsage() {
           ref={triggerRef}
           type='button'
           size='sm'
-          aria-label={
-            percent == null
-              ? `上下文占用，${status}`
-              : `上下文占用，${status}，${totalPrefix}${percent}%`
-          }
+          aria-label={`上下文占用，${actual && !compaction && phase !== 'compacting' ? `${status}，` : ''}${indicator}`}
           aria-expanded={open}
           onClick={() => {
             dismissedRef.current = open
@@ -162,10 +175,20 @@ export default function ContextUsage() {
           <span className='relative inline-flex min-w-6 justify-center tabular-nums'>
             <AnimatedContent
               as='span'
-              animationKey={actual ? 'usage' : status}
+              animationKey={
+                phase === 'compacting'
+                  ? 'compacting'
+                  : compaction
+                    ? 'compacted'
+                    : actual
+                      ? currentUsage
+                        ? 'current'
+                        : 'previous'
+                      : status
+              }
               mode='popLayout'
             >
-              {percent == null ? status : `${totalPrefix}${percent}%`}
+              {indicator}
             </AnimatedContent>
           </span>
         </InputGroupButton>
@@ -187,7 +210,9 @@ export default function ContextUsage() {
         style={reduced ? { animationDuration: '0s' } : undefined}
       >
         <div className='flex items-center justify-between gap-2 text-sm'>
-          <span className='font-medium'>上下文</span>
+          <span className='font-medium'>
+            {actual && !currentUsage ? '上次调用' : '上下文'}
+          </span>
           <span className='text-muted-foreground tabular-nums'>
             {used == null
               ? status
@@ -229,10 +254,25 @@ export default function ContextUsage() {
               : tokenFormat.format(reasoning)}
           </dd>
         </dl>
-        <p className='text-xs leading-relaxed text-muted-foreground'>
-          {actual ? `${status} token。` : ''}
-          输入包含对话、资料、系统提示和工具定义。
-        </p>
+        <AnimatedContent
+          animationKey={compaction ? 'compacted' : 'usage-description'}
+        >
+          <p className='text-xs leading-relaxed text-muted-foreground'>
+            {compaction ? (
+              <>
+                {compaction.messageCount
+                  ? `已将 ${compaction.messageCount} 条较早消息整理为摘要。`
+                  : '较早对话已整理为摘要。'}
+                上方为上次调用用量，下次发送后更新。
+              </>
+            ) : (
+              <>
+                {actual ? `${status} token。` : ''}
+                输入包含对话、资料、系统提示和工具定义。
+              </>
+            )}
+          </p>
+        </AnimatedContent>
       </HoverCardContent>
     </HoverCard>
   )

@@ -112,11 +112,6 @@ export function useCollaborationPanelValue({
     collaborationConnectionPhase,
   )
 
-  const shareButtonTooltip =
-    collabDisabledReason ??
-    collaborationConnectionLabel ??
-    (isSharing ? '查看协作信息' : '开启实时协作')
-
   const canCopyLink = typeof navigator !== 'undefined' && !!navigator.clipboard
 
   const handleManualSync = useCallback(() => manualSync(), [manualSync])
@@ -241,7 +236,6 @@ export function useCollaborationPanelValue({
     collaborationConnectionPhase,
     collaborationConnectionLabel,
     collabDisabledReason,
-    shareButtonTooltip,
     participantCount,
     shareUrl,
     collaborationRole,

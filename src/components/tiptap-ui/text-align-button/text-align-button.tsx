@@ -8,12 +8,9 @@ import type {
   TextAlign,
   UseTextAlignConfig,
 } from '@/components/tiptap-ui/text-align-button'
-
 import * as React from 'react'
-
 import { Badge } from '@/components/tiptap-ui-primitive/badge'
 import { Button } from '@/components/tiptap-ui-primitive/button'
-
 import {
   TEXT_ALIGN_SHORTCUT_KEYS,
   useTextAlign,
@@ -117,7 +114,6 @@ export function TextAlignButton({
       tabIndex={-1}
       aria-label={label}
       aria-pressed={isActive}
-      tooltip={label}
       onClick={handleClick}
       {...buttonProps}
       ref={ref}

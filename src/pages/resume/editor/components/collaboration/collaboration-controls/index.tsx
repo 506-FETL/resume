@@ -17,11 +17,6 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { cn } from '@/lib/utils'
 import useShareStore from '@/pages/share/store'
@@ -56,7 +51,6 @@ export function CollaborationControls({
     isCollabConnecting,
     collaborationConnectionLabel,
     collabDisabledReason,
-    shareButtonTooltip,
     participantCount,
   } = useCollaborationPanel()
 
@@ -109,49 +103,43 @@ export function CollaborationControls({
           <Save className='size-4' />
           {!isMobile && '手动保存'}
         </Button>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span>
-              <Button
-                size={isMobile ? 'icon' : 'sm'}
-                variant={isSharing ? 'default' : 'outline'}
-                onClick={openCollaborationDialog}
-                disabled={Boolean(collabDisabledReason) || isCollabConnecting}
-                aria-label={
-                  collaborationConnectionLabel ??
-                  (isSharing ? '协作中' : '开启协作')
-                }
-                className={cn(
-                  'transition-colors',
-                  isSharing &&
-                    !isCollabConnecting &&
-                    'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm',
-                )}
-              >
-                {isCollabConnecting ? (
-                  <Spinner className='size-4' />
-                ) : isSharing ? (
-                  <Radio className='size-4' />
-                ) : (
-                  <Share2 className='size-4' />
-                )}
-                {!isMobile &&
-                  (collaborationConnectionLabel ??
-                    (isSharing ? '协作中' : '开启协作'))}
-              </Button>
-            </span>
-          </TooltipTrigger>
-          {(isMobile || shareButtonTooltip !== '开启实时协作') && (
-            <TooltipContent side='bottom'>{shareButtonTooltip}</TooltipContent>
-          )}
-        </Tooltip>
+        <span>
+          <Button
+            size={isMobile ? 'icon' : 'sm'}
+            variant={isSharing ? 'default' : 'outline'}
+            onClick={openCollaborationDialog}
+            disabled={Boolean(collabDisabledReason) || isCollabConnecting}
+            aria-description={collabDisabledReason ?? undefined}
+            aria-label={
+              collaborationConnectionLabel ??
+              (isSharing ? '协作中' : '开启协作')
+            }
+            className={cn(
+              'transition-colors',
+              isSharing &&
+                !isCollabConnecting &&
+                'bg-emerald-500 text-white hover:bg-emerald-600 shadow-sm',
+            )}
+          >
+            {isCollabConnecting ? (
+              <Spinner className='size-4' />
+            ) : isSharing ? (
+              <Radio className='size-4' />
+            ) : (
+              <Share2 className='size-4' />
+            )}
+            {!isMobile &&
+              (collaborationConnectionLabel ??
+                (isSharing ? '协作中' : '开启协作'))}
+          </Button>
+        </span>
         <Button
           size={isMobile ? 'icon' : 'sm'}
           variant='outline'
           onClick={() => resumeId && openQuickDialog(resumeId, resumeName)}
           disabled={!canShare}
-          title={shareDisabledReason}
           aria-label='分享简历'
+          aria-description={shareDisabledReason}
         >
           <Link2 className='size-4' />
           {!isMobile && '分享'}
@@ -192,9 +180,7 @@ export function CollaborationControls({
               className='size-4 shrink-0 text-muted-foreground'
             />
           )}
-          <span className='truncate' title={resumeName}>
-            {resumeName}
-          </span>
+          <span className='truncate'>{resumeName}</span>
         </TitleTag>
         <span role='status' aria-live='polite' className='shrink-0'>
           <AnimatedContent

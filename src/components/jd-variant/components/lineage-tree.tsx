@@ -175,7 +175,6 @@ export function VariantLineagePath({
           <Badge
             variant={i === path.length - 1 ? 'default' : 'outline'}
             className='min-w-0 flex-1 shrink justify-start'
-            title={n.displayName || '未命名'}
           >
             <span className='truncate'>{n.displayName || '未命名'}</span>
           </Badge>

@@ -19,11 +19,6 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { SECTION_LABELS } from '@/lib/resume-preparation/const'
 import { cn } from '@/lib/utils'
@@ -93,24 +88,19 @@ function CheckPanel() {
                 ? '检查未完成'
                 : '正在检查…'}
           </p>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                size='icon-xs'
-                variant='ghost'
-                aria-label='重新检查'
-                disabled={state.busy}
-                onClick={() =>
-                  useResumeCheckStore.setState((value) => ({
-                    revision: value.revision + 1,
-                  }))
-                }
-              >
-                <RotateCw />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>重新检查</TooltipContent>
-          </Tooltip>
+          <Button
+            size='icon-xs'
+            variant='ghost'
+            aria-label='重新检查'
+            disabled={state.busy}
+            onClick={() =>
+              useResumeCheckStore.setState((value) => ({
+                revision: value.revision + 1,
+              }))
+            }
+          >
+            <RotateCw />
+          </Button>
         </div>
         <div className='flex flex-wrap gap-1.5' aria-label='按严重程度筛选'>
           <Button

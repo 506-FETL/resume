@@ -173,10 +173,7 @@ function JobCardComponent({ job }: JobCardProps) {
             <span className='line-clamp-2 break-words text-base font-semibold leading-6 text-foreground'>
               {job.position}
             </span>
-            <span
-              className='mt-1 flex min-w-0 items-center text-xs leading-4 text-muted-foreground'
-              title={`${job.company} · ${job.location || '地点未填写'}`}
-            >
+            <span className='mt-1 flex min-w-0 items-center text-xs leading-4 text-muted-foreground'>
               <span className='truncate'>{job.company}</span>
               <span aria-hidden='true' className='shrink-0 px-1'>
                 ·

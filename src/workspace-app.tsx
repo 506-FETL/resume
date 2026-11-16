@@ -1,6 +1,5 @@
 import { ErrorBoundary } from 'react-error-boundary'
 import { BrowserRouter } from 'react-router-dom'
-import { TooltipProvider } from '@/components/ui/tooltip'
 import App from './App'
 import ErrorFallback from './components/ErrorBoundary'
 import '@fontsource-variable/arimo/wght.css'
@@ -16,9 +15,7 @@ export default function WorkspaceApp() {
   return (
     <ErrorBoundary FallbackComponent={ErrorFallback}>
       <BrowserRouter>
-        <TooltipProvider>
-          <App />
-        </TooltipProvider>
+        <App />
       </BrowserRouter>
     </ErrorBoundary>
   )

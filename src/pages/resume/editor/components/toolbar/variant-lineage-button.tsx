@@ -77,7 +77,6 @@ export function VariantLineageButton({
             className={cn(isMobile && 'size-9')}
             disabled={disabled}
             aria-label='查看派生关系'
-            title={reviewActive ? '请先切回当前工作版本' : undefined}
           >
             <GitBranch data-icon='inline-start' />
             {!isMobile && <span>派生关系</span>}

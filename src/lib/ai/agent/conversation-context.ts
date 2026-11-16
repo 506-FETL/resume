@@ -53,6 +53,7 @@ export async function prepareConversationContext(
   options: ContextOptions & {
     resumeId?: string | null
     sources?: ExperienceSourceRelation[]
+    forceCompaction?: boolean
   } = {},
 ) {
   const targetResumeId =
@@ -108,8 +109,10 @@ export async function prepareConversationContext(
 
   let summary = reusable?.summary
   let compactionFailed = false
+  let compactedMessageCount = 0
 
   while (
+    options.forceCompaction ||
     contextNeedsCompaction(
       toModelMessages(messages, undefined, summary, sources, targetResumeId),
     )
@@ -119,7 +122,12 @@ export async function prepareConversationContext(
     )
 
     const keepFrom =
-      boundaries[Math.max(1, boundaries.length - CONTEXT_BUDGET.recentTurns)]
+      boundaries[
+        Math.max(
+          options.forceCompaction ? 0 : 1,
+          boundaries.length - CONTEXT_BUDGET.recentTurns,
+        )
+      ]
 
     if (!keepFrom) {
       if (
@@ -198,6 +206,7 @@ export async function prepareConversationContext(
       summary = await summarizeContext(material, summary, signal)
     } catch (error) {
       const fallback =
+        !options.forceCompaction &&
         !signal.aborted &&
         contextFitsRequest(
           toModelMessages(
@@ -224,12 +233,6 @@ export async function prepareConversationContext(
       throw error
     }
 
-    options.onCompaction?.({
-      ...detail,
-      phase: 'complete',
-      durationMs: performance.now() - started,
-    })
-
     await saveContextCheckpoint(
       conversationId,
       boundary,
@@ -240,6 +243,13 @@ export async function prepareConversationContext(
     )
 
     messages = messages.slice(end)
+    compactedMessageCount += earlier.length
+
+    options.onCompaction?.({
+      ...detail,
+      phase: 'complete',
+      durationMs: performance.now() - started,
+    })
   }
 
   return {
@@ -247,6 +257,7 @@ export async function prepareConversationContext(
     summary,
     sources,
     compactionFailed,
+    compactedMessageCount,
     estimatedTokens: estimateContextTokens(
       toModelMessages(messages, undefined, summary, sources, targetResumeId),
     ),

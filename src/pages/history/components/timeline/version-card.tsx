@@ -14,7 +14,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { cn } from '@/lib/utils'
-import { formatDateTime, formatRelativeTime } from '@/utils/date'
+import { formatRelativeTime } from '@/utils/date'
 import { SOURCE_META } from '../../const'
 import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
@@ -92,10 +92,7 @@ export default function VersionCard({
               <SourceIcon className='size-3' />
               {sourceMeta.label}
             </span>
-            <time
-              dateTime={version.created_at}
-              title={formatDateTime(version.created_at)}
-            >
+            <time dateTime={version.created_at}>
               {formatRelativeTime(version.created_at)}
             </time>
           </div>

@@ -167,7 +167,6 @@ export function SidebarRail({
       aria-label='切换侧栏'
       tabIndex={-1}
       onClick={toggleSidebar}
-      title='切换侧栏'
       className={cn(
         'hover:after:bg-sidebar-border absolute inset-y-0 z-20 hidden w-4 -translate-x-1/2 transition-[background-color,transform,translate] duration-(--ui-motion-base) ease-(--ui-motion-enter-ease) group-data-[side=left]:-right-4 group-data-[side=right]:left-0 after:absolute after:inset-y-0 after:left-1/2 after:w-[2px] sm:flex',
         'in-data-[side=left]:cursor-w-resize in-data-[side=right]:cursor-e-resize',

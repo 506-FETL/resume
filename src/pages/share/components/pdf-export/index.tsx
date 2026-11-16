@@ -25,7 +25,6 @@ export default function PdfExport({
     <Button
       variant='outline'
       disabled={documentState.status !== 'ready'}
-      title={documentState.error ?? undefined}
       onClick={() => handlePrint().catch(() => undefined)}
     >
       <FileDown data-icon='inline-start' />

@@ -73,10 +73,7 @@ export function ResumeItem({ resume, isSelected, onSelect }: ResumeItemProps) {
         </div>
         <div className='min-w-0 flex-1'>
           <div className='flex items-center gap-1.5 sm:gap-2'>
-            <p
-              className='text-xs sm:text-sm font-medium truncate'
-              title={resume.display_name}
-            >
+            <p className='text-xs sm:text-sm font-medium truncate'>
               {resume.display_name}
             </p>
             {resume.isScored ? (

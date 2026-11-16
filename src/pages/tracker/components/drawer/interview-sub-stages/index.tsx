@@ -298,7 +298,6 @@ export function InterviewSubStages({
                             else triggerRefs.current.delete(round.id)
                           }}
                           aria-label={`第 ${index + 1} 轮：${label}，${roundStatusLabel(round)}`}
-                          title={label}
                           className='h-auto w-36 flex-none flex-col items-start gap-2 rounded-lg border border-border bg-card px-3 py-2.5 text-left font-normal whitespace-normal transition-colors after:hidden hover:bg-muted/40 data-[state=active]:border-primary/40 data-[state=active]:bg-primary/5 data-[state=active]:shadow-none sm:w-40 dark:data-[state=active]:border-primary/40 dark:data-[state=active]:bg-primary/10'
                           style={{
                             transitionDuration: `${reduce ? 0 : DURATION.fast}s`,

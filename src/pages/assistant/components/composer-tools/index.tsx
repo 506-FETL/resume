@@ -3,6 +3,7 @@ import type { ComposerTool } from '../../types'
 import {
   BarChart3,
   Compass,
+  Layers2,
   ListChecks,
   Sparkles,
   Star,
@@ -14,9 +15,17 @@ import { COMMAND_COLORS } from '@/lib/ai/commands'
 import { cn } from '@/lib/utils'
 import { BUILTIN_SKILLS } from '@/lib/ai/skills/catalog'
 
-// Slash 与工具菜单共用显示目录，选择结果保存为引用标签。
+// Slash 与工具菜单共用目录；action 直接执行，指令与技能保存为引用。
 // 每个工具配置独立图标，避免下拉里所有条目都是同一个「工具」图标。
 export const ASSISTANT_TOOLS: ComposerTool[] = [
+  {
+    name: '压缩上下文',
+    category: '对话',
+    description: '整理较早的对话',
+    action: 'compact-context',
+    aliases: ['compact', 'compress', '手动压缩', '整理对话'],
+    icon: <Layers2 className='size-5 text-muted-foreground' />,
+  },
   {
     name: '优化这段经历',
     category: '经历',

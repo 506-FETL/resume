@@ -1,4 +1,5 @@
 import type { AiMessage, AiMessagePart, AiUserReference } from '@/lib/ai/types'
+import type { ExperienceSourceRelation } from '@/lib/experience-sources/types'
 import { useCallback } from 'react'
 import { toast } from 'sonner'
 import { buildUserContext, runAgent } from '@/lib/ai/agent'
@@ -553,23 +554,10 @@ export function useChatStream() {
         submission?.thinking ?? useAssistantStore.getState().deepThinking
 
       try {
-        const statuses = await Promise.all(
-          Array.from(
-            { length: Math.ceil(frozenSources.length / 100) },
-            (_, index) =>
-              getExperienceSourceMetadata(
-                frozenSources
-                  .slice(index * 100, (index + 1) * 100)
-                  .map((source) => source.sourceId),
-                controller.signal,
-              ),
-          ),
-        )
-
-        const available = new Map(
-          statuses
-            .flatMap((result) => result.items)
-            .map((source) => [source.id, source]),
+        const { available, sources: runSources } = await loadRunSources(
+          frozenSources,
+          conversationId,
+          controller.signal,
         )
 
         const selectedSources = references
@@ -623,22 +611,6 @@ export function useChatStream() {
               sourceScopeRevision: state.sourceScopeRevision + 1,
             }))
         }
-
-        const runSources = frozenSources.flatMap((source) => {
-          const metadata = available.get(source.sourceId)
-
-          return metadata?.status === 'ready' &&
-            (!metadata.conversationId ||
-              metadata.conversationId === conversationId)
-            ? [
-                {
-                  ...source,
-                  currentVersionId: metadata.currentVersionId,
-                  updatedAt: metadata.updatedAt,
-                },
-              ]
-            : []
-        })
 
         const [context, prepared] = await Promise.all([
           buildUserContext(execution.targetResumeId),
@@ -1201,6 +1173,152 @@ export function useChatStream() {
     [drainQueue],
   )
 
+  const compactContext = useCallback(() => {
+    const state = useAssistantStore.getState()
+    const ownerId = useUserStore.getState().currentUser?.id
+    const conversationId = state.activeConversationId
+    const targetResumeId = resolveActiveResumeId()
+
+    if (
+      !ownerId ||
+      !conversationId ||
+      runner.busy ||
+      state.loadingMessages ||
+      state.initializing ||
+      state.bootstrapError ||
+      state.pendingAssistantWrite ||
+      state.pendingMessageUpdates.length ||
+      state.queuedMessages.length ||
+      state.pendingConfirm
+    )
+      return false
+
+    const explicitSources = freezeSourceScope([], state.composerReferences)
+
+    const sources = explicitSources.length
+      ? explicitSources
+      : (state.composerLibrarySources ??
+        peekSourceScope({
+          ownerId,
+          conversationId,
+          resumeId: targetResumeId,
+          scopeRevision: state.sourceScopeRevision,
+        }))
+
+    if (!sources) return false
+
+    const viewVersion = state.conversationViewVersion
+    const accountGeneration = getAssistantAccountGeneration()
+    const recoveryEpoch = getDraftRecoveryEpoch(ownerId)
+
+    runner
+      .start(async () => {
+        await executeAssistantRun(
+          {
+            ownerId,
+            recoveryEpoch,
+            accountGeneration,
+            conversationId,
+            submissionId: crypto.randomUUID(),
+            targetResumeId,
+          },
+          async ({ controller }) => {
+            const ownsView = () =>
+              !controller.signal.aborted &&
+              getAssistantAccountGeneration() === accountGeneration &&
+              getDraftRecoveryEpoch(ownerId) === recoveryEpoch &&
+              useUserStore.getState().currentUser?.id === ownerId &&
+              useAssistantStore.getState().conversationViewVersion ===
+                viewVersion
+
+            if (!ownsView()) return 'interrupted'
+
+            const unsubscribe = useAssistantStore.subscribe(() => {
+              if (!ownsView()) controller.abort()
+            })
+
+            const unsubscribeUser = useUserStore.subscribe(() => {
+              if (!ownsView()) controller.abort()
+            })
+
+            useAssistantStore.setState({
+              runPhase: 'compacting',
+              abortController: controller,
+            })
+
+            state.beginConversationRun(conversationId)
+
+            try {
+              const { sources: runSources } = await loadRunSources(
+                sources,
+                conversationId,
+                controller.signal,
+              )
+
+              const result = await prepareConversationContext(
+                conversationId,
+                controller.signal,
+                {
+                  resumeId: targetResumeId,
+                  sources: runSources,
+                  forceCompaction: true,
+                  onCompaction: recordAssistantRunCompaction,
+                },
+              )
+
+              if (controller.signal.aborted || !ownsView()) return 'interrupted'
+
+              if (result.summary) {
+                useAssistantStore.setState({
+                  contextCompaction: {
+                    conversationId,
+                    viewVersion,
+                    messageCount: result.compactedMessageCount,
+                  },
+                })
+
+                if (result.compactedMessageCount) toast.success('上下文已压缩')
+                else toast.info('较早对话已压缩，无需再次整理')
+              } else toast.info('还没有需要压缩的较早对话，最近 4 轮会完整保留')
+            } catch (error) {
+              if (controller.signal.aborted || !ownsView()) return 'interrupted'
+
+              if (error instanceof QuotaExceededError) openUpgradeDialog()
+              else
+                toast.error('上下文压缩失败，原消息仍保留', {
+                  description: getErrorMessage(error),
+                })
+
+              return 'paused'
+            } finally {
+              unsubscribe()
+              unsubscribeUser()
+              useAssistantStore.getState().finishConversationRun(conversationId)
+
+              if (useAssistantStore.getState().abortController === controller)
+                useAssistantStore.setState({
+                  abortController: null,
+                  runPhase: 'idle',
+                })
+              else if (
+                useUserStore.getState().currentUser?.id === ownerId &&
+                useAssistantStore.getState().conversationViewVersion ===
+                  viewVersion
+              )
+                useAssistantStore.setState({ runPhase: 'idle' })
+
+              refetchAiQuota()
+            }
+          },
+        )
+      })
+      .finally(() => {
+        if (!useAssistantStore.getState().queuePaused) drainQueue()
+      })
+
+    return true
+  }, [drainQueue])
+
   const resumeQueue = useCallback(() => {
     useAssistantStore.setState({ queuePaused: false })
     drainQueue()
@@ -1473,6 +1591,7 @@ export function useChatStream() {
 
   return {
     sendMessage,
+    compactContext,
     resumeQueue,
     sendQueuedNow,
     reviseConfirmation,
@@ -1481,4 +1600,45 @@ export function useChatStream() {
     editUserMessageAndRerun,
     stopStreaming,
   }
+}
+
+// 压缩与发送共用资料版本和更新时间，避免下一次请求把刚保存的摘要判为过期。
+async function loadRunSources(
+  frozenSources: ExperienceSourceRelation[],
+  conversationId: string,
+  signal: AbortSignal,
+) {
+  const statuses = await Promise.all(
+    Array.from({ length: Math.ceil(frozenSources.length / 100) }, (_, index) =>
+      getExperienceSourceMetadata(
+        frozenSources
+          .slice(index * 100, (index + 1) * 100)
+          .map((source) => source.sourceId),
+        signal,
+      ),
+    ),
+  )
+
+  const available = new Map(
+    statuses
+      .flatMap((result) => result.items)
+      .map((source) => [source.id, source]),
+  )
+
+  const sources = frozenSources.flatMap((source) => {
+    const metadata = available.get(source.sourceId)
+
+    return metadata?.status === 'ready' &&
+      (!metadata.conversationId || metadata.conversationId === conversationId)
+      ? [
+          {
+            ...source,
+            currentVersionId: metadata.currentVersionId,
+            updatedAt: metadata.updatedAt,
+          },
+        ]
+      : []
+  })
+
+  return { available, sources }
 }

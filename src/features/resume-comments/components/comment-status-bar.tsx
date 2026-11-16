@@ -1,11 +1,6 @@
 import { Spinner } from '@/components/ui/spinner'
 import { CheckCircle2, MessageCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 
 export function CommentStatusBar({
   replyCount,
@@ -33,25 +28,18 @@ export function CommentStatusBar({
         </span>
       ) : null}
       {canResolve ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              size='icon-xs'
-              variant='ghost'
-              aria-label={resolving ? '正在解决评论' : '解决评论'}
-              disabled={resolving}
-              onClick={(event) => {
-                event.stopPropagation()
-                onResolve()
-              }}
-            >
-              {resolving ? <Spinner /> : <CheckCircle2 />}
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            {resolving ? '正在解决…' : '标记为已解决'}
-          </TooltipContent>
-        </Tooltip>
+        <Button
+          size='icon-xs'
+          variant='ghost'
+          aria-label={resolving ? '正在解决评论' : '解决评论'}
+          disabled={resolving}
+          onClick={(event) => {
+            event.stopPropagation()
+            onResolve()
+          }}
+        >
+          {resolving ? <Spinner /> : <CheckCircle2 />}
+        </Button>
       ) : null}
       {replyCount > 0 ? (
         <Button

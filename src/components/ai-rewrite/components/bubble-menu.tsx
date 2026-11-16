@@ -66,7 +66,6 @@ export function RewriteBubbleMenu({
           type='button'
           size='sm'
           variant='ghost'
-          title={meta.description}
           onPointerDown={(event) => {
             if (!event.isPrimary || event.button !== 0) return
 

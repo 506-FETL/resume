@@ -151,10 +151,7 @@ export default function ScoresRadarChart({
                   key={item.category}
                   className='flex min-w-0 items-center justify-between gap-2'
                 >
-                  <span
-                    className='truncate text-muted-foreground'
-                    title={item.category}
-                  >
+                  <span className='truncate text-muted-foreground'>
                     {item.category}
                   </span>
                   <span className='shrink-0 font-medium'>

@@ -55,7 +55,7 @@ const SkillActivity = memo(function SkillActivity({
                 status={pending ? 'running' : failed ? 'error' : undefined}
               >
                 <TraceIcon>{failed ? <CircleAlert /> : <BookOpen />}</TraceIcon>
-                <TraceTitle title={title}>{title}</TraceTitle>
+                <TraceTitle>{title}</TraceTitle>
                 <TraceDescription className='text-xs'>
                   v{activity.version}
                 </TraceDescription>

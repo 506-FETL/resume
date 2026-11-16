@@ -1,6 +1,6 @@
-import { cn } from "@/lib/utils";
+import { cn } from '@/lib/utils'
 
-function PulseDot({ className, ...props }: React.ComponentProps<"span">) {
+function PulseDot({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <>
       <style>{`
@@ -18,18 +18,18 @@ function PulseDot({ className, ...props }: React.ComponentProps<"span">) {
         }
       `}</style>
       <span
-        role="status"
-        className={cn("inline-block rounded-full bg-current", className)}
+        role='status'
+        className={cn('inline-block rounded-full bg-current', className)}
         style={{
           animation:
-            "loading-ui-pulse-dot var(--duration, 1.2s) ease-in-out infinite",
+            'loading-ui-pulse-dot var(--duration, 1.2s) ease-in-out infinite',
         }}
         {...props}
       >
-        <span className="sr-only">Loading</span>
+        <span className='sr-only'>Loading</span>
       </span>
     </>
-  );
+  )
 }
 
-export { PulseDot };
+export { PulseDot }

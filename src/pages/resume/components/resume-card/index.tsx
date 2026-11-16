@@ -187,10 +187,7 @@ export default function ResumeCard({
         />
         <div className='pointer-events-none relative flex min-w-0 flex-1 items-start gap-3 [&_button]:pointer-events-auto'>
           <div className='min-w-0 flex-1'>
-            <h2
-              className='line-clamp-2 text-xl leading-tight font-semibold tracking-tight [overflow-wrap:anywhere] sm:text-[1.75rem]'
-              title={resume.display_name || '未命名简历'}
-            >
+            <h2 className='line-clamp-2 text-xl leading-tight font-semibold tracking-tight [overflow-wrap:anywhere] sm:text-[1.75rem]'>
               {resume.display_name || '未命名简历'}
             </h2>
             <div className='mt-3 flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1.5 text-xs text-muted-foreground'>
@@ -216,10 +213,7 @@ export default function ResumeCard({
               </time>
             </div>
             {resume.description && (
-              <p
-                className='mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]'
-                title={resume.description}
-              >
+              <p className='mt-2 line-clamp-2 text-sm leading-6 text-muted-foreground [overflow-wrap:anywhere]'>
                 {resume.description}
               </p>
             )}
@@ -247,11 +241,6 @@ export default function ResumeCard({
                   <VariantBadge
                     onEdit={handleCardClick}
                     parentName={parent?.display_name ?? null}
-                    jdSnippet={
-                      (
-                        resume.linked_jd_excerpt ?? resume.linked_jd_text
-                      )?.slice(0, 80) ?? null
-                    }
                     matchRate={
                       resume.derived_match_rate ??
                       resume.derived_metadata?.matchRate ??
@@ -266,7 +255,6 @@ export default function ResumeCard({
                     size='sm'
                     onClick={handleParentClick}
                     className='h-auto min-w-0 max-w-full shrink px-0 py-0 text-xs font-normal text-muted-foreground'
-                    title={`原始简历：${parent.display_name || '未命名简历'}`}
                   >
                     <span className='truncate'>
                       来自 {parent.display_name || '未命名简历'}
@@ -326,9 +314,6 @@ export default function ResumeCard({
               onClick={handleShareClick}
               className='h-9 gap-1 px-2 text-xs text-muted-foreground'
               disabled={resume.isOffline}
-              title={
-                resume.isOffline ? '本地简历需先同步到云端才能分享' : undefined
-              }
             >
               <Share2 className='size-3.5' />
               分享

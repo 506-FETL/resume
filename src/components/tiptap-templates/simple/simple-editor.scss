@@ -131,12 +131,9 @@ body,
   flex: 1;
   padding: 2rem 2.5rem;
   min-height: 100%;
-  position: relative;
-  z-index: 1;
   background: transparent;
 
-  // 确保光标在所有设备上可见
-  caret-color: var(--tt-cursor-color);
+  caret-color: var(--tt-cursor-color, currentColor);
   -webkit-user-select: text;
   user-select: text;
   cursor: text;

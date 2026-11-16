@@ -114,7 +114,6 @@ export function CompanyPicker({
                 <InputGroupButton
                   size='icon-xs'
                   aria-label='重新加载公司'
-                  title={companiesError}
                   className='text-destructive hover:text-destructive'
                   disabled={disabled}
                   onClick={() => {

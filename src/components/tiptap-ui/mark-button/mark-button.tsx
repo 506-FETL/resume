@@ -5,12 +5,9 @@ import type { ButtonProps } from '@/components/tiptap-ui-primitive/button'
 
 // --- Tiptap UI ---
 import type { Mark, UseMarkConfig } from '@/components/tiptap-ui/mark-button'
-
 import * as React from 'react'
-
 import { Badge } from '@/components/tiptap-ui-primitive/badge'
 import { Button } from '@/components/tiptap-ui-primitive/button'
-
 import { MARK_SHORTCUT_KEYS, useMark } from '@/components/tiptap-ui/mark-button'
 // --- Hooks ---
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
@@ -100,7 +97,6 @@ export function MarkButton({
       tabIndex={-1}
       aria-label={label}
       aria-pressed={isActive}
-      tooltip={label}
       onClick={handleClick}
       {...buttonProps}
       ref={ref}

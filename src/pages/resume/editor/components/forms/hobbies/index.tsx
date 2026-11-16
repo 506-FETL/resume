@@ -14,11 +14,6 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { Separator } from '@/components/ui/separator'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { hobbiesFormSchema, PRESET_HOBBIES } from '@/lib/schema'
@@ -250,35 +245,26 @@ function HobbiesForm({ className }: { className?: string }) {
                               {hobbyValue}
                             </span>
                             <div className='flex shrink-0 items-center gap-0.5'>
-                              <Tooltip>
-                                <TooltipTrigger asChild>
-                                  <Button
-                                    type='button'
-                                    variant='ghost'
-                                    size='sm'
-                                    onClick={() => {
-                                      form.setValue(
-                                        `hobbies.${index}.hidden` as any,
-                                        !hidden as any,
-                                        { shouldDirty: true },
-                                      )
-                                    }}
-                                    aria-label={`${hidden ? '显示' : '隐藏'}爱好 ${hobbyValue}`}
-                                    className='size-8 p-0'
-                                  >
-                                    {hidden ? (
-                                      <EyeOff className='size-4' />
-                                    ) : (
-                                      <Eye className='size-4' />
-                                    )}
-                                  </Button>
-                                </TooltipTrigger>
-                                <TooltipContent>
-                                  {hidden
-                                    ? '显示此爱好'
-                                    : '隐藏此爱好（内容保留）'}
-                                </TooltipContent>
-                              </Tooltip>
+                              <Button
+                                type='button'
+                                variant='ghost'
+                                size='sm'
+                                onClick={() => {
+                                  form.setValue(
+                                    `hobbies.${index}.hidden` as any,
+                                    !hidden as any,
+                                    { shouldDirty: true },
+                                  )
+                                }}
+                                aria-label={`${hidden ? '显示' : '隐藏'}爱好 ${hobbyValue}`}
+                                className='size-8 p-0'
+                              >
+                                {hidden ? (
+                                  <EyeOff className='size-4' />
+                                ) : (
+                                  <Eye className='size-4' />
+                                )}
+                              </Button>
                               <Button
                                 type='button'
                                 variant='ghost'

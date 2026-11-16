@@ -8,11 +8,6 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { DURATION } from '@/lib/motion'
 import type { JobSubmission } from '../../../submission-types'
 
@@ -57,24 +52,17 @@ export default function SubmissionFileRow({
       </Button>
       {onCorrect && (
         <DropdownMenu>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  ref={menuTriggerRef}
-                  size='icon-sm'
-                  variant='ghost'
-                  aria-label='投递原件操作'
-                  className='focus-visible:ring-inset'
-                >
-                  <MoreHorizontal aria-hidden />
-                </Button>
-              </DropdownMenuTrigger>
-            </TooltipTrigger>
-            <TooltipContent className='motion-reduce:animate-none'>
-              更多操作
-            </TooltipContent>
-          </Tooltip>
+          <DropdownMenuTrigger asChild>
+            <Button
+              ref={menuTriggerRef}
+              size='icon-sm'
+              variant='ghost'
+              aria-label='投递原件操作'
+              className='focus-visible:ring-inset'
+            >
+              <MoreHorizontal aria-hidden />
+            </Button>
+          </DropdownMenuTrigger>
           <DropdownMenuContent
             align='end'
             className='motion-reduce:animate-none'

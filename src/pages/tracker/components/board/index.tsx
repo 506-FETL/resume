@@ -446,7 +446,6 @@ function BoardView() {
                         variant='ghost'
                         aria-expanded={false}
                         onClick={handleToggleRejected}
-                        title={`${column.label}（${columnJobs.length}）· 点击展开`}
                         className='flex h-auto min-h-0 w-full flex-1 flex-col items-center justify-start gap-2.5 rounded-xl px-0 py-4 text-muted-foreground transition-colors hover:bg-muted/50'
                         style={{
                           transitionDuration: `${reduceMotion ? 0 : DURATION.base}s`,

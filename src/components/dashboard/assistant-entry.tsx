@@ -25,7 +25,6 @@ export function AssistantEntry() {
   const entry = (
     <SidebarMenuButton
       asChild
-      tooltip='AI 助手'
       isActive={isActive}
       className='group/assistant h-10 gap-2.5 rounded-lg border border-sidebar-border bg-background px-2.5 font-medium text-sidebar-foreground shadow-xs transition-[background-color,border-color,box-shadow] hover:border-violet-300/70 hover:bg-sidebar-accent focus-visible:ring-2 focus-visible:ring-ring data-[active=true]:border-violet-300/70 data-[active=true]:bg-sidebar-accent dark:hover:border-violet-700/70 dark:data-[active=true]:border-violet-700/70'
       style={{ transitionDuration: `${reduceMotion ? 0 : DURATION.base}s` }}

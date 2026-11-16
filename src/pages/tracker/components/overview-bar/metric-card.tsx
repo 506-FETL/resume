@@ -56,7 +56,7 @@ function MetricCardComponent({
       disabled={loading || error}
       aria-pressed={active}
       aria-label={accessibleLabel}
-      title={`${description}，${actionLabel}`}
+      aria-description={description}
       style={{
         transitionDuration: `${reduce ? 0 : DURATION.fast}s`,
         transitionTimingFunction: `cubic-bezier(${EASE.out.join(',')})`,

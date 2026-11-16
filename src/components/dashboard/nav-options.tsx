@@ -40,7 +40,6 @@ export function NavOptions({
               <SidebarMenuButton
                 asChild
                 isActive={isActive}
-                tooltip={item.title}
                 className='h-9 gap-3 px-3 text-sidebar-foreground/80 transition-colors data-[active=true]:font-medium data-[active=true]:text-sidebar-foreground'
                 style={{
                   transitionDuration: `${reduceMotion ? 0 : DURATION.base}s`,
@@ -48,6 +47,7 @@ export function NavOptions({
               >
                 <Link
                   to={item.url}
+                  aria-label={item.title}
                   aria-current={isActive ? 'page' : undefined}
                 >
                   <item.icon />

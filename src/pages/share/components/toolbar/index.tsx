@@ -1,4 +1,3 @@
-import { useIsShortViewport } from '@/hooks/use-is-short-viewport'
 import type { ShareStatusFilter } from '../../utils'
 import { Check, ChevronDown, FileUser, Search, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
@@ -22,11 +21,6 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { SHARE_SEARCH_INPUT_ID, SHARE_STATUS_FILTERS } from '../../const'
@@ -35,8 +29,6 @@ import useShareStore from '../../store'
 import { deriveShareStatus, filterShares } from '../../utils'
 
 export default function Toolbar() {
-  const isShortViewport = useIsShortViewport()
-
   const {
     allShares,
     pageLoading,
@@ -271,23 +263,18 @@ export default function Toolbar() {
               exit={{ opacity: 0 }}
               transition={{ duration: reduceMotion ? 0 : DURATION.fast }}
             >
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='text-muted-foreground [@media(max-height:500px)]:size-9 [@media(max-height:500px)]:p-0'
-                    aria-label='重置筛选'
-                    onClick={resetFilters}
-                  >
-                    <X className='size-3.5' aria-hidden />
-                    <span className='[@media(max-height:500px)]:sr-only'>
-                      重置筛选
-                    </span>
-                  </Button>
-                </TooltipTrigger>
-                {isShortViewport && <TooltipContent>重置筛选</TooltipContent>}
-              </Tooltip>
+              <Button
+                variant='ghost'
+                size='sm'
+                className='text-muted-foreground [@media(max-height:500px)]:size-9 [@media(max-height:500px)]:p-0'
+                aria-label='重置筛选'
+                onClick={resetFilters}
+              >
+                <X className='size-3.5' aria-hidden />
+                <span className='[@media(max-height:500px)]:sr-only'>
+                  重置筛选
+                </span>
+              </Button>
             </PresenceDiv>
           )}
         </AnimatePresence>

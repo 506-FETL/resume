@@ -49,6 +49,30 @@ const REFERENCE_COLORS = {
   experience: 'border-border bg-muted/60 text-foreground',
 }
 
+const REFERENCE_PURPOSES = {
+  resume: '简历引用',
+  annotation: '简历引用',
+  job: '岗位引用',
+  'legacy-job': '岗位引用',
+  experience: '资料引用',
+  command: '快捷指令',
+  skill: '技能调用',
+}
+
+const COMMAND_PURPOSES: Record<string, string> = {
+  'polish-experience': '经历优化',
+  'star-experience': 'STAR 描述',
+  'clarify-results': '成果梳理',
+  'match-job': '岗位匹配',
+  'extract-skills': '技能提炼',
+  'write-summary': '自我评价',
+  'polish-objective': '意向润色',
+}
+
+const SKILL_PURPOSES: Record<string, string> = {
+  'great-resume': '简历提升',
+}
+
 export default function ReferenceTags({
   references,
   onRemove,
@@ -110,6 +134,13 @@ export default function ReferenceTags({
           const kind =
             reference.type === 'skill-reference' ? 'skill' : reference.kind
 
+          const purpose =
+            reference.type === 'skill-reference'
+              ? (SKILL_PURPOSES[reference.skillId] ?? REFERENCE_PURPOSES.skill)
+              : reference.kind === 'command'
+                ? (COMMAND_PURPOSES[reference.id] ?? REFERENCE_PURPOSES.command)
+                : REFERENCE_PURPOSES[reference.kind]
+
           const Icon =
             kind === 'skill'
               ? BookOpen
@@ -126,7 +157,7 @@ export default function ReferenceTags({
           return (
             <motion.div
               key={key}
-              className='w-[88px] min-w-0 max-w-full shrink-0 sm:w-[100px]'
+              className='w-30 min-w-0 max-w-full shrink-0'
               initial={reduced ? false : { opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{
@@ -163,14 +194,14 @@ export default function ReferenceTags({
                   </AttachmentMedia>
                   <AttachmentContent className='min-w-0 py-1'>
                     <AttachmentTitle className='truncate'>
-                      {label}
+                      {purpose}
                     </AttachmentTitle>
                   </AttachmentContent>
                   <PopoverTrigger asChild>
                     <AttachmentTrigger
                       className='rounded-md'
                       data-reference-key={key}
-                      aria-label={`查看引用：${label}`}
+                      aria-label={`查看${purpose}：${label}`}
                       disabled={disabled}
                     />
                   </PopoverTrigger>
@@ -180,7 +211,7 @@ export default function ReferenceTags({
                         type='button'
                         className='rounded-sm hover:bg-black/5 hover:text-current dark:hover:bg-white/10'
                         disabled={disabled}
-                        aria-label={`移除${label}`}
+                        aria-label={`移除${purpose}：${label}`}
                         onClick={(event) => {
                           event.preventDefault()
                           event.stopPropagation()

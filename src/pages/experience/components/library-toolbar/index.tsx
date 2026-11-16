@@ -12,7 +12,7 @@ import { useExperiencePageStore } from '../../store'
 import type { ExperienceFilter } from '../../types'
 
 export default function LibraryToolbar() {
-  const { query, filter, view, setQuery, setFilter, setView } =
+  const { query, filter, view, deleting, setQuery, setFilter, setView } =
     useExperiencePageStore()
 
   return (
@@ -22,11 +22,15 @@ export default function LibraryToolbar() {
         onValueChange={(value) => setFilter(value as ExperienceFilter)}
       >
         <TabsList variant='line'>
-          <TabsTrigger value='all' data-experience-all>
+          <TabsTrigger value='all' data-experience-all disabled={deleting}>
             全部
           </TabsTrigger>
-          <TabsTrigger value='files'>文件</TabsTrigger>
-          <TabsTrigger value='paste'>文字</TabsTrigger>
+          <TabsTrigger value='files' disabled={deleting}>
+            文件
+          </TabsTrigger>
+          <TabsTrigger value='paste' disabled={deleting}>
+            文字
+          </TabsTrigger>
         </TabsList>
       </Tabs>
       <InputGroup className='col-span-2 row-start-2 @min-[700px]/workspace:col-span-1 @min-[700px]/workspace:col-start-2 @min-[700px]/workspace:row-start-1 @min-[700px]/workspace:max-w-sm @min-[700px]/workspace:justify-self-end'>
@@ -37,12 +41,14 @@ export default function LibraryToolbar() {
           aria-label='搜索资料名称'
           placeholder='搜索资料名称'
           value={query}
+          disabled={deleting}
           onChange={(event) => setQuery(event.target.value)}
         />
         {query && (
           <InputGroupAddon align='inline-end'>
             <InputGroupButton
               aria-label='清除搜索'
+              disabled={deleting}
               onClick={() => setQuery('')}
             >
               <X />
@@ -59,6 +65,7 @@ export default function LibraryToolbar() {
           size='icon'
           className='aria-pressed:bg-muted aria-pressed:text-foreground'
           aria-label='网格视图'
+          disabled={deleting}
           aria-pressed={view === 'grid'}
           onClick={() => setView('grid')}
         >
@@ -69,6 +76,7 @@ export default function LibraryToolbar() {
           size='icon'
           className='aria-pressed:bg-muted aria-pressed:text-foreground'
           aria-label='列表视图'
+          disabled={deleting}
           aria-pressed={view === 'list'}
           onClick={() => setView('list')}
         >

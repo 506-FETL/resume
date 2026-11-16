@@ -13,14 +13,12 @@ import { CornerDownLeftIcon } from '@/components/tiptap-icons/corner-down-left-i
 import { ExternalLinkIcon } from '@/components/tiptap-icons/external-link-icon'
 import { LinkIcon } from '@/components/tiptap-icons/link-icon'
 import { TrashIcon } from '@/components/tiptap-icons/trash-icon'
-
 import { Button, ButtonGroup } from '@/components/tiptap-ui-primitive/button'
 import {
   Card,
   CardBody,
   CardItemGroup,
 } from '@/components/tiptap-ui-primitive/card'
-
 import { Input, InputGroup } from '@/components/tiptap-ui-primitive/input'
 import {
   Popover,
@@ -90,7 +88,6 @@ export function LinkButton({
       role='button'
       tabIndex={-1}
       aria-label='Link'
-      tooltip='Link'
       ref={ref}
       {...props}
     >
@@ -151,7 +148,7 @@ const LinkMain: React.FC<LinkMainProps> = ({
             <Button
               type='button'
               onClick={setLink}
-              title='Apply link'
+              aria-label='应用链接'
               disabled={!url && !isActive}
               data-style='ghost'
             >
@@ -165,7 +162,7 @@ const LinkMain: React.FC<LinkMainProps> = ({
             <Button
               type='button'
               onClick={openLink}
-              title='Open in new window'
+              aria-label='打开链接'
               disabled={!url && !isActive}
               data-style='ghost'
             >
@@ -175,7 +172,7 @@ const LinkMain: React.FC<LinkMainProps> = ({
             <Button
               type='button'
               onClick={removeLink}
-              title='Remove link'
+              aria-label='移除链接'
               disabled={!url && !isActive}
               data-style='ghost'
             >

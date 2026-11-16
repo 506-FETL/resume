@@ -27,11 +27,6 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { createResumeEntryId } from '@/lib/schema/resume/entry-id'
@@ -297,35 +292,26 @@ function SkillSpecialtyForm({ className }: { className?: string }) {
                                 {item.label}
                               </span>
                               <div className='flex shrink-0 items-center gap-0.5'>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Button
-                                      type='button'
-                                      variant='ghost'
-                                      size='sm'
-                                      onClick={() => {
-                                        form.setValue(
-                                          `skills.${index}.hidden` as any,
-                                          !hidden,
-                                          { shouldDirty: true },
-                                        )
-                                      }}
-                                      aria-label={`${hidden ? '显示' : '隐藏'}技能 ${item.label}`}
-                                      className='size-8 shrink-0 p-0'
-                                    >
-                                      {hidden ? (
-                                        <EyeOff className='size-4' />
-                                      ) : (
-                                        <Eye className='size-4' />
-                                      )}
-                                    </Button>
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    {hidden
-                                      ? '显示此技能'
-                                      : '隐藏此技能（内容保留）'}
-                                  </TooltipContent>
-                                </Tooltip>
+                                <Button
+                                  type='button'
+                                  variant='ghost'
+                                  size='sm'
+                                  onClick={() => {
+                                    form.setValue(
+                                      `skills.${index}.hidden` as any,
+                                      !hidden,
+                                      { shouldDirty: true },
+                                    )
+                                  }}
+                                  aria-label={`${hidden ? '显示' : '隐藏'}技能 ${item.label}`}
+                                  className='size-8 shrink-0 p-0'
+                                >
+                                  {hidden ? (
+                                    <EyeOff className='size-4' />
+                                  ) : (
+                                    <Eye className='size-4' />
+                                  )}
+                                </Button>
                                 <Button
                                   type='button'
                                   variant='ghost'

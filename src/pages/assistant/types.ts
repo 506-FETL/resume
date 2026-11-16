@@ -13,6 +13,8 @@ export interface ComposerTool {
   skillId?: string
   sourceLabel?: string
   aliases?: string[]
+  action?: 'compact-context'
+  disabled?: boolean
 }
 
 export interface ComposerSkill {

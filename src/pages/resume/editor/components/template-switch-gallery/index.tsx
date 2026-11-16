@@ -145,9 +145,7 @@ function TemplateCard({
           </div>
         </div>
         <div className='border-t px-2.5 py-2'>
-          <p className='truncate text-xs font-medium' title={name}>
-            {name}
-          </p>
+          <p className='truncate text-xs font-medium'>{name}</p>
           <p className='mt-0.5 text-[10px] text-muted-foreground'>
             {item
               ? `${item.category.style} · ${item.category.layout}`

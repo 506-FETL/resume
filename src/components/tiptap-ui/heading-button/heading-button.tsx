@@ -6,10 +6,8 @@ import type {
   Level,
   UseHeadingConfig,
 } from '@/components/tiptap-ui/heading-button'
-
 import * as React from 'react'
 import { Badge } from '@/components/tiptap-ui-primitive/badge'
-
 import { Button } from '@/components/tiptap-ui-primitive/button'
 import {
   HEADING_SHORTCUT_KEYS,
@@ -102,7 +100,6 @@ export function HeadingButton({
       data-disabled={!canToggle}
       aria-label={label}
       aria-pressed={isActive}
-      tooltip={label}
       onClick={handleClick}
       {...buttonProps}
       ref={ref}

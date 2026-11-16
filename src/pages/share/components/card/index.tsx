@@ -139,7 +139,6 @@ export default function LinkCard({
                   'text-muted-foreground',
                   status === 'expired' && statusMeta.textClassName,
                 )}
-                title={new Date(share.expires_at!).toLocaleString('zh-CN')}
               >
                 {expiry}
                 {status === 'expired' ? '已到期' : '到期'}
@@ -169,14 +168,7 @@ export default function LinkCard({
             </div>
             <div className='min-w-0'>
               <dt className='sr-only'>最近访问</dt>
-              <dd
-                className='wrap-anywhere'
-                title={
-                  share.last_viewed_at
-                    ? new Date(share.last_viewed_at).toLocaleString('zh-CN')
-                    : undefined
-                }
-              >
+              <dd className='wrap-anywhere'>
                 {share.last_viewed_at
                   ? `${formatRelativeTime(share.last_viewed_at)}访问`
                   : '暂无访问'}

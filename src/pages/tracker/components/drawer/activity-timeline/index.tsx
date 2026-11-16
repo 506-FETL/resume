@@ -400,7 +400,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
                         </span>
                         <span className='w-px flex-1 bg-border group-last:hidden' />
                       </div>
-                      <div className='flex min-w-0 flex-1 flex-wrap items-start justify-between gap-2 pb-4'>
+                      <div className='flex min-w-0 flex-1 items-start justify-between gap-2 pb-4'>
                         {editingId === activity.id && !selectMode ? (
                           <div className='flex flex-1 items-center gap-2'>
                             <Input
@@ -439,7 +439,7 @@ export default function ActivityTimeline({ job }: ActivityTimelineProps) {
                           </div>
                         ) : (
                           <>
-                            <div className='min-w-0 flex-1 basis-full sm:basis-0'>
+                            <div className='min-w-0 flex-1'>
                               <p className='text-sm leading-snug break-words'>
                                 {activity.label}
                               </p>

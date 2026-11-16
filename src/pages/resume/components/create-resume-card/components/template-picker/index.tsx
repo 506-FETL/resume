@@ -540,10 +540,7 @@ function TemplateOption({
               <Check className='size-3' />
             </span>
           </div>
-          <span
-            title={item.name}
-            className='block truncate border-t px-2.5 py-2 text-xs font-medium'
-          >
+          <span className='block truncate border-t px-2.5 py-2 text-xs font-medium'>
             {item.name}
           </span>
         </Button>

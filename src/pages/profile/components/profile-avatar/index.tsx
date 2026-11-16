@@ -119,11 +119,11 @@ export function ProfileAvatar() {
       <div className='relative'>
         <CurrentUserAvatar className='size-24' />
         <Button
+          aria-label={uploading ? '正在上传头像' : '更换头像'}
           onClick={handleAvatarClick}
           disabled={uploading}
           size='icon'
           className='absolute bottom-0 right-0 flex size-8 items-center justify-center rounded-full hover:cursor-pointer hover:shadow-md'
-          title='更换头像'
         >
           <AnimatedContent
             as='span'

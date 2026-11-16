@@ -10,10 +10,8 @@ import type {
 import * as React from 'react'
 // --- Icons ---
 import { BanIcon } from '@/components/tiptap-icons/ban-icon'
-
 import { HighlighterIcon } from '@/components/tiptap-icons/highlighter-icon'
 import { Button, ButtonGroup } from '@/components/tiptap-ui-primitive/button'
-
 import {
   Card,
   CardBody,
@@ -32,7 +30,6 @@ import {
 } from '@/components/tiptap-ui/color-highlight-button'
 // --- Hooks ---
 import { useMenuNavigation } from '@/hooks/use-menu-navigation'
-
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useTiptapEditor } from '@/hooks/use-tiptap-editor'
 
@@ -77,7 +74,6 @@ export function ColorHighlightPopoverButton({
       role='button'
       tabIndex={-1}
       aria-label='Highlight text'
-      tooltip='Highlight'
       ref={ref}
       {...props}
     >
@@ -138,7 +134,6 @@ export function ColorHighlightPopoverContent({
                 key={color.value}
                 editor={editor}
                 highlightColor={color.value}
-                tooltip={color.label}
                 aria-label={`${color.label} highlight color`}
                 tabIndex={index === selectedIndex ? 0 : -1}
                 data-highlighted={selectedIndex === index}
@@ -150,7 +145,6 @@ export function ColorHighlightPopoverContent({
             <Button
               onClick={handleRemoveHighlight}
               aria-label='Remove highlight'
-              tooltip='Remove highlight'
               tabIndex={selectedIndex === colors.length ? 0 : -1}
               type='button'
               role='menuitem'
@@ -200,7 +194,6 @@ export function ColorHighlightPopover({
           data-disabled={!canColorHighlight}
           aria-pressed={isActive}
           aria-label={label}
-          tooltip={label}
           {...props}
         >
           <Icon className='tiptap-button-icon' />

@@ -3,7 +3,6 @@
   position: relative;
   isolation: isolate;
   width: 100%;
-  max-width: 650px;
   aspect-ratio: 4 / 3;
   margin-inline: auto;
   color: #202324;
@@ -57,7 +56,7 @@
   background: #a6b9de;
   box-shadow: 0.28cqw -0.22cqw 0 #202324;
   color: #202324;
-  font: 700 clamp(13px, 3.7cqw, 24px) / 1 var(--hand);
+  font: 700 max(13px, 3.7cqw) / 1 var(--hand);
   white-space: nowrap;
   cursor: pointer;
   transform-origin: bottom center;

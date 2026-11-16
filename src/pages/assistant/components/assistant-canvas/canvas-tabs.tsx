@@ -11,11 +11,6 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import useAssistantStore from '../../store'
 
@@ -65,39 +60,32 @@ export function CanvasTabs({ model }: { model: CanvasModel }) {
         )}
       </TabsList>
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            type='button'
-            variant='ghost'
-            size='icon-xs'
-            aria-label={canvasTabPinned ? '取消固定当前标签' : '固定当前标签'}
-            aria-pressed={canvasTabPinned}
-            onClick={() => setCanvasTabPinned(!canvasTabPinned)}
-            className={cn(
-              'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
-              canvasTabPinned
-                ? 'bg-primary/15 text-primary'
-                : 'text-muted-foreground hover:bg-muted hover:text-foreground',
-            )}
-          >
-            <AnimatedContent
-              animationKey={canvasTabPinned ? 'pinned' : 'unpinned'}
-              as='span'
-              className='flex size-4 items-center justify-center'
-            >
-              {canvasTabPinned ? (
-                <Pin className='size-4' />
-              ) : (
-                <PinOff className='size-4' />
-              )}
-            </AnimatedContent>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent side='left'>
-          {canvasTabPinned ? '已固定：切换会话不自动跳走' : '固定当前标签'}
-        </TooltipContent>
-      </Tooltip>
+      <Button
+        type='button'
+        variant='ghost'
+        size='icon-xs'
+        aria-label={canvasTabPinned ? '取消固定当前标签' : '固定当前标签'}
+        aria-pressed={canvasTabPinned}
+        onClick={() => setCanvasTabPinned(!canvasTabPinned)}
+        className={cn(
+          'flex size-7 shrink-0 items-center justify-center rounded-md transition-colors',
+          canvasTabPinned
+            ? 'bg-primary/15 text-primary'
+            : 'text-muted-foreground hover:bg-muted hover:text-foreground',
+        )}
+      >
+        <AnimatedContent
+          animationKey={canvasTabPinned ? 'pinned' : 'unpinned'}
+          as='span'
+          className='flex size-4 items-center justify-center'
+        >
+          {canvasTabPinned ? (
+            <Pin className='size-4' />
+          ) : (
+            <PinOff className='size-4' />
+          )}
+        </AnimatedContent>
+      </Button>
     </div>
   )
 }

@@ -51,7 +51,6 @@ export default function Preparation({
           variant='outline'
           size={isMobile ? 'icon' : 'sm'}
           aria-label='填写建议'
-          title={isMobile ? '填写建议' : undefined}
           disabled={!initialized || reviewActive}
         >
           <Lightbulb />

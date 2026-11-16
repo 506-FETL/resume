@@ -19,8 +19,9 @@ import type {
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { ATS_FIELD_LABELS, ATS_SECTION_LABELS } from '@/lib/ats/constants'
 import { DURATION, EASE } from '@/lib/motion'
+import { PresenceDiv } from '@/components/motion/presence-item'
 import { MessageSquarePlus } from 'lucide-react'
-import { AnimatePresence, motion } from 'motion/react'
+import { AnimatePresence } from 'motion/react'
 import type { RefObject } from 'react'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -78,7 +79,7 @@ export default function AnnotationControls({
   resumeId: string
   name: string
 }) {
-  const [selected, setSelection] = useState<{
+  const [selected, setSelected] = useState<{
     value: NonNullable<ReturnType<typeof resolveCanvasSelection>>
     documentHash: string
     resumeId: string
@@ -91,6 +92,8 @@ export default function AnnotationControls({
       : null
 
   const addedRef = useRef(false)
+  const pointerSelectingRef = useRef(false)
+  const keyboardFieldRef = useRef<HTMLElement | null>(null)
 
   const [open, setOpen] = useState(false)
   const reduced = useReducedMotion()
@@ -244,7 +247,7 @@ export default function AnnotationControls({
       },
     ])
 
-    setSelection(null)
+    setSelected(null)
     setOpen(false)
     window.getSelection()?.removeAllRanges()
 
@@ -267,48 +270,155 @@ export default function AnnotationControls({
 
     if (!root) return
 
+    let timer: ReturnType<typeof setTimeout> | undefined
+    let armed = false
+    let keyboardSelecting = false
+
+    const clear = () => {
+      clearTimeout(timer)
+      setSelected(null)
+    }
+
     const update = () => {
+      if (!armed || pointerSelectingRef.current || keyboardSelecting) return
+
       const selected = window.getSelection()
 
       const value = selected?.rangeCount
         ? resolveCanvasSelection(root, selected.getRangeAt(0), model)
         : null
 
-      setSelection(
+      setSelected(
         value ? { value, documentHash: model.documentHash, resumeId } : null,
       )
     }
 
-    const clear = () => setSelection(null)
+    const schedule = () => {
+      clear()
+      timer = setTimeout(update, 120)
+    }
 
-    const outside = (event: PointerEvent) => {
+    const cancel = () => {
+      armed = false
+      pointerSelectingRef.current = false
+      keyboardSelecting = false
+      keyboardFieldRef.current = null
+      clear()
+    }
+
+    const start = (event: PointerEvent) => {
+      const target = event.target
+
       if (
-        event.target instanceof Element &&
-        !root.contains(event.target) &&
-        !event.target.closest('[data-annotation-bubble]')
+        target instanceof Element &&
+        target.closest('[data-annotation-bubble]')
       )
-        clear()
+        return
+
+      cancel()
+
+      pointerSelectingRef.current =
+        target instanceof Node && root.contains(target)
+    }
+
+    const finish = () => {
+      if (!pointerSelectingRef.current) return
+
+      pointerSelectingRef.current = false
+      armed = true
+      schedule()
+    }
+
+    const selectStart = (event: Event) => {
+      if (!(event.target instanceof Node) || !root.contains(event.target))
+        return
+
+      armed = true
+      keyboardFieldRef.current = null
+      clear()
+
+      if (!pointerSelectingRef.current && !keyboardSelecting) schedule()
+    }
+
+    const change = () => {
+      if (keyboardFieldRef.current) return
+
+      clear()
+
+      if (armed && !pointerSelectingRef.current && !keyboardSelecting)
+        schedule()
     }
 
     const keyboard = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') clear()
-      else if (event.key.startsWith('Arrow') && event.shiftKey) update()
+      if (event.key === 'Escape') {
+        cancel()
+
+        return
+      }
+
+      const selecting =
+        (event.shiftKey &&
+          [
+            'ArrowLeft',
+            'ArrowRight',
+            'ArrowUp',
+            'ArrowDown',
+            'Home',
+            'End',
+          ].includes(event.key)) ||
+        ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'a')
+
+      if (
+        selecting &&
+        event.target instanceof Node &&
+        root.contains(event.target)
+      ) {
+        keyboardSelecting = true
+        keyboardFieldRef.current = null
+        armed = true
+        clear()
+      }
     }
 
-    root.addEventListener('pointerup', update)
-    root.addEventListener('keyup', keyboard)
-    root.addEventListener('scroll', clear, true)
-    window.addEventListener('resize', clear)
-    document.addEventListener('pointerdown', outside)
+    const keyup = (event: KeyboardEvent) => {
+      if (!keyboardSelecting || (event.shiftKey && event.key !== 'Shift'))
+        return
+
+      keyboardSelecting = false
+      schedule()
+    }
+
+    const scroll = () => {
+      // 拖选可能带动页面滚动；滚动不能提前结束这次选择。
+      if (pointerSelectingRef.current || keyboardSelecting) clear()
+      else cancel()
+    }
+
+    document.addEventListener('scroll', scroll, true)
+    window.addEventListener('resize', cancel)
+    window.addEventListener('blur', cancel)
+    document.addEventListener('pointerdown', start, true)
+    document.addEventListener('pointerup', finish)
+    document.addEventListener('pointercancel', cancel)
+    document.addEventListener('selectstart', selectStart)
+    document.addEventListener('selectionchange', change)
     document.addEventListener('keydown', keyboard)
+    document.addEventListener('keyup', keyup)
 
     return () => {
-      root.removeEventListener('pointerup', update)
-      root.removeEventListener('keyup', keyboard)
-      root.removeEventListener('scroll', clear, true)
-      window.removeEventListener('resize', clear)
-      document.removeEventListener('pointerdown', outside)
+      clearTimeout(timer)
+      pointerSelectingRef.current = false
+      keyboardFieldRef.current = null
+      document.removeEventListener('scroll', scroll, true)
+      window.removeEventListener('resize', cancel)
+      window.removeEventListener('blur', cancel)
+      document.removeEventListener('pointerdown', start, true)
+      document.removeEventListener('pointerup', finish)
+      document.removeEventListener('pointercancel', cancel)
+      document.removeEventListener('selectstart', selectStart)
+      document.removeEventListener('selectionchange', change)
       document.removeEventListener('keydown', keyboard)
+      document.removeEventListener('keyup', keyup)
     }
   }, [rootRef, model, resumeId])
 
@@ -394,9 +504,12 @@ export default function AnnotationControls({
 
       if (
         !(node instanceof HTMLElement) ||
-        !node.hasAttribute('data-annotation-focusable')
+        !node.hasAttribute('data-annotation-focusable') ||
+        pointerSelectingRef.current
       )
         return
+
+      keyboardFieldRef.current = node
 
       const range = document.createRange()
 
@@ -404,7 +517,7 @@ export default function AnnotationControls({
 
       const value = resolveCanvasSelection(root, range, model)
 
-      setSelection(
+      setSelected(
         value ? { value, documentHash: model.documentHash, resumeId } : null,
       )
     }
@@ -434,7 +547,8 @@ export default function AnnotationControls({
       )
         return
 
-      setSelection(null)
+      setSelected(null)
+      keyboardFieldRef.current = null
     }
 
     // 仅装饰助手的可见分页副本；测量、打印与其他页面不获得交互属性。
@@ -519,7 +633,7 @@ export default function AnnotationControls({
       {createPortal(
         <AnimatePresence>
           {selection && (
-            <motion.div
+            <PresenceDiv
               key='selection-reference'
               data-annotation-bubble
               className='fixed z-50'
@@ -535,9 +649,15 @@ export default function AnnotationControls({
               }}
               initial={reduced ? false : { opacity: 0, y: 4, scale: 0.96 }}
               animate={{ opacity: 1, y: 0, scale: 1 }}
-              exit={{ opacity: 0 }}
+              exit={{
+                opacity: 0,
+                transition: {
+                  duration: reduced ? 0 : DURATION.fast,
+                  ease: EASE.in,
+                },
+              }}
               transition={{
-                duration: reduced ? 0 : DURATION.fast,
+                duration: reduced ? 0 : DURATION.base,
                 ease: EASE.out,
               }}
             >
@@ -551,7 +671,7 @@ export default function AnnotationControls({
                 <MessageSquarePlus />
                 引用到对话
               </Button>
-            </motion.div>
+            </PresenceDiv>
           )}
         </AnimatePresence>,
         document.body,

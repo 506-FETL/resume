@@ -81,7 +81,6 @@ export default function ResumeConfigToolbar() {
             aria-label='导出简历'
             size={isMobile ? 'icon' : 'sm'}
             disabled={isToolbarLoading || reviewActive}
-            title={reviewActive ? '请先回到当前简历再检查导出' : undefined}
           >
             <FileDown data-icon='inline-start' />
             {!isMobile && <span>导出</span>}

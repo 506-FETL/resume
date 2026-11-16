@@ -17,12 +17,6 @@
   }
 }
 
-/* Ensure each top-level node has relative positioning
-   so absolutely positioned placeholders work correctly */
-.tiptap.ProseMirror > * {
-  position: relative;
-}
-
 /* =====================
      CORE EDITOR STYLES
      ===================== */
@@ -216,6 +210,11 @@
 /* =====================
      PLACEHOLDER
      ===================== */
+// 只给占位符建立定位层，避免普通段落的定位层遮住移动浏览器原生光标。
+.is-empty[data-placeholder] {
+  position: relative;
+}
+
 .is-empty:not(.with-slash)[data-placeholder]:has(
     > .ProseMirror-trailingBreak:only-child
   )::before {

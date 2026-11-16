@@ -114,8 +114,8 @@ export default function WorkflowSaveFeedback({
       ref={ref}
       tabIndex={-1}
       aria-label={STATUS_LABEL[status]}
+      aria-description={status === 'error' ? (error ?? undefined) : undefined}
       className='flex min-h-7 items-center gap-1.5 text-xs outline-none'
-      title={status === 'error' ? error || undefined : undefined}
     >
       <span role='status' className='sr-only'>
         {STATUS_LABEL[status]}

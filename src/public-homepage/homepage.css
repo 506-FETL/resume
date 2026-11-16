@@ -15,6 +15,7 @@ body:has(.public-home) {
   --yellow: #ffda66;
   --cover-blue: #244dc1;
   --pad: clamp(22px, 5.6vw, 90px);
+  --mast-height: clamp(62px, 5.6vw, 84px);
   color: var(--ink);
   background: var(--paper);
   font: 16px/1.5 var(--hand);
@@ -40,7 +41,7 @@ body:has(.public-home) {
   outline-offset: 4px;
 }
 .public-home .home-width {
-  width: min(100%, 1536px);
+  width: 100%;
   margin-inline: auto;
   padding-inline: var(--pad);
 }
@@ -62,6 +63,7 @@ body:has(.public-home) {
 }
 .home-mast,
 .home-hero {
+  --pad: max(22px, 5.6vw);
   background: var(--cover-blue);
   color: var(--paper);
 }
@@ -73,7 +75,7 @@ body:has(.public-home) {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: clamp(62px, 5.6vw, 84px);
+  min-height: var(--mast-height);
   position: relative;
 }
 .home-mast > .home-width::after {
@@ -190,8 +192,8 @@ body:has(.public-home) {
   grid-template-areas: 'title title' 'intro object';
   align-content: center;
   align-items: center;
-  min-height: min(760px, calc(100svh - clamp(62px, 5.6vw, 84px)));
-  padding-block: clamp(24px, 3vw, 50px) clamp(30px, 4.6vw, 70px);
+  min-height: calc(100svh - var(--mast-height));
+  padding-block: clamp(24px, 3svh, 50px) clamp(30px, 4.6svh, 70px);
   column-gap: 18px;
   position: relative;
 }
@@ -205,7 +207,7 @@ body:has(.public-home) {
   display: flex;
   width: fit-content;
   align-items: baseline;
-  font: 700 clamp(86px, 13.25vw, 203px)/1.03 var(--hand);
+  font: 700 clamp(86px, 13.25vw, 24svh)/1.03 var(--hand);
   letter-spacing: -0.072em;
   white-space: nowrap;
   color: #fffdf1;
@@ -241,7 +243,7 @@ body:has(.public-home) {
   position: absolute;
   right: 2.3%;
   top: 0%;
-  width: clamp(45px, 6.4vw, 94px);
+  width: clamp(45px, 6.4vw, 11.5svh);
   transform: rotate(15deg);
   pointer-events: none;
 }
@@ -249,11 +251,10 @@ body:has(.public-home) {
   grid-area: intro;
   align-self: start;
   padding-top: clamp(30px, 3.8vw, 56px);
-  max-width: 32rem;
   z-index: 1;
 }
 .cover-lead {
-  font-size: clamp(21px, 1.9vw, 29px);
+  font-size: clamp(21px, 1.9vw, 3.5svh);
   font-weight: 700;
   line-height: 1.4;
   text-wrap: balance;
@@ -265,7 +266,7 @@ body:has(.public-home) {
   max-width: 21em;
   margin-top: 10px;
   color: #e6edff;
-  font-size: clamp(17px, 1.4vw, 21px);
+  font-size: clamp(17px, 1.4vw, 2.6svh);
   line-height: 1.6;
   text-wrap: pretty;
 }
@@ -305,7 +306,7 @@ body:has(.public-home) {
   position: relative;
   z-index: 1;
   justify-self: center;
-  width: min(100%, 640px);
+  width: min(100%, 74svh);
   margin-block: clamp(-36px, -2.1vw, -12px) 0;
 }
 .home-foot {
@@ -408,14 +409,14 @@ body:has(.public-home) {
     box-shadow: 1px 2px 0 #142a63;
   }
 }
-@media (max-width: 950px) {
-  .cover-layout {
-    min-height: min(640px, calc(100svh - 62px));
+@media (min-width: 1536px) {
+  .home-hero .home-entry {
+    font-size: clamp(17px, 1.12vw, 2.2svh);
   }
 }
 @media (max-width: 700px) {
-  .home-mast > .home-width {
-    min-height: 58px;
+  .public-home {
+    --mast-height: 58px;
   }
   .home-mast nav {
     gap: 12px;
@@ -434,7 +435,6 @@ body:has(.public-home) {
     grid-template-columns: 1fr;
     grid-template-areas: 'title' 'intro' 'object';
     justify-items: center;
-    min-height: min(820px, calc(100svh - 58px));
     padding-block: clamp(19px, 5.3vw, 31px) clamp(32px, 7vw, 48px);
     row-gap: clamp(12px, 2.4vw, 18px);
   }
@@ -506,14 +506,13 @@ body:has(.public-home) {
   }
 }
 @media (min-width: 520px) and (max-height: 530px) and (orientation: landscape) {
-  .home-mast > .home-width {
-    min-height: 48px;
+  .public-home {
+    --mast-height: 48px;
   }
   .cover-layout {
     grid-template-areas: 'title object' 'intro object';
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
     row-gap: 12px;
-    min-height: calc(100svh - 48px);
     padding-block: 16px 20px;
   }
   .cover-mastline {

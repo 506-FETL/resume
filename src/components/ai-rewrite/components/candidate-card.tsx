@@ -19,10 +19,7 @@ export function CandidateCard({ candidate, onApply }: Props) {
   return (
     <Card className='flex flex-col gap-0 self-start overflow-hidden py-0 transition-shadow hover:shadow-md'>
       <CardHeader className='shrink-0 border-b bg-muted/40 px-4 py-3'>
-        <CardTitle
-          className='truncate text-sm font-medium text-foreground'
-          title={candidate.title}
-        >
+        <CardTitle className='truncate text-sm font-medium text-foreground'>
           {candidate.title}
         </CardTitle>
       </CardHeader>

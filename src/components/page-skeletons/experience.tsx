@@ -99,9 +99,14 @@ export function ExperiencePageSkeleton() {
           </Button>
         </ButtonGroup>
       </div>
-      <div className='flex shrink-0 items-center justify-between text-xs text-muted-foreground'>
+      <div className='flex min-h-8 shrink-0 items-center justify-between gap-3 text-xs text-muted-foreground'>
         <span>正在读取资料</span>
-        <span>最近更新</span>
+        <div className='flex items-center gap-3'>
+          <span className='hidden @min-[400px]/workspace:block'>最近更新</span>
+          <Button variant='ghost' size='sm' disabled>
+            批量选择
+          </Button>
+        </div>
       </div>
       <div className='min-h-0 flex-1 overflow-hidden px-0.5 py-0.5'>
         <ExperienceRowsSkeleton />

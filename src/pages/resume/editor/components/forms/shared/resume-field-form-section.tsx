@@ -11,11 +11,6 @@ import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Form } from '@/components/ui/form'
 import { Separator } from '@/components/ui/separator'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE, SPRING } from '@/lib/motion'
 import { cn } from '@/lib/utils'
@@ -103,64 +98,47 @@ export function ResumeFieldFormSection<TFieldValues extends FieldValues>({
                       <div className='flex items-center gap-0.5'>
                         {multiple && move && (
                           <>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon-sm'
-                                  disabled={index === 0}
-                                  onClick={() => move(index, index - 1)}
-                                  aria-label={`上移${title}#${index + 1}`}
-                                >
-                                  <ArrowUp className='size-4' />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>上移</TooltipContent>
-                            </Tooltip>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button
-                                  type='button'
-                                  variant='ghost'
-                                  size='icon-sm'
-                                  disabled={index === fields.length - 1}
-                                  onClick={() => move(index, index + 1)}
-                                  aria-label={`下移${title}#${index + 1}`}
-                                >
-                                  <ArrowDown className='size-4' />
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>下移</TooltipContent>
-                            </Tooltip>
-                          </>
-                        )}
-                        <Tooltip>
-                          <TooltipTrigger asChild>
                             <Button
                               type='button'
                               variant='ghost'
                               size='icon-sm'
-                              onClick={() => {
-                                form.setValue(
-                                  `items.${index}.hidden` as any,
-                                  !hidden as any,
-                                  { shouldDirty: true },
-                                )
-                              }}
-                              aria-label={`${hidden ? '显示' : '隐藏'}${title}${multiple ? `#${index + 1}` : ''}`}
+                              disabled={index === 0}
+                              onClick={() => move(index, index - 1)}
+                              aria-label={`上移${title}#${index + 1}`}
                             >
-                              {hidden ? (
-                                <EyeOff className='size-4' />
-                              ) : (
-                                <Eye className='size-4' />
-                              )}
+                              <ArrowUp className='size-4' />
                             </Button>
-                          </TooltipTrigger>
-                          <TooltipContent>
-                            {hidden ? '显示此项' : '隐藏此项（内容保留）'}
-                          </TooltipContent>
-                        </Tooltip>
+                            <Button
+                              type='button'
+                              variant='ghost'
+                              size='icon-sm'
+                              disabled={index === fields.length - 1}
+                              onClick={() => move(index, index + 1)}
+                              aria-label={`下移${title}#${index + 1}`}
+                            >
+                              <ArrowDown className='size-4' />
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          type='button'
+                          variant='ghost'
+                          size='icon-sm'
+                          onClick={() => {
+                            form.setValue(
+                              `items.${index}.hidden` as any,
+                              !hidden as any,
+                              { shouldDirty: true },
+                            )
+                          }}
+                          aria-label={`${hidden ? '显示' : '隐藏'}${title}${multiple ? `#${index + 1}` : ''}`}
+                        >
+                          {hidden ? (
+                            <EyeOff className='size-4' />
+                          ) : (
+                            <Eye className='size-4' />
+                          )}
+                        </Button>
                         {multiple && (
                           <Button
                             type='button'

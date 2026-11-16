@@ -43,7 +43,7 @@ interface ExperienceStore {
   original: (sourceId: string, versionId: string) => Promise<Blob>
   invalidate: (sourceId?: string) => void
   rename: (sourceId: string, name: string) => Promise<ExperienceSource>
-  remove: (sourceId: string) => Promise<void>
+  remove: (sourceId: string, signal?: AbortSignal) => Promise<void>
 }
 
 export function getCachedSourcePage(
@@ -366,18 +366,18 @@ export const useExperienceSourcesStore = create<ExperienceStore>(
 
       return source
     },
-    async remove(sourceId) {
+    async remove(sourceId, signal) {
       const generation = get().generation
 
       const deletionKey = `${generation}:${sourceId}`
 
       try {
         const prior = unknownDeletions.has(deletionKey)
-          ? await api.getExperienceSourceMetadata([sourceId])
+          ? await api.getExperienceSourceMetadata([sourceId], signal)
           : null
 
         if (!prior?.missingIds.includes(sourceId))
-          await api.deleteExperienceSource(sourceId)
+          await api.deleteExperienceSource(sourceId, signal)
       } catch (error) {
         if (
           !(error instanceof ExperienceSourceError) ||
@@ -388,7 +388,7 @@ export const useExperienceSourcesStore = create<ExperienceStore>(
         unknownDeletions.add(deletionKey)
 
         const status = await api
-          .getExperienceSourceMetadata([sourceId])
+          .getExperienceSourceMetadata([sourceId], signal)
           .catch(() => null)
 
         if (get().generation !== generation) throw error

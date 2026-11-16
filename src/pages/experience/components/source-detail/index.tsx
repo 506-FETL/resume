@@ -204,10 +204,7 @@ export default function SourceDetail({
   return (
     <>
       <div className='space-y-4 border-b border-border/60 pb-5'>
-        <h1
-          title={source?.name}
-          className='line-clamp-3 break-words text-xl leading-snug font-semibold sm:text-2xl'
-        >
+        <h1 className='line-clamp-3 break-words text-xl leading-snug font-semibold sm:text-2xl'>
           {source?.name ?? '资料原文'}
         </h1>
         {source && (

@@ -1,16 +1,12 @@
 import type { Editor } from '@tiptap/react'
 // --- UI Primitives ---
 import type { ButtonProps } from '@/components/tiptap-ui-primitive/button'
-
 import type { ListType } from '@/components/tiptap-ui/list-button'
-
 import * as React from 'react'
 
 // --- Icons ---
 import { ChevronDownIcon } from '@/components/tiptap-icons/chevron-down-icon'
-
 import { Button, ButtonGroup } from '@/components/tiptap-ui-primitive/button'
-
 import { Card, CardBody } from '@/components/tiptap-ui-primitive/card'
 import {
   DropdownMenu,
@@ -92,7 +88,6 @@ export function ListDropdownMenu({
           disabled={!canToggle}
           data-disabled={!canToggle}
           aria-label='List options'
-          tooltip='List'
           {...props}
         >
           <Icon className='tiptap-button-icon' />
@@ -111,7 +106,6 @@ export function ListDropdownMenu({
                       editor={editor}
                       type={option.type}
                       text={option.label}
-                      showTooltip={false}
                     />
                   </DropdownMenuItem>
                 ))}

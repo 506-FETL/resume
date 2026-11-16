@@ -150,7 +150,7 @@ const ToolCallRow = memo(function ToolCallRow({
                   })
                 )}
               </TraceIcon>
-              <TraceTitle title={title}>{title}</TraceTitle>
+              <TraceTitle>{title}</TraceTitle>
               {stat && (
                 <TraceDescription className='text-xs'>
                   <DiffStat

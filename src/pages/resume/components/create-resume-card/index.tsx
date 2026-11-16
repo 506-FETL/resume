@@ -559,10 +559,7 @@ export default function CreateResumeCard({
                       </Button>
                       <div className='flex min-w-0 flex-1 items-center justify-end gap-3'>
                         {templateWorkspace && (
-                          <span
-                            className='max-w-44 truncate text-xs text-muted-foreground'
-                            title={`${draft.selectedTemplate?.name ?? draft.creation?.selection?.name ?? '请选择模板'} · ${storageMode === 'cloud' ? '云端' : '本地'}`}
-                          >
+                          <span className='max-w-44 truncate text-xs text-muted-foreground'>
                             {draft.selectedTemplate?.name ??
                               draft.creation?.selection?.name ??
                               '请选择模板'}{' '}

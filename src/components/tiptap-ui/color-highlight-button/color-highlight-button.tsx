@@ -3,12 +3,9 @@ import type { ButtonProps } from '@/components/tiptap-ui-primitive/button'
 
 // --- Tiptap UI ---
 import type { UseColorHighlightConfig } from '@/components/tiptap-ui/color-highlight-button'
-
 import * as React from 'react'
-
 import { Badge } from '@/components/tiptap-ui-primitive/badge'
 import { Button } from '@/components/tiptap-ui-primitive/button'
-
 import {
   COLOR_HIGHLIGHT_SHORTCUT_KEY,
   useColorHighlight,
@@ -114,7 +111,6 @@ export function ColorHighlightButton({
       data-disabled={!canColorHighlight}
       aria-label={label}
       aria-pressed={isActive}
-      tooltip={label}
       onClick={handleClick}
       style={buttonStyle}
       {...buttonProps}

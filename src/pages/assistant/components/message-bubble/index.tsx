@@ -59,9 +59,14 @@ function renderAssistantParts(
     }
   }
 
-  const lastIndex = parts.length - 1
+  const lastIndex = parts.reduce(
+    (last, part, index) => (isVisibleAssistantPart(part) ? index : last),
+    -1,
+  )
 
   parts.forEach((p, index) => {
+    if (!isVisibleAssistantPart(p)) return
+
     if (p.type === 'tool-call') {
       buffer.push(p)
 
@@ -106,6 +111,13 @@ function renderAssistantParts(
   flush()
 
   return nodes
+}
+
+function isVisibleAssistantPart(part: AiMessagePart) {
+  if (part.type === 'text' || part.type === 'reasoning')
+    return Boolean(part.text.trim())
+
+  return part.type === 'tool-call' || part.type === 'skill-activity'
 }
 
 // 用户消息内联编辑器
@@ -276,6 +288,9 @@ export const MessageBubble = memo(function MessageBubble({
     )
   }
 
+  const waitingForContent =
+    message.id === 'streaming' && !message.parts.some(isVisibleAssistantPart)
+
   return (
     <Message className='group' role='group' aria-label='AI 助手的回复'>
       <MessageContent>
@@ -284,14 +299,10 @@ export const MessageBubble = memo(function MessageBubble({
           AI 助手
         </MessageHeader>
         <AnimatedContent
-          animationKey={
-            message.id === 'streaming' && message.parts.length === 0
-              ? 'thinking'
-              : 'content'
-          }
+          animationKey={waitingForContent ? 'thinking' : 'content'}
           className='min-w-0 text-sm leading-relaxed break-words text-foreground'
         >
-          {message.parts.length === 0 && message.id === 'streaming' ? (
+          {waitingForContent ? (
             <Trace>
               <TraceLine status='running'>
                 <TraceIcon>

@@ -143,10 +143,7 @@ export default function NextActionSection({ job }: NextActionSectionProps) {
             <Bell className='size-3.5' />
             <span className='shrink-0'>跟进安排</span>
             {job.next_action && (
-              <span
-                className='min-w-0 truncate font-normal text-muted-foreground'
-                title={job.next_action}
-              >
+              <span className='min-w-0 truncate font-normal text-muted-foreground'>
                 {job.next_action}
               </span>
             )}

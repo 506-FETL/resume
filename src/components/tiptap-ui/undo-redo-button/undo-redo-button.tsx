@@ -8,12 +8,9 @@ import type {
   UndoRedoAction,
   UseUndoRedoConfig,
 } from '@/components/tiptap-ui/undo-redo-button'
-
 import * as React from 'react'
-
 import { Badge } from '@/components/tiptap-ui-primitive/badge'
 import { Button } from '@/components/tiptap-ui-primitive/button'
-
 import {
   UNDO_REDO_SHORTCUT_KEYS,
   useUndoRedo,
@@ -97,7 +94,6 @@ export function UndoRedoButton({
       role='button'
       tabIndex={-1}
       aria-label={label}
-      tooltip={label}
       onClick={handleClick}
       {...buttonProps}
       ref={ref}

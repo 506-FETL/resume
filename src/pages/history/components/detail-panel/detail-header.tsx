@@ -103,10 +103,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
 
     return (
       <div className='flex min-w-0 flex-col gap-2 [@media(max-height:500px)]:gap-1'>
-        <h2
-          className='line-clamp-2 min-w-0 break-words text-xl leading-snug font-semibold tracking-tight sm:text-2xl [@media(max-height:500px)]:line-clamp-1'
-          title={currentResume.displayName}
-        >
+        <h2 className='line-clamp-2 min-w-0 break-words text-xl leading-snug font-semibold tracking-tight sm:text-2xl [@media(max-height:500px)]:line-clamp-1'>
           {currentResume.displayName}
         </h2>
         <div className='flex flex-wrap items-center gap-x-3 gap-y-1.5'>
@@ -130,14 +127,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
           </span>
         </div>
         <div className='flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground'>
-          <span
-            className='flex items-center gap-1.5'
-            title={
-              currentResume.updatedAt
-                ? formatDateTime(currentResume.updatedAt)
-                : undefined
-            }
-          >
+          <span className='flex items-center gap-1.5'>
             <Clock3 className='size-3.5' />
             {currentResume.updatedAt
               ? `${formatRelativeTime(currentResume.updatedAt)}更新`
@@ -173,10 +163,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
 
   return (
     <div className='flex min-w-0 flex-col gap-3 [@media(max-height:500px)]:gap-1'>
-      <h2
-        className='line-clamp-2 min-w-0 break-words text-xl leading-snug font-semibold tracking-tight sm:text-2xl [@media(max-height:500px)]:line-clamp-1'
-        title={getVersionTitle(selectedVersion)}
-      >
+      <h2 className='line-clamp-2 min-w-0 break-words text-xl leading-snug font-semibold tracking-tight sm:text-2xl [@media(max-height:500px)]:line-clamp-1'>
         {getVersionTitle(selectedVersion)}
       </h2>
       <div className='scrollbar-thin-subtle flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1.5 text-xs text-muted-foreground [@media(max-height:500px)]:flex-nowrap [@media(max-height:500px)]:overflow-x-auto [@media(max-height:500px)]:whitespace-nowrap'>
@@ -191,7 +178,6 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
           <Badge
             variant='outline'
             className='max-w-full truncate border-primary/20 text-primary'
-            title={selectedVersion.milestone_name}
           >
             {selectedVersion.milestone_name}
           </Badge>
@@ -223,7 +209,6 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
             <HistoryActionButton
               label='对比'
               disabled={!canCompare}
-              title={canCompare ? undefined : '还没有可对比的版本'}
               onClick={() => setCompareOpen(true)}
             >
               <GitCompare />

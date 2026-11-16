@@ -80,17 +80,13 @@ export const ColumnCard = memo(({ job, previewing }: ColumnCardProps) => {
             <span className='line-clamp-2 break-words'>{job.position}</span>
           </Button>
           <div className='mt-1 flex min-w-0 items-center gap-1 text-xs leading-4 text-muted-foreground'>
-            <span className='min-w-12 flex-1 truncate' title={job.company}>
-              {job.company}
-            </span>
+            <span className='min-w-12 flex-1 truncate'>{job.company}</span>
             {job.location && (
               <>
                 <span aria-hidden className='shrink-0'>
                   ·
                 </span>
-                <span className='max-w-12 truncate' title={job.location}>
-                  {job.location}
-                </span>
+                <span className='max-w-12 truncate'>{job.location}</span>
               </>
             )}
             {job.salary && (
@@ -98,9 +94,7 @@ export const ColumnCard = memo(({ job, previewing }: ColumnCardProps) => {
                 <span aria-hidden className='shrink-0'>
                   ·
                 </span>
-                <span className='max-w-16 truncate' title={job.salary}>
-                  {job.salary}
-                </span>
+                <span className='max-w-16 truncate'>{job.salary}</span>
               </>
             )}
           </div>
@@ -120,9 +114,7 @@ export const ColumnCard = memo(({ job, previewing }: ColumnCardProps) => {
         <div className='flex min-w-0 items-center gap-1.5 border-t border-border/50 px-2.5 py-1.5 text-xs text-muted-foreground'>
           <Bell className='size-3 shrink-0' />
           {job.next_action && (
-            <span className='min-w-0 flex-1 truncate' title={job.next_action}>
-              {job.next_action}
-            </span>
+            <span className='min-w-0 flex-1 truncate'>{job.next_action}</span>
           )}
           {nextActionBadge && (
             <span

@@ -6,9 +6,7 @@ import type {
   ListType,
   UseListConfig,
 } from '@/components/tiptap-ui/list-button'
-
 import * as React from 'react'
-
 import { Badge } from '@/components/tiptap-ui-primitive/badge'
 import { Button } from '@/components/tiptap-ui-primitive/button'
 import { LIST_SHORTCUT_KEYS, useList } from '@/components/tiptap-ui/list-button'
@@ -101,7 +99,6 @@ export function ListButton({
       data-disabled={!canToggle}
       aria-label={label}
       aria-pressed={isActive}
-      tooltip={label}
       onClick={handleClick}
       {...buttonProps}
       ref={ref}

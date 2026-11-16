@@ -3,11 +3,6 @@ import { PanelRight } from 'lucide-react'
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
 import { Button } from '@/components/ui/button'
 import { SidebarTrigger } from '@/components/ui/sidebar'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import useAssistantStore from '../../store'
 import ConversationNavigation from '../conversation-navigation'
 
@@ -46,24 +41,19 @@ export default function ChatHeader() {
         <ConversationNavigation title={title} />
       </div>
       <AnimatedThemeToggler aria-label='切换主题' />
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            variant='ghost'
-            size='icon-sm'
-            className='ml-auto'
-            id='assistant-canvas-trigger'
-            aria-label={!isMobile && canvasOpen ? '收起画布' : '打开画布'}
-            aria-expanded={isMobile ? canvasMobileOpen : canvasOpen}
-            onClick={() =>
-              isMobile ? setCanvasMobileOpen(true) : setCanvasOpen(!canvasOpen)
-            }
-          >
-            <PanelRight />
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>画布</TooltipContent>
-      </Tooltip>
+      <Button
+        variant='ghost'
+        size='icon-sm'
+        className='ml-auto'
+        id='assistant-canvas-trigger'
+        aria-label={!isMobile && canvasOpen ? '收起画布' : '打开画布'}
+        aria-expanded={isMobile ? canvasMobileOpen : canvasOpen}
+        onClick={() =>
+          isMobile ? setCanvasMobileOpen(true) : setCanvasOpen(!canvasOpen)
+        }
+      >
+        <PanelRight />
+      </Button>
     </header>
   )
 }

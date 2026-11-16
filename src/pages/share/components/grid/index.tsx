@@ -83,7 +83,6 @@ export default function Grid({ shares }: GridProps) {
                   <div className='min-w-0'>
                     <h2
                       id={titleId}
-                      title={title}
                       className='line-clamp-2 text-xl leading-tight font-semibold tracking-tight wrap-anywhere sm:text-2xl'
                     >
                       {title}

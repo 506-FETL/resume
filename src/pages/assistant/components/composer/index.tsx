@@ -15,11 +15,6 @@ import {
   InputGroupTextarea,
 } from '@/components/ui/input-group'
 import { Popover, PopoverAnchor, PopoverTrigger } from '@/components/ui/popover'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 import { ASSISTANT_TOOLS } from '../composer-tools'
 import { ASSISTANT_COMMANDS } from '@/lib/ai/commands'
@@ -54,6 +49,10 @@ export default function Composer() {
     loadingMessages,
     deepThinking,
     setDeepThinking,
+    activeConversationId,
+    queuedMessages,
+    pendingAssistantWrite,
+    pendingMessageUpdates,
   } = useAssistantStore(
     useShallow((state) => ({
       streaming: state.streaming,
@@ -68,10 +67,14 @@ export default function Composer() {
       loadingMessages: state.loadingMessages,
       deepThinking: state.deepThinking,
       setDeepThinking: state.setDeepThinking,
+      activeConversationId: state.activeConversationId,
+      queuedMessages: state.queuedMessages,
+      pendingAssistantWrite: state.pendingAssistantWrite,
+      pendingMessageUpdates: state.pendingMessageUpdates,
     })),
   )
 
-  const { sendMessage, stopStreaming } = useChatStream()
+  const { sendMessage, stopStreaming, compactContext } = useChatStream()
   const uploads = useComposerUploads()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const sendStatusId = useId()
@@ -123,6 +126,15 @@ export default function Composer() {
   const toolsOpen =
     !disabled && (manualToolsOpen || (queryMode && !commandDismissed))
 
+  const compactDisabled =
+    disabled ||
+    runPhase !== 'idle' ||
+    !activeConversationId ||
+    !composerSources ||
+    Boolean(pendingConfirm || pendingAssistantWrite) ||
+    queuedMessages.length > 0 ||
+    pendingMessageUpdates.length > 0
+
   const tools = ASSISTANT_TOOLS.filter((tool) => {
     const searchable = [
       tool.name,
@@ -137,7 +149,11 @@ export default function Composer() {
         value?.toLowerCase().includes(query.toLowerCase()),
       )
     )
-  })
+  }).map((tool) =>
+    tool.action === 'compact-context'
+      ? { ...tool, disabled: compactDisabled }
+      : tool,
+  )
 
   const canSend = Boolean(
     visibleDraft.trim() || (!replying && references.length),
@@ -178,7 +194,9 @@ export default function Composer() {
     closeTools()
     focusDraft()
 
-    if (tool.skillId)
+    if (tool.action === 'compact-context') {
+      if (!compactContext()) return
+    } else if (tool.skillId)
       state.addComposerReferences(createSkillReferences('', [tool.skillId]))
     else {
       const command = ASSISTANT_COMMANDS.find(
@@ -481,7 +499,10 @@ export default function Composer() {
                 }}
                 onKeyDown={handleKeyDown}
               />
-              <InputGroupAddon align='block-end' className='flex-wrap gap-1.5'>
+              <InputGroupAddon
+                align='block-end'
+                className='flex-wrap gap-0.5 sm:gap-1.5'
+              >
                 <ComposerReferencePicker
                   context={context}
                   onUploadFiles={() => fileInputRef.current?.click()}
@@ -499,26 +520,22 @@ export default function Composer() {
                     <WandSparkles />
                   </InputGroupButton>
                 </PopoverTrigger>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <InputGroupButton
-                      ref={thinkingRef}
-                      size='sm'
-                      variant={deepThinking ? 'default' : 'ghost'}
-                      aria-label='深度思考'
-                      aria-pressed={deepThinking}
-                      onClick={() => setDeepThinking(!deepThinking)}
-                      className={cn(
-                        'h-8 gap-1.5 rounded-full px-2',
-                        !deepThinking && 'text-muted-foreground',
-                        reduceMotion && 'transition-none',
-                      )}
-                    >
-                      <Brain className='size-4' />
-                      深度思考
-                    </InputGroupButton>
-                  </TooltipTrigger>
-                </Tooltip>
+                <InputGroupButton
+                  ref={thinkingRef}
+                  size='sm'
+                  variant={deepThinking ? 'default' : 'ghost'}
+                  aria-label='深度思考'
+                  aria-pressed={deepThinking}
+                  onClick={() => setDeepThinking(!deepThinking)}
+                  className={cn(
+                    'h-8 gap-1.5 rounded-full px-2',
+                    !deepThinking && 'text-muted-foreground',
+                    reduceMotion && 'transition-none',
+                  )}
+                >
+                  <Brain className='size-4' />
+                  深度思考
+                </InputGroupButton>
                 <ContextUsage />
                 <div className='ml-auto flex items-center gap-1'>
                   {running && (
@@ -545,41 +562,29 @@ export default function Composer() {
                       aria-describedby={
                         sendBlockedReason ? sendStatusId : undefined
                       }
-                      title='Ctrl / ⌘ + Shift + Enter'
                     >
                       立即发送
                     </InputGroupButton>
                   )}
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <InputGroupButton
-                        type='submit'
-                        size='icon-sm'
-                        variant='default'
-                        className='rounded-full'
-                        aria-label={
-                          replying
-                            ? '发送修改要求'
-                            : streaming
-                              ? '加入队列'
-                              : '发送消息'
-                        }
-                        disabled={sendDisabled}
-                        aria-describedby={
-                          sendBlockedReason ? sendStatusId : undefined
-                        }
-                      >
-                        <ArrowUp className='size-4' />
-                      </InputGroupButton>
-                    </TooltipTrigger>
-                    <TooltipContent>
-                      {replying
+                  <InputGroupButton
+                    type='submit'
+                    size='icon-sm'
+                    variant='default'
+                    className='rounded-full'
+                    aria-label={
+                      replying
                         ? '发送修改要求'
                         : streaming
-                          ? '加入队列，当前回复结束后发送'
-                          : '发送消息'}
-                    </TooltipContent>
-                  </Tooltip>
+                          ? '加入队列'
+                          : '发送消息'
+                    }
+                    disabled={sendDisabled}
+                    aria-describedby={
+                      sendBlockedReason ? sendStatusId : undefined
+                    }
+                  >
+                    <ArrowUp className='size-4' />
+                  </InputGroupButton>
                 </div>
               </InputGroupAddon>
             </InputGroup>

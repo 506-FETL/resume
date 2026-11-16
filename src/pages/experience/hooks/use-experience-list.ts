@@ -6,6 +6,7 @@ export function useExperienceList() {
   const query = useExperiencePageStore((state) => state.query)
   const offset = useExperiencePageStore((state) => state.offset)
   const filter = useExperiencePageStore((state) => state.filter)
+  const deleting = useExperiencePageStore((state) => state.deleting)
   const [search, setSearch] = useState(query)
 
   useEffect(() => {
@@ -17,7 +18,7 @@ export function useExperienceList() {
   return useSourceList(
     search,
     offset,
-    true,
+    !deleting,
     filter === 'all' ? undefined : filter,
   )
 }

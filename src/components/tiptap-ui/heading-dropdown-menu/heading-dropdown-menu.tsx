@@ -1,15 +1,12 @@
 // --- UI Primitives ---
 import type { ButtonProps } from '@/components/tiptap-ui-primitive/button'
-
 import type { UseHeadingDropdownMenuConfig } from '@/components/tiptap-ui/heading-dropdown-menu'
-
 import * as React from 'react'
 
 // --- Icons ---
 import { ChevronDownIcon } from '@/components/tiptap-icons/chevron-down-icon'
 import { Button, ButtonGroup } from '@/components/tiptap-ui-primitive/button'
 import { Card, CardBody } from '@/components/tiptap-ui-primitive/card'
-
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -88,7 +85,6 @@ export function HeadingDropdownMenu({
           data-disabled={!canToggle}
           aria-label='Format text as heading'
           aria-pressed={isActive}
-          tooltip='Heading'
           {...buttonProps}
           ref={ref}
         >
@@ -119,7 +115,6 @@ export function HeadingDropdownMenu({
                       editor={editor}
                       level={level}
                       text={`Heading ${level}`}
-                      showTooltip={false}
                     />
                   </DropdownMenuItem>
                 ))}

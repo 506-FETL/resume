@@ -11,13 +11,7 @@ import {
   useFormContext,
   useFormState,
 } from 'react-hook-form'
-
 import { Label } from '@/components/ui/label'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { cn } from '@/lib/utils'
 
 const Form = FormProvider
@@ -149,21 +143,13 @@ function FormLabel({
     >
       {children}
       {Icon && (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <span
-              tabIndex={0}
-              role='img'
-              aria-label={feedback?.message}
-              className='inline-flex shrink-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring'
-            >
-              <Icon className='size-3.5' aria-hidden />
-            </span>
-          </TooltipTrigger>
-          <TooltipContent className='max-w-64'>
-            {feedback?.message}
-          </TooltipContent>
-        </Tooltip>
+        <span
+          role='img'
+          aria-label={feedback?.message}
+          className='inline-flex shrink-0 rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-ring'
+        >
+          <Icon className='size-3.5' aria-hidden />
+        </span>
       )}
     </Label>
   )

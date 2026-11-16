@@ -1,14 +1,8 @@
-import { useIsShortViewport } from '@/hooks/use-is-short-viewport'
 import type { MouseEventHandler, Ref } from 'react'
 import { Cloud, CloudUpload, GitBranch, HardDrive, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-layout'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
@@ -34,8 +28,6 @@ function HeadBars({
   offlineCount: number
   createButtonRef?: Ref<HTMLButtonElement>
 }) {
-  const isShortViewport = useIsShortViewport()
-
   const { libraryCountsError, libraryCountsLoading, loadLibraryCounts } =
     useResumeListStore()
 
@@ -113,45 +105,33 @@ function HeadBars({
             </div>
           </AnimatedContent>
           {hasPendingTasks && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => setDerivedJobsOpen(true)}
-                  variant='ghost'
-                  size='sm'
-                  className='w-auto [@media(max-height:500px)]:size-9 [@media(max-height:500px)]:p-0'
-                  aria-label='岗位版本任务'
-                >
-                  <GitBranch data-icon='inline-start' />
-                  <span className='[@media(max-height:500px)]:sr-only'>
-                    岗位版本任务
-                  </span>
-                </Button>
-              </TooltipTrigger>
-              {isShortViewport && <TooltipContent>岗位版本任务</TooltipContent>}
-            </Tooltip>
+            <Button
+              onClick={() => setDerivedJobsOpen(true)}
+              variant='ghost'
+              size='sm'
+              className='w-auto [@media(max-height:500px)]:size-9 [@media(max-height:500px)]:p-0'
+              aria-label='岗位版本任务'
+            >
+              <GitBranch data-icon='inline-start' />
+              <span className='[@media(max-height:500px)]:sr-only'>
+                岗位版本任务
+              </span>
+            </Button>
           )}
           {hasOfflineResumesToSync && (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  onClick={() => setShowSyncDialog(true)}
-                  variant='outline'
-                  size='sm'
-                  className='w-auto [@media(max-height:500px)]:size-9 [@media(max-height:500px)]:p-0'
-                  aria-label={`同步本地简历 (${offlineCount})`}
-                  disabled={!hasOfflineResumesToSync}
-                >
-                  <CloudUpload data-icon='inline-start' />
-                  <span className='[@media(max-height:500px)]:sr-only'>
-                    同步本地简历 ({offlineCount})
-                  </span>
-                </Button>
-              </TooltipTrigger>
-              {isShortViewport && (
-                <TooltipContent>同步本地简历 ({offlineCount})</TooltipContent>
-              )}
-            </Tooltip>
+            <Button
+              onClick={() => setShowSyncDialog(true)}
+              variant='outline'
+              size='sm'
+              className='w-auto [@media(max-height:500px)]:size-9 [@media(max-height:500px)]:p-0'
+              aria-label={`同步本地简历 (${offlineCount})`}
+              disabled={!hasOfflineResumesToSync}
+            >
+              <CloudUpload data-icon='inline-start' />
+              <span className='[@media(max-height:500px)]:sr-only'>
+                同步本地简历 ({offlineCount})
+              </span>
+            </Button>
           )}
         </div>
       </PageHeader>
