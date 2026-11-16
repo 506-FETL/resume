@@ -212,6 +212,15 @@ function DrawerContent({
           <DrawerPrimitive.Content
             data-slot='drawer-content'
             data-base-ui-swipe-ignore=''
+            onTouchStart={(event) => {
+              if (
+                event.target instanceof HTMLElement &&
+                event.target.isContentEditable
+              ) {
+                // 键盘适配的隐藏后聚焦会让 iOS 丢失富文本光标，保留原生点按聚焦。
+                event.stopPropagation()
+              }
+            }}
             className={cn(
               'flex min-h-0 flex-1 touch-auto flex-col overflow-hidden overscroll-contain rounded-[inherit] transition-opacity duration-(--ui-motion-base) ease-(--ui-motion-enter-ease) select-text group-data-nested-drawer-open/drawer-popup:opacity-0 group-data-nested-drawer-swiping/drawer-popup:opacity-100 group-data-swiping/drawer-popup:select-none',
             )}

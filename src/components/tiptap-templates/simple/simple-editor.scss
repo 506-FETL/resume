@@ -142,6 +142,8 @@ body,
 @media screen and (max-width: 768px) {
   .simple-editor-content .tiptap.ProseMirror.simple-editor {
     padding: 1.5rem 2rem;
+    // 原生聚焦时避免 iOS 自动放大，让抽屉继续按真实键盘高度避让。
+    font-size: 1rem;
   }
 }
 

@@ -21,6 +21,8 @@
 
 富文本兼容性排查参考：[WebKit 对相对定位可编辑元素的光标绘制问题记录](https://bugs.webkit.org/show_bug.cgi?id=213501)。该记录支持排查方向，不能替代本项目真机复现。
 
+追加返修：用户确认仍不可见、长按拖动才露出后，已在原生 iOS 模拟器定位到抽屉键盘适配的隐藏后聚焦路径，并完成修复对照。此前 CSS 绘制层推断不足以解释本次问题，具体原因、验证及发布状态见[光标返修验收](2026-11-16-mobile-caret-focus-acceptance.md)。
+
 ## 本地交互验证
 
 临时夹具挂载正式 SimpleEditor、ActivityTimeline、AnnotationControls、Composer、Drawer 与 MotionProvider。使用合成内容，不接触用户账户或真实简历。临时脚本、截图和日志统一放入 tests/mobile-interaction，验收后删除。
