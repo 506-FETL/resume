@@ -23,7 +23,6 @@ export function ReleaseCover({ release }: { release: ChangelogFrontmatter }) {
           <span className='release-version' aria-hidden='true'>
             {release.version}
           </span>
-          <span className='release-edition-caption'>首个正式版本</span>
         </div>
         <div className='release-introduction'>
           <p className='release-headline'>{release.title}</p>
