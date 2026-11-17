@@ -18,6 +18,7 @@ interface SelectionDemoProps {
   onAction: () => void
   onReady: () => void
   visible?: boolean
+  playing?: boolean
   onUnavailable?: () => void
 }
 
@@ -28,6 +29,7 @@ export default function SelectionDemo({
   onAction,
   onReady,
   visible = true,
+  playing = true,
   onUnavailable,
 }: SelectionDemoProps) {
   const rootRef = useRef<HTMLDivElement>(null)
@@ -37,6 +39,7 @@ export default function SelectionDemo({
   const onUnavailableRef = useRef(onUnavailable)
   const unavailableRef = useRef(false)
   const readyRef = useRef(false)
+  const timelineRef = useRef<gsap.core.Timeline | null>(null)
   const [rects, setRects] = useState<GuideRect[]>([])
   const [selectionComplete, setSelectionComplete] = useState(false)
   const reduced = useReducedMotion()
@@ -108,16 +111,19 @@ export default function SelectionDemo({
       const cursor = cursorRef.current
       const lines = root?.querySelectorAll('[data-guide-selection-line]')
 
-      if (!root || !cursor || !lines?.length) return
+      timelineRef.current?.kill()
 
-      gsap.set(lines, { scaleX: 1, transformOrigin: 'left center' })
+      if (!root || !cursor || !lines?.length || !visible) return
+
+      gsap.set(lines, { transformOrigin: 'left center' })
       gsap.set(cursor, { opacity: 0 })
 
-      if (phase === 'highlight' && visible) {
+      if (phase === 'highlight') {
         gsap.fromTo(
           lines,
           { backgroundColor: 'rgba(96,165,250,0.3)' },
           {
+            scaleX: 1,
             backgroundColor: 'rgba(252,211,77,0.35)',
             duration: reduced ? 0 : DURATION.base,
             ease: guideEnterEase,
@@ -125,8 +131,14 @@ export default function SelectionDemo({
         )
       }
 
-      if (phase !== 'select' || !visible || readyRef.current) return
+      if (phase !== 'select' || readyRef.current) return
+      if (!playing) {
+        gsap.set(lines, { scaleX: 0 })
+
+        return
+      }
       if (reduced) {
+        gsap.set(lines, { scaleX: 1 })
         readyRef.current = true
         setSelectionComplete(true)
         onReadyRef.current()
@@ -135,11 +147,12 @@ export default function SelectionDemo({
       }
 
       const bounds = getBounds(rects)
+      const lineDuration = DURATION.slow * 3
 
       gsap.set(lines, { scaleX: 0 })
 
       const timeline = gsap.timeline({
-        defaults: { duration: DURATION.slow, ease: guideEnterEase },
+        defaults: { duration: lineDuration, ease: guideEnterEase },
         onComplete: () => {
           readyRef.current = true
           setSelectionComplete(true)
@@ -147,14 +160,16 @@ export default function SelectionDemo({
         },
       })
 
+      timelineRef.current = timeline
+
       rects.forEach((rect, index) => {
-        const start = index * DURATION.slow
+        const start = DURATION.base + index * lineDuration
         const y = rect.top - bounds.top + rect.height * 0.6
 
         timeline.set(
           cursor,
           { opacity: 1, x: rect.left - bounds.left, y },
-          start,
+          index === 0 ? 0 : start,
         )
 
         timeline.to(lines[index], { scaleX: 1 }, start)
@@ -166,12 +181,15 @@ export default function SelectionDemo({
         )
       })
 
-      timeline.to(cursor, { opacity: 0, duration: DURATION.fast })
+      timeline.to(
+        cursor,
+        { opacity: 0, duration: DURATION.fast },
+        `+=${DURATION.slow}`,
+      )
     },
     {
       scope: rootRef,
-      dependencies: [selection, phase, reduced, shape, visible],
-      revertOnUpdate: true,
+      dependencies: [selection, phase, reduced, shape, visible, playing],
     },
   )
 

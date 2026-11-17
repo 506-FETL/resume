@@ -1,0 +1,171 @@
+{
+  "date": "2026-11-17",
+  "environment": "本地 Vite / Chromium / 正式 MotionProvider",
+  "sampling": "连续逐帧断言；以下仅保留代表帧，最大回升取完整采样",
+  "before_max_opacity_rise": 0.9099,
+  "after_max_opacity_rise": 0.0,
+  "close_before": [
+    {
+      "ms": 12,
+      "visible": true,
+      "opacity": 0.9995
+    },
+    {
+      "ms": 96,
+      "visible": true,
+      "opacity": 0.578
+    },
+    {
+      "ms": 146,
+      "visible": true,
+      "opacity": 0.0901
+    },
+    {
+      "ms": 155,
+      "visible": true,
+      "opacity": 1.0
+    },
+    {
+      "ms": 204,
+      "visible": true,
+      "opacity": 0.816131
+    },
+    {
+      "ms": 297,
+      "visible": true,
+      "opacity": 0.0
+    },
+    {
+      "ms": 304,
+      "visible": false,
+      "opacity": 0.0
+    },
+    {
+      "ms": 646,
+      "visible": false,
+      "opacity": 0.0
+    }
+  ],
+  "close_after": [
+    {
+      "ms": 10,
+      "visible": true,
+      "opacity": 0.9995
+    },
+    {
+      "ms": 51,
+      "visible": true,
+      "opacity": 0.8911
+    },
+    {
+      "ms": 101,
+      "visible": true,
+      "opacity": 0.5351
+    },
+    {
+      "ms": 143,
+      "visible": true,
+      "opacity": 0.1342
+    },
+    {
+      "ms": 151,
+      "visible": true,
+      "opacity": 0.0345
+    },
+    {
+      "ms": 159,
+      "visible": false,
+      "opacity": 0.0
+    },
+    {
+      "ms": 184,
+      "visible": false,
+      "opacity": 0.0
+    },
+    {
+      "ms": 501,
+      "visible": false,
+      "opacity": 0.0
+    }
+  ],
+  "reference_before": [
+    {
+      "ms": 2,
+      "visible": false,
+      "opacity": 1.0
+    },
+    {
+      "ms": 5,
+      "visible": true,
+      "opacity": 0.9997
+    },
+    {
+      "ms": 21,
+      "visible": true,
+      "opacity": 0.9861
+    },
+    {
+      "ms": 96,
+      "visible": true,
+      "opacity": 0.5351
+    },
+    {
+      "ms": 180,
+      "visible": false,
+      "opacity": 0.0
+    },
+    {
+      "ms": 398,
+      "visible": false,
+      "opacity": 0.0
+    }
+  ],
+  "results": [
+    {
+      "width": 1440,
+      "result": "逐帧关闭/完成/换步、螺旋绘制、两轮及反向、绘制中关闭、运行中减少动效、排序与引用卡、外部输入均通过",
+      "errors": [],
+      "writes": []
+    },
+    {
+      "width": 390,
+      "result": "逐帧关闭/完成/换步、螺旋绘制、两轮及反向、绘制中关闭、运行中减少动效、排序与引用卡、外部输入均通过",
+      "errors": [],
+      "writes": []
+    },
+    {
+      "width": 320,
+      "result": "逐帧关闭/完成/换步、螺旋绘制、两轮及反向、绘制中关闭、运行中减少动效、排序与引用卡、外部输入均通过",
+      "errors": [],
+      "writes": []
+    }
+  ],
+  "narrow_final": [
+    {
+      "width": 390,
+      "result": "逐帧关闭/完成/换步、螺旋绘制、两轮及反向、绘制中关闭、运行中减少动效、排序与引用卡、外部输入均通过",
+      "errors": [],
+      "writes": []
+    },
+    {
+      "width": 320,
+      "result": "逐帧关闭/完成/换步、螺旋绘制、两轮及反向、绘制中关闭、运行中减少动效、排序与引用卡、外部输入均通过",
+      "errors": [],
+      "writes": []
+    }
+  ],
+  "assistant": [
+    {
+      "width": 1440,
+      "result": "正式助手两轮画布介绍、明确关闭/空正文完成、外部操作与逐帧连续退场通过，草稿保持不变",
+      "errors": [],
+      "writes": []
+    },
+    {
+      "width": 390,
+      "result": "正式助手两轮画布介绍、明确关闭/空正文完成、外部操作与逐帧连续退场通过，草稿保持不变",
+      "errors": [],
+      "writes": []
+    }
+  ]
+}

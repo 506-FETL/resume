@@ -10,7 +10,7 @@ const steps: GuideStep[] = [
   {
     target: '[data-resume-comment-trigger]',
     title: '选中文字，就能评论',
-    hint: '划词也能评论',
+    hint: '划词评论',
     description: '给某一句话留下建议，之后也能直接找到原文。',
     side: 'left',
   },
@@ -109,6 +109,7 @@ export default function CommentGuide({
           selection={selection}
           phase={guide.index === 4 ? 'highlight' : 'select'}
           visible={guide.active && (guide.index === 2 || guide.index === 4)}
+          playing={guide.presentedIndex === guide.index}
           actionLabel='评论'
           onAction={guide.next}
           onReady={guide.ready}

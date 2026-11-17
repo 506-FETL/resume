@@ -124,7 +124,7 @@ export function AssistantPageSkeleton() {
           <div className='flex h-12 shrink-0 items-center border-b px-3 text-sm font-medium'>
             画布
           </div>
-          <div className='flex h-[53px] shrink-0 items-center border-b p-2 text-sm'>
+          <div className='flex h-13.25 shrink-0 items-center border-b p-2 text-sm'>
             简历预览
           </div>
           <div className='flex shrink-0 items-center gap-2 border-b px-3 py-2 text-sm'>

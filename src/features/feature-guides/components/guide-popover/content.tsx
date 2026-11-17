@@ -1,9 +1,10 @@
-import { ArrowRight, X } from 'lucide-react'
+import { ArrowLeft, ArrowRight, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { GuideController } from '../../types'
 
 export default function GuideContent({ guide }: { guide: GuideController }) {
-  const { step, index, count, busy, next, close } = guide
+  const { step, index, count, next, previous, close } = guide
+  const busy = guide.busy || guide.presentedIndex !== index
   const hint = index === 0
 
   const dismiss = (
@@ -63,21 +64,35 @@ export default function GuideContent({ guide }: { guide: GuideController }) {
         <span className='text-[11px] tabular-nums text-muted-foreground'>
           {!step.terminal && `${index} / ${count - 1}`}
         </span>
-        <Button
-          data-feature-guide-next
-          type='button'
-          variant='secondary'
-          size='xs'
-          disabled={busy}
-          aria-busy={busy}
-          onClick={next}
-          className='h-7 gap-1.5 px-2 text-xs'
-        >
-          {busy
-            ? '演示中…'
-            : (step.nextLabel ?? (index === count - 1 ? '完成' : '下一步'))}
-          {!busy && <ArrowRight className='size-3' />}
-        </Button>
+        <div className='flex items-center gap-1'>
+          <Button
+            data-feature-guide-previous
+            type='button'
+            variant='ghost'
+            size='xs'
+            disabled={busy}
+            onClick={previous}
+            className='h-7 gap-1 px-2 text-xs text-muted-foreground'
+          >
+            <ArrowLeft className='size-3' />
+            上一步
+          </Button>
+          <Button
+            data-feature-guide-next
+            type='button'
+            variant='secondary'
+            size='xs'
+            disabled={busy}
+            aria-busy={busy}
+            onClick={next}
+            className='h-7 gap-1.5 px-2 text-xs'
+          >
+            {busy
+              ? '演示中…'
+              : (step.nextLabel ?? (index === count - 1 ? '完成' : '下一步'))}
+            {!busy && <ArrowRight className='size-3' />}
+          </Button>
+        </div>
       </div>
     </>
   )

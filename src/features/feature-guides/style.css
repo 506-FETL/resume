@@ -1,3 +1,22 @@
+.feature-guide-popover {
+  /* Radix Popper 会覆盖内联 animation，退出仅由引导的 GSAP 管理。 */
+  animation: none !important;
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px) scale(0.98);
+}
+
+.feature-guide-arrow {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.feature-guide-reference {
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(8px);
+}
+
 @media print {
   [data-feature-guide-ui] {
     display: none !important;

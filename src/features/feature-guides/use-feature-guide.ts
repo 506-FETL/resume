@@ -25,6 +25,8 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
   const [active, setActive] = useState(false)
   const [target, setTarget] = useState<HTMLElement | null>(null)
   const [index, setIndex] = useState(0)
+  const [targetIndex, setTargetIndex] = useState(0)
+  const [presentedIndex, setPresentedIndex] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [focusStep, setFocusStep] = useState(false)
 
@@ -48,51 +50,61 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
     driverRef.current?.destroy()
   }, [account, id])
 
-  const next = useCallback(() => {
-    const tour = driverRef.current
+  const changeStep = useCallback(
+    (direction: 1 | -1) => {
+      const tour = driverRef.current
 
-    if (!tour || busyRef.current) return
+      if (!tour || busyRef.current) return
 
-    if (isGuideUi(document.activeElement)) {
-      setFocusStep(true)
+      if (isGuideUi(document.activeElement)) {
+        setFocusStep(true)
 
-      document
-        .querySelector<HTMLElement>('[data-feature-guide-next]')
-        ?.focus({ preventScroll: true })
-    }
+        document
+          .querySelector<HTMLElement>('[data-feature-guide-next]')
+          ?.focus({ preventScroll: true })
+      }
 
-    const nextIndex = (tour.getActiveIndex() ?? 0) + 1
-    const current = optionsRef.current
+      const currentIndex = tour.getActiveIndex() ?? 0
+      const nextIndex = currentIndex + direction
+      const current = optionsRef.current
 
-    if (
-      nextIndex >= current.steps.length ||
-      current.steps[nextIndex - 1]?.terminal
-    ) {
-      close()
+      if (nextIndex < 0) return
+      if (
+        direction === 1 &&
+        (nextIndex >= current.steps.length ||
+          current.steps[currentIndex]?.terminal)
+      ) {
+        close()
 
-      return
-    }
+        return
+      }
 
-    busyRef.current = true
-    setBusy(true)
+      busyRef.current = true
+      setBusy(true)
+      setPresentedIndex(null)
 
-    Promise.resolve()
-      .then(() => current.prepare?.(nextIndex))
-      .then((continueTour) => {
-        if (driverRef.current !== tour) return
-        if (continueTour === false) {
-          close()
+      Promise.resolve()
+        .then(() => current.prepare?.(nextIndex))
+        .then((continueTour) => {
+          if (driverRef.current !== tour) return
+          if (continueTour === false) {
+            close()
 
-          return
-        }
+            return
+          }
 
-        setIndex(nextIndex)
-        tour.moveNext()
-      })
-      .catch(() => {
-        if (driverRef.current === tour) close()
-      })
-  }, [close])
+          setIndex(nextIndex)
+          tour.moveTo(nextIndex)
+        })
+        .catch(() => {
+          if (driverRef.current === tour) close()
+        })
+    },
+    [close],
+  )
+
+  const next = useCallback(() => changeStep(1), [changeStep])
+  const previous = useCallback(() => changeStep(-1), [changeStep])
 
   useEffect(() => {
     if (!enabled || !authKnown || dismissed || occupied) return
@@ -108,6 +120,7 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
 
       driverRef.current = null
       setActive(false)
+      setPresentedIndex(null)
       ready()
       optionsRef.current.onStop?.(stopReasonRef.current)
       useFeatureGuidesStore.getState().release(sessionId)
@@ -127,6 +140,7 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
 
             setTarget(element)
             setIndex(currentIndex ?? 0)
+            setTargetIndex(currentIndex ?? 0)
             setActive(true)
 
             if (!optionsRef.current.steps[currentIndex ?? 0]?.animated) ready()
@@ -141,6 +155,7 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
         driverRef.current = tour
         stopReasonRef.current = 'context'
         setIndex(0)
+        setPresentedIndex(null)
         setFocusStep(false)
         ready()
         tour.drive()
@@ -168,11 +183,15 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
     active,
     target,
     index,
+    targetIndex,
+    presentedIndex,
     busy,
     focusStep,
-    step: options.steps[index] ?? options.steps[0],
+    step: options.steps[targetIndex] ?? options.steps[0],
     count: options.steps.length,
     next,
+    previous,
+    presented: setPresentedIndex,
     close,
     ready,
   }

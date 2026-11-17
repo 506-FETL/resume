@@ -4,7 +4,7 @@ import type {
   ReactNode,
 } from 'react'
 import type { CanvasTabKey } from '../../types'
-import { PanelRightClose, X } from 'lucide-react'
+import { X } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
@@ -172,7 +172,10 @@ export default function AssistantCanvas() {
   // 首次打开后保留分页结果与滚动位置，关闭时由外层裁切并禁用交互。
   const [hasOpened, setHasOpened] = useState(canvasOpen)
   const [openedDuringGuide, setOpenedDuringGuide] = useState(false)
-  const dragState = useRef<{ startX: number; startWidth: number } | null>(null)
+
+  const dragStateRef = useRef<{ startX: number; startWidth: number } | null>(
+    null,
+  )
 
   useEffect(() => {
     if (canvasOpen) setHasOpened(true)
@@ -185,23 +188,24 @@ export default function AssistantCanvas() {
 
   const onHandlePointerDown = (e: ReactPointerEvent) => {
     e.preventDefault()
-    dragState.current = { startX: e.clientX, startWidth: effectiveWidth }
+    dragStateRef.current = { startX: e.clientX, startWidth: effectiveWidth }
     setDragging(true)
     e.currentTarget.setPointerCapture(e.pointerId)
   }
 
   const onHandlePointerMove = (e: ReactPointerEvent) => {
-    if (!dragState.current) return
+    if (!dragStateRef.current) return
 
     // 右栏：向左拖变宽
     const next =
-      dragState.current.startWidth + (dragState.current.startX - e.clientX)
+      dragStateRef.current.startWidth +
+      (dragStateRef.current.startX - e.clientX)
 
     setCanvasWidth(Math.min(maxWidth, Math.max(CANVAS_MIN_WIDTH, next)))
   }
 
   const onHandlePointerUp = (e: ReactPointerEvent) => {
-    dragState.current = null
+    dragStateRef.current = null
     setDragging(false)
 
     if (e.currentTarget.hasPointerCapture(e.pointerId))
@@ -314,7 +318,7 @@ export default function AssistantCanvas() {
               onPointerUp={onHandlePointerUp}
               onPointerCancel={onHandlePointerUp}
               onLostPointerCapture={() => {
-                dragState.current = null
+                dragStateRef.current = null
                 setDragging(false)
               }}
               className='absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize bg-transparent transition-colors hover:bg-primary/30 active:bg-primary/50'
@@ -324,20 +328,6 @@ export default function AssistantCanvas() {
               className='flex h-12 shrink-0 items-center justify-between border-b px-3'
             >
               <span className='text-sm font-medium'>画布</span>
-              <Button
-                variant='ghost'
-                size='icon-sm'
-                aria-label='收起画布'
-                onClick={() => {
-                  document
-                    .getElementById('assistant-canvas-trigger')
-                    ?.focus({ preventScroll: true })
-
-                  setCanvasOpen(false)
-                }}
-              >
-                <PanelRightClose />
-              </Button>
             </div>
             <CanvasInner />
           </div>

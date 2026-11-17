@@ -1,0 +1,166 @@
+{
+  "comments": [
+    {
+      "width": 1440,
+      "arrowBeforePopover": true,
+      "selectionMs": 1533,
+      "forwardAndBack": true,
+      "twoCloseRounds": true,
+      "reducedMotion": true,
+      "errors": [],
+      "writes": []
+    },
+    {
+      "width": 390,
+      "arrowBeforePopover": true,
+      "selectionMs": 1534,
+      "forwardAndBack": true,
+      "twoCloseRounds": true,
+      "reducedMotion": true,
+      "errors": [],
+      "writes": []
+    },
+    {
+      "width": 320,
+      "arrowBeforePopover": true,
+      "selectionMs": 1534,
+      "forwardAndBack": true,
+      "twoCloseRounds": true,
+      "reducedMotion": true,
+      "errors": [],
+      "writes": []
+    }
+  ],
+  "assistant": [
+    {
+      "width": 1440,
+      "fullAssistantBackAndForward": true,
+      "originalCanvasRestored": true,
+      "draftAndResumeUnchanged": true,
+      "errors": [],
+      "writes": []
+    },
+    {
+      "width": 390,
+      "fullAssistantBackAndForward": true,
+      "originalCanvasRestored": true,
+      "draftAndResumeUnchanged": true,
+      "errors": [],
+      "writes": []
+    },
+    {
+      "width": 320,
+      "fullAssistantBackAndForward": true,
+      "originalCanvasRestored": true,
+      "draftAndResumeUnchanged": true,
+      "errors": [],
+      "writes": []
+    }
+  ],
+  "keyboard_and_reverse": [
+    {
+      "width": 1440,
+      "sortingFits": true,
+      "fastReverseContinuous": true,
+      "keyboardBack": true,
+      "reducedUnmounts": true
+    },
+    {
+      "width": 390,
+      "sortingFits": true,
+      "fastReverseContinuous": true,
+      "keyboardBack": true,
+      "reducedUnmounts": true
+    },
+    {
+      "width": 320,
+      "sortingFits": true,
+      "fastReverseContinuous": true,
+      "keyboardBack": true,
+      "reducedUnmounts": true
+    }
+  ],
+  "following_and_easing": {
+    "follow": [
+      {
+        "reverse": false,
+        "maxError": 0,
+        "targetPositions": 19,
+        "minAlpha": 1,
+        "maxDash": 0
+      },
+      {
+        "reverse": false,
+        "maxError": 0,
+        "targetPositions": 28,
+        "minAlpha": 1,
+        "maxDash": 0
+      },
+      {
+        "reverse": false,
+        "maxError": 0,
+        "targetPositions": 18,
+        "minAlpha": 1,
+        "maxDash": 0
+      },
+      {
+        "reverse": false,
+        "maxError": 0,
+        "targetPositions": 29,
+        "minAlpha": 1,
+        "maxDash": 0
+      },
+      {
+        "reverse": true,
+        "maxError": 0,
+        "targetPositions": 32,
+        "minAlpha": 1,
+        "maxDash": 0
+      }
+    ],
+    "easing": [
+      {
+        "width": 1440,
+        "quarterProgress": 0.7629,
+        "midpointProgress": 0.9606,
+        "laterProgress": 0.9966,
+        "durationMs": 833.7999999523163,
+        "holdMs": 452.3000000715256,
+        "syncError": 0.010599999999982401,
+        "sameCard": true
+      },
+      {
+        "width": 390,
+        "quarterProgress": 0.7757,
+        "midpointProgress": 0.9628,
+        "laterProgress": 0.9969,
+        "durationMs": 824.6000000238419,
+        "holdMs": 456.10000002384186,
+        "syncError": 0.010599999999982401,
+        "sameCard": true
+      },
+      {
+        "width": 320,
+        "quarterProgress": 0.7774,
+        "midpointProgress": 0.9631,
+        "laterProgress": 0.9969,
+        "durationMs": 824.7999999523163,
+        "holdMs": 453.3000000715256,
+        "syncError": 0.010599999999982401,
+        "sameCard": true
+      }
+    ]
+  },
+  "arrow_replay_before": {
+    "firstCompleteMs": 707.2000000476837,
+    "laterDashMax": 1,
+    "laterAlphaMin": 0,
+    "samples": 215
+  },
+  "arrow_replay_after": {
+    "firstCompleteMs": 631.2000000476837,
+    "laterDashMax": 0.000938,
+    "laterAlphaMin": 1,
+    "samples": 217
+  }
+}

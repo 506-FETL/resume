@@ -18,6 +18,7 @@ export default function ReferenceDemo({
 }) {
   const rootRef = useRef<HTMLDivElement>(null)
   const callbackRef = useRef(onReady)
+  const timelineRef = useRef<gsap.core.Timeline | null>(null)
   const [rect, setRect] = useState<DOMRect | null>(null)
   const reduced = useReducedMotion()
 
@@ -40,12 +41,15 @@ export default function ReferenceDemo({
 
       if (!root || !rect) return
 
+      timelineRef.current?.kill()
+
       if (!visible) {
         gsap.to(root, {
           autoAlpha: 0,
           y: reduced ? 0 : 4,
           duration: reduced ? 0 : DURATION.fast,
           ease: guideExitEase,
+          overwrite: true,
         })
 
         return
@@ -58,29 +62,18 @@ export default function ReferenceDemo({
         },
       })
 
+      timelineRef.current = timeline
+      gsap.killTweensOf(root)
+
       timeline
-        .fromTo(
-          root,
-          { autoAlpha: 0, y: reduced ? 0 : 8 },
-          { autoAlpha: 1, y: 0 },
-        )
-        .fromTo(
-          '[data-guide-quote-tag]',
-          { opacity: 0, scale: reduced ? 1 : 0.96 },
-          { opacity: 1, scale: 1 },
-          '<',
-        )
-        .fromTo(
-          '[data-guide-question]',
-          { opacity: 0, y: reduced ? 0 : 4 },
-          { opacity: 1, y: 0 },
-        )
+        .to(root, { autoAlpha: 1, y: 0 })
+        .to('[data-guide-quote-tag]', { opacity: 1, scale: 1 }, '<')
+        .to('[data-guide-question]', { opacity: 1, y: 0 })
         .call(() => callbackRef.current())
     },
     {
       scope: rootRef,
       dependencies: [visible, Boolean(rect), reduced],
-      revertOnUpdate: true,
     },
   )
 
@@ -90,9 +83,8 @@ export default function ReferenceDemo({
       data-feature-guide-ui
       data-feature-guide-demo='reference'
       aria-hidden={!visible}
-      className='pointer-events-none fixed z-60 space-y-2 rounded-xl bg-popover p-3 shadow-sm ring-1 ring-border'
+      className='feature-guide-reference pointer-events-none fixed z-60 space-y-2 rounded-xl bg-popover p-3 shadow-sm ring-1 ring-border'
       style={{
-        visibility: 'hidden',
         left: rect ? Math.max(12, rect.left) : 12,
         bottom: rect ? Math.max(12, window.innerHeight - rect.top + 12) : 12,
         width: rect ? Math.min(320, rect.width, window.innerWidth - 24) : 280,
@@ -107,11 +99,16 @@ export default function ReferenceDemo({
       <div
         data-guide-quote-tag
         className='flex items-start gap-2 rounded-lg bg-muted/60 p-2.5 text-xs'
+        style={{ opacity: 0, transform: 'scale(0.96)' }}
       >
         <Quote className='mt-0.5 size-3.5 shrink-0 text-muted-foreground' />
         <p className='line-clamp-2 leading-5'>{quote}</p>
       </div>
-      <p data-guide-question className='text-sm'>
+      <p
+        data-guide-question
+        className='text-sm'
+        style={{ opacity: 0, transform: 'translateY(4px)' }}
+      >
         帮我把这段写得更简洁
       </p>
     </div>,
