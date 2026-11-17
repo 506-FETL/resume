@@ -214,7 +214,15 @@ export default function AssistantCanvas() {
         modal={!guiding && !openedDuringGuide}
         disablePointerDismissal={guiding || openedDuringGuide}
         open={canvasMobileOpen}
-        onOpenChange={setCanvasMobileOpen}
+        onOpenChange={(open, details) => {
+          if (!open && guiding && details.reason !== 'close-press') {
+            details.cancel()
+
+            return
+          }
+
+          setCanvasMobileOpen(open)
+        }}
         swipeDirection='right'
       >
         <DrawerContent

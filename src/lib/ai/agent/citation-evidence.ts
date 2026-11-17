@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import type { AiMessagePart } from '../types'
+import type { AiMessage, AiMessagePart } from '../types'
 
 const blockSchema = z.object({
   id: z.string().min(1).max(120),
@@ -19,12 +19,24 @@ export type CitationEvidence = z.infer<typeof sourceSchema> & {
   block: z.infer<typeof blockSchema>
 }
 
+export const citationEvidencePartSchema = z.object({
+  type: z.literal('citation-evidence'),
+  sources: z.array(sourceSchema.extend({ block: blockSchema })),
+})
+
 export function collectCitationEvidence(
   parts: AiMessagePart[],
 ): CitationEvidence[] {
   const evidence: CitationEvidence[] = []
 
   for (const part of parts) {
+    if (part.type === 'citation-evidence') {
+      const parsed = citationEvidencePartSchema.safeParse(part)
+
+      if (parsed.success) evidence.push(...parsed.data.sources)
+
+      continue
+    }
     if (part.type !== 'tool-call' || part.state !== 'result') continue
 
     if (part.toolName === 'read_experience_source') {
@@ -34,7 +46,12 @@ export function collectCitationEvidence(
 
       if (parsed.success)
         evidence.push(
-          ...parsed.data.blocks.map((block) => ({ ...parsed.data, block })),
+          ...parsed.data.blocks.map((block) => ({
+            sourceId: parsed.data.sourceId,
+            versionId: parsed.data.versionId,
+            name: parsed.data.name,
+            block,
+          })),
         )
     } else if (part.toolName === 'search_experience_sources') {
       const parsed = z
@@ -67,10 +84,49 @@ export function collectCitationEvidence(
 export function citationLabel(evidence: CitationEvidence): string {
   const { name, block } = evidence
 
-  const ordinal = /^b(\d{4,})$/.exec(block.id)?.[1]
+  const ordinal = /^(?:f1-)?b(\d{4,})$/.exec(block.id)?.[1]
   const position = ordinal ? `第 ${Number(ordinal)} 段` : `段落 ${block.id}`
 
   return `${name} · ${block.page ? `第 ${block.page} 页 · ` : ''}${position}`
+}
+
+export function collectMessageCitationEvidence(
+  message: AiMessage,
+  history: AiMessage[],
+  ownerId: string,
+): CitationEvidence[] {
+  if (message.role !== 'assistant') return []
+
+  const index = history.findIndex((item) => item.id === message.id)
+
+  const previous =
+    message.id === 'streaming' ? history : history.slice(0, Math.max(0, index))
+
+  const conversation = previous.filter(
+    (item) =>
+      item.userId === ownerId && item.conversationId === message.conversationId,
+  )
+
+  const scope = [...conversation]
+    .reverse()
+    .find((item) => item.role === 'user')
+    ?.parts.find((part) => part.type === 'source-scope')?.sources
+
+  const parts = conversation
+    .filter((item) => item.role === 'assistant')
+    .flatMap((item) => item.parts)
+
+  const priorEvidence = scope
+    ? collectCitationEvidence(parts).filter((item) =>
+        scope.some(
+          (source) =>
+            source.sourceId === item.sourceId &&
+            source.versionId === item.versionId,
+        ),
+      )
+    : []
+
+  return [...priorEvidence, ...collectCitationEvidence(message.parts)]
 }
 
 export function resolveCitationEvidence(

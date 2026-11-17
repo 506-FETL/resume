@@ -15,7 +15,7 @@ export default function GuidePopover({
   guide: GuideController
   onElement: (element: HTMLDivElement | null) => void
 }) {
-  const { active, target, step, index, close } = guide
+  const { active, target, step, index } = guide
   const [open, setOpen] = useState(active)
   const [topInset, setTopInset] = useState(12)
   const contentRef = useRef<HTMLDivElement | null>(null)
@@ -177,7 +177,7 @@ export default function GuidePopover({
         onOpenAutoFocus={(event) => event.preventDefault()}
         onCloseAutoFocus={(event) => event.preventDefault()}
         onInteractOutside={(event) => event.preventDefault()}
-        onEscapeKeyDown={close}
+        onEscapeKeyDown={(event) => event.preventDefault()}
         className={cn(
           'feature-guide-popover z-80 overflow-y-auto rounded-xl bg-popover/95 shadow-sm ring-1 ring-border/70 backdrop-blur-sm',
           index === 0

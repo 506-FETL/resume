@@ -1,5 +1,6 @@
 export interface AgentToolContext {
   signal?: AbortSignal
+  readBudget?: { tokens: number; bytes: number }
   target?: {
     resumeId: string | null
     conversationId: string

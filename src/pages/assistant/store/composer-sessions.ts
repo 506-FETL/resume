@@ -1,4 +1,5 @@
 import { z } from 'zod'
+import { citationEvidencePartSchema } from '@/lib/ai/agent/citation-evidence'
 import { userReferenceSchema } from '@/lib/ai/references'
 import type { StoreApi } from 'zustand'
 import type { AssistantStore } from '../store'
@@ -45,6 +46,7 @@ const pendingMessageSchema = z.object({
   createdAt: z.string(),
   parts: z.array(
     z.union([
+      citationEvidencePartSchema,
       userReferenceSchema,
       z.object({
         type: z.literal('source-scope'),

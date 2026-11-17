@@ -14,7 +14,6 @@ export default function SortingGuide({
     id: 'sorting',
     enabled,
     contextKey,
-    activateTarget: false,
     steps: [
       {
         target: '[data-feature-guide-sort]',

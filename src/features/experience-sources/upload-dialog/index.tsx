@@ -235,8 +235,8 @@ function UploadDialogContent({
           {sourceId ? '上传新版本' : '添加职业档案'}
         </ResponsiveDialogTitle>
         <ResponsiveDialogDescription>
-          保存职业背景、工作经历或项目记录，仅自己可见。文件保留原件，粘贴的文字可供
-          AI 助手按需使用。
+          保存职业背景、工作经历或项目记录，仅自己可见。文件保留原件，AI
+          助手可按需读取支持的文档和粘贴文字。
         </ResponsiveDialogDescription>
       </ResponsiveDialogHeader>
       <div className='min-h-0 flex-1 overflow-y-auto px-6 pb-4'>

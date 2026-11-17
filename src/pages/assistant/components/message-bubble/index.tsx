@@ -18,7 +18,8 @@ import ReferenceTags from '../reference-tags'
 import SkillActivity from '../skill-activity'
 import { MessageActions } from './message-actions'
 import { ReasoningPart } from './reasoning-part'
-import { collectCitationEvidence } from '@/lib/ai/agent/citation-evidence'
+import type { CitationEvidence } from '@/lib/ai/agent/citation-evidence'
+import { useCitationEvidence } from './use-citation-evidence'
 import { TextPart } from './text-part'
 import { ToolCallPartGroup } from './tool-call-part'
 import useAssistantStore from '../../store'
@@ -39,9 +40,9 @@ type ToolCallPart = Extract<AiMessagePart, { type: 'tool-call' }>
 function renderAssistantParts(
   parts: AiMessagePart[],
   isStreamingMessage: boolean,
+  evidence: CitationEvidence[],
 ) {
   const nodes: ReactNode[] = []
-  const evidence = collectCitationEvidence(parts)
   let buffer: ToolCallPart[] = []
 
   const flush = () => {
@@ -192,6 +193,7 @@ export const MessageBubble = memo(function MessageBubble({
   const isUser = message.role === 'user'
   const [editing, setEditing] = useState(false)
   const userMessageRef = useRef<HTMLDivElement>(null)
+  const evidence = useCitationEvidence(message)
 
   const pendingWriteId = useAssistantStore(
     (state) => state.pendingAssistantWrite?.id,
@@ -317,6 +319,7 @@ export const MessageBubble = memo(function MessageBubble({
                 {renderAssistantParts(
                   message.parts,
                   message.id === 'streaming',
+                  evidence,
                 )}
               </BubbleContent>
             </Bubble>

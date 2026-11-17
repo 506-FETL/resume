@@ -18,8 +18,7 @@ export interface FeatureGuideOptions {
   contextKey: string
   steps: readonly GuideStep[]
   prepare?: (index: number) => boolean | void | Promise<boolean | void>
-  onStop?: (reason: 'dismiss' | 'takeover' | 'context') => void
-  activateTarget?: boolean
+  onStop?: (reason: 'dismiss' | 'context') => void
 }
 
 export interface GuideController {

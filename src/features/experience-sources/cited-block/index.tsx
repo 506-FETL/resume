@@ -6,6 +6,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
 import type { ExperienceSourceReadResult } from '@/lib/experience-sources/types'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
+import { readExperienceContent } from '@/lib/experience-sources/read-content'
 import { experienceError } from '../utils'
 
 export default function ExperienceCitedBlock({
@@ -30,12 +31,17 @@ export default function ExperienceCitedBlock({
 
   useEffect(() => {
     let active = true
+    const controller = new AbortController()
 
     setError(null)
 
-    useExperienceSourcesStore
-      .getState()
-      .read(sourceId, versionId, 0, attempt > 0, [blockId])
+    readExperienceContent({
+      sourceId,
+      versionId,
+      refresh: attempt > 0,
+      blockIds: [blockId],
+      signal: controller.signal,
+    })
       .then((next) => {
         if (!active) return
 
@@ -48,6 +54,7 @@ export default function ExperienceCitedBlock({
 
     return () => {
       active = false
+      controller.abort()
     }
   }, [sourceId, versionId, blockId, attempt, revision, onLoaded])
 

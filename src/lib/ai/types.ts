@@ -1,4 +1,8 @@
-import type { ExperienceSourceRelation } from '@/lib/experience-sources/types'
+import type {
+  ExperienceSourceBlock,
+  ExperienceSourceReference,
+  ExperienceSourceRelation,
+} from '@/lib/experience-sources/types'
 import type { CommentAnchor } from '../../features/resume-comments/anchors/types.ts'
 
 // AI 助手核心数据类型。parts 是「前端 <-> DB」存储契约，
@@ -73,6 +77,10 @@ export interface AiContextUsage {
 
 export type AiMessagePart =
   | AiContextUsage
+  | {
+      type: 'citation-evidence'
+      sources: (ExperienceSourceReference & { block: ExperienceSourceBlock })[]
+    }
   | { type: 'text'; text: string; inputFormat?: 'plain' }
   | {
       type: 'source-scope'

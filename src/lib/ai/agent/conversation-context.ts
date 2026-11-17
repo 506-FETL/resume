@@ -72,7 +72,7 @@ export async function prepareConversationContext(
   }))
 
   const fingerprint = JSON.stringify({
-    sourceProjectionVersion: 2,
+    sourceProjectionVersion: 3,
     resumeId: targetResumeId,
     sources: sourceVersions.sort((a, b) => a.id.localeCompare(b.id)),
   })

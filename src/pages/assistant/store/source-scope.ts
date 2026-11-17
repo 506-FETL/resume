@@ -111,8 +111,6 @@ function loadSourceCatalog(
         .select('id,name,current_version_id,updated_at')
         .eq('owner_id', ownerId)
         .eq('status', 'ready')
-        .neq('kind', 'image')
-        .neq('kind', 'file')
         .order('id')
         .limit(200)
 

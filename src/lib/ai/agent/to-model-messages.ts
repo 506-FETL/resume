@@ -166,6 +166,8 @@ function hasUnavailableExperienceEvidence(
   if (!sources) return false
 
   return parts.some((part) => {
+    if (part.type === 'citation-evidence')
+      return part.sources.some((source) => !sourceIsAllowed(source, sources))
     if (
       part.type !== 'tool-call' ||
       part.state !== 'result' ||
@@ -189,7 +191,7 @@ function hasUnavailableExperienceEvidence(
 }
 
 function sourceIsAllowed(
-  value: Record<string, unknown>,
+  value: { sourceId?: unknown; versionId?: unknown },
   sources: ExperienceSourceReference[],
 ) {
   return sources.some(

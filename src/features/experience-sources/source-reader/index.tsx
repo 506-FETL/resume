@@ -3,6 +3,10 @@ import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Spinner } from '@/components/ui/spinner'
 import type { ExperienceSourceReadResult } from '@/lib/experience-sources/types'
+import {
+  readExperienceContent,
+  type ExperienceContentResult,
+} from '@/lib/experience-sources/read-content'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
 import ExperienceCitedBlock from '../cited-block'
 import { experienceError } from '../utils'
@@ -20,7 +24,7 @@ function ReaderContent({
 }) {
   const generation = useExperienceSourcesStore((state) => state.generation)
   const revision = useExperienceSourcesStore((state) => state.revision)
-  const [result, setResult] = useState<ExperienceSourceReadResult | null>(null)
+  const [result, setResult] = useState<ExperienceContentResult | null>(null)
   const [offset, setOffset] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +39,7 @@ function ReaderContent({
 
   useEffect(() => {
     let active = true
+    const controller = new AbortController()
     const refresh = attempt !== previousAttemptRef.current
 
     previousAttemptRef.current = attempt
@@ -42,14 +47,17 @@ function ReaderContent({
     setLoading(true)
     setError(null)
 
-    useExperienceSourcesStore
-      .getState()
-      .read(
-        sourceId,
+    readExperienceContent({
+      sourceId,
+      versionId:
         versionId ?? (offset > 0 ? resolvedVersionRef.current : undefined),
-        offset,
-        refresh,
-      )
+      offset,
+      refresh,
+      signal: controller.signal,
+      onMetadata: (metadata) => {
+        if (active) onLoaded?.(metadata)
+      },
+    })
       .then((next) => {
         if (!active) return
 
@@ -78,6 +86,7 @@ function ReaderContent({
 
     return () => {
       active = false
+      controller.abort()
     }
   }, [sourceId, versionId, offset, generation, revision, attempt, onLoaded])
 
@@ -95,10 +104,8 @@ function ReaderContent({
         />
       )}
       {blockId && <h3 className='text-sm font-medium'>完整原文</h3>}
-      {result?.version.blockCount === 0 && (
-        <p className='text-sm text-muted-foreground'>
-          此文件保留原件，不提取文字。可查看原件或下载。
-        </p>
+      {result?.warning && (
+        <p className='text-sm text-muted-foreground'>{result.warning}</p>
       )}
       {!result && loading ? (
         <div aria-label='正在读取原文' className='space-y-4'>

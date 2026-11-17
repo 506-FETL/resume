@@ -38,6 +38,8 @@ export const useFeatureGuidesStore = create<FeatureGuidesState>()(
     }),
     {
       name: 'gresume-feature-guides-v1',
+      version: 1,
+      migrate: () => ({ dismissed: {} }),
       storage: createJSONStorage(() => localStorage),
       partialize: ({ dismissed }) => ({ dismissed }),
     },

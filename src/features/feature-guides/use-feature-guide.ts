@@ -20,7 +20,7 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
 
   const optionsRef = useRef(options)
   const driverRef = useRef<Driver | null>(null)
-  const stopReasonRef = useRef<'dismiss' | 'takeover' | 'context'>('context')
+  const stopReasonRef = useRef<'dismiss' | 'context'>('context')
   const busyRef = useRef(false)
   const [active, setActive] = useState(false)
   const [target, setTarget] = useState<HTMLElement | null>(null)
@@ -35,23 +35,18 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
     setBusy(false)
   }, [])
 
-  const closeWithReason = useCallback(
-    (reason: 'dismiss' | 'takeover') => {
-      stopReasonRef.current = reason
+  const close = useCallback(() => {
+    stopReasonRef.current = 'dismiss'
 
-      if (isGuideUi(document.activeElement)) {
-        findVisibleTarget(optionsRef.current.steps[0].target)?.focus({
-          preventScroll: true,
-        })
-      }
+    if (isGuideUi(document.activeElement)) {
+      findVisibleTarget(optionsRef.current.steps[0].target)?.focus({
+        preventScroll: true,
+      })
+    }
 
-      useFeatureGuidesStore.getState().dismiss(account, id)
-      driverRef.current?.destroy()
-    },
-    [account, id],
-  )
-
-  const close = useCallback(() => closeWithReason('dismiss'), [closeWithReason])
+    useFeatureGuidesStore.getState().dismiss(account, id)
+    driverRef.current?.destroy()
+  }, [account, id])
 
   const next = useCallback(() => {
     const tour = driverRef.current
@@ -140,27 +135,6 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
             if (element instanceof HTMLElement) setTarget(element)
           },
           onElementMissing: () => tour?.destroy(),
-          onInteraction: (
-            _element,
-            _step,
-            { event, region, index: stepIndex },
-          ) => {
-            if (isGuideUi(event.target)) return
-
-            if (region === 'element' && stepIndex === 0) {
-              if (optionsRef.current.activateTarget === false) {
-                closeWithReason('takeover')
-
-                return
-              }
-
-              next()
-
-              return false
-            }
-
-            closeWithReason('takeover')
-          },
           onDestroyed: stop,
         })
 
@@ -173,56 +147,18 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
       })
       .catch(() => useFeatureGuidesStore.getState().release(sessionId))
 
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape' && driverRef.current) close()
-    }
-
-    const onInput = (event: Event) => {
-      if (!isGuideUi(event.target) && driverRef.current)
-        closeWithReason('takeover')
-    }
-
-    const onPointerDown = (event: PointerEvent) => {
-      if (!tour || isGuideUi(event.target)) return
-
-      const trigger = tour.getActiveElement()
-
-      const starting =
-        (tour.getActiveIndex() ?? 0) === 0 &&
-        optionsRef.current.activateTarget !== false
-
-      if (
-        starting &&
-        event.target instanceof Node &&
-        trigger?.contains(event.target)
-      )
-        return
-
-      closeWithReason('takeover')
-    }
-
-    window.addEventListener('keydown', onKeyDown)
-    window.addEventListener('input', onInput)
-    window.addEventListener('pointerdown', onPointerDown, true)
-
     return () => {
       cancelled = true
       tour?.destroy()
       useFeatureGuidesStore.getState().release(sessionId)
-      window.removeEventListener('keydown', onKeyDown)
-      window.removeEventListener('input', onInput)
-      window.removeEventListener('pointerdown', onPointerDown, true)
     }
   }, [
     account,
     authKnown,
-    close,
-    closeWithReason,
     contextKey,
     dismissed,
     enabled,
     id,
-    next,
     occupied,
     ready,
     sessionId,

@@ -22,6 +22,7 @@ import {
 } from '../context-budget'
 import { createEvidenceTools } from '../evidence-tools'
 import { serializeAiToolValue } from '../serialize-tool-value'
+import { createToolReadBudgetTracker } from '../tool-read-budget'
 import { createStepContextCompactor } from '../step-context'
 import type { AgentUIMessage } from '../to-message-parts'
 import { getToolResultState, toMessageParts } from '../to-message-parts'
@@ -44,6 +45,7 @@ export async function runAgent(
 
   const usage: AgentUsage = { input: 0, output: 0, total: 0 }
   const counter = createContextTokenCounter()
+  const readBudget = createToolReadBudgetTracker()
   let lastStepMessages: ModelMessage[] = []
   let lastRequestInput: unknown
   let contextUsage: AiContextUsage | undefined
@@ -157,6 +159,7 @@ export async function runAgent(
                     output = await definition.execute(input, {
                       signal,
                       target: options.target,
+                      readBudget: readBudget.available(),
                     })
                   } catch (error) {
                     output = {
@@ -164,6 +167,8 @@ export async function runAgent(
                         error instanceof Error ? error.message : '工具执行失败',
                     }
                   }
+
+                  readBudget.consume(output)
 
                   completedTools.set(toolCallId, {
                     type: 'tool-call',
@@ -216,6 +221,7 @@ export async function runAgent(
               tools: payload.tools,
             }
 
+            readBudget.start(lastRequestInput)
             reportContext(estimateContextTokens(lastRequestInput), true)
 
             return await request(payload, init?.signal ?? signal)

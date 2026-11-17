@@ -16,6 +16,7 @@ import {
 import { type AssistantRun } from '../../runtime/assistant-run'
 import { updateConversationDraft } from '../../store/composer-sessions'
 import { prepareConversationContext } from '@/lib/ai/agent/conversation-context'
+import { createCitationEvidenceRetainer } from '@/lib/ai/agent/retain-citation-evidence'
 import { QuotaExceededError } from '@/lib/llm/call'
 import {
   insertMessage,
@@ -107,7 +108,12 @@ export async function streamAssistantResponse(
     if (controller.signal.aborted)
       throw new DOMException('aborted', 'AbortError')
 
-    const finalParts = await runAgent({
+    const retainCitations = createCitationEvidenceRetainer(
+      prepared.messages,
+      prepared.sources,
+    )
+
+    const generatedParts = await runAgent({
       history: prepared.messages,
       summary: prepared.summary,
       skipCompaction: prepared.compactionFailed,
@@ -140,7 +146,7 @@ export async function streamAssistantResponse(
             })
           }
 
-          draft = parts
+          draft = retainCitations(parts)
           pushDraft()
         },
         onContextUsage: (usage) => {
@@ -159,6 +165,8 @@ export async function streamAssistantResponse(
         },
       },
     })
+
+    const finalParts = retainCitations(generatedParts)
 
     // 5. 落库 assistant 消息（整轮完整 parts），原子关闭 streaming（避免双气泡）
     if (controller.signal.aborted)

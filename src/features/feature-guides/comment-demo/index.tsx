@@ -178,9 +178,7 @@ export default function CommentDemo({
       modal={false}
       swipeDirection={mobile ? 'down' : 'right'}
       disablePointerDismissal
-      onOpenChange={(open) => {
-        if (!open) onClose()
-      }}
+      onOpenChange={(_open, details) => details.cancel()}
     >
       <DrawerContent
         ref={setContent}
