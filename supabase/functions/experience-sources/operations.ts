@@ -30,6 +30,7 @@ export async function handleExperienceInput(
       return readExperienceOperation(admin, owner, input)
     case 'save':
       return saveExperienceSource(admin, owner, input, file)
+    case 'text':
     case 'read':
     case 'download':
       return readExperienceSource(admin, owner, input)

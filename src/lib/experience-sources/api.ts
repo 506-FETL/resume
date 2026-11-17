@@ -191,6 +191,14 @@ export function downloadExperienceSource(options: ReadOptions): Promise<Blob> {
   return request({ action: 'download', ...input }, { signal, download: true })
 }
 
+export function readExperienceSourceText(
+  options: ReadOptions & { versionId: string },
+): Promise<{ text: string }> {
+  const { signal, ...input } = options
+
+  return request({ action: 'text', ...input }, { signal })
+}
+
 export function renameExperienceSource(
   sourceId: string,
   name: string,

@@ -9,6 +9,12 @@ import { useAssistantBootstrap } from './hooks/use-assistant-bootstrap'
 import { useAssistantLayout } from './hooks/use-assistant-layout'
 import { useAssistantNavigation } from './hooks/use-assistant-navigation'
 import { useWriteConfirmBridge } from './hooks/use-write-confirm-bridge'
+import { lazy, Suspense } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
+
+const AssistantGuide = lazy(
+  () => import('@/features/feature-guides/assistant-guide'),
+)
 
 export default function Assistant() {
   const rootRef = useAssistantLayout()
@@ -35,6 +41,11 @@ export default function Assistant() {
       <AssistantCanvas />
       <ConversationSearch />
       <SourceViewer />
+      <ErrorBoundary fallback={null}>
+        <Suspense fallback={null}>
+          <AssistantGuide />
+        </Suspense>
+      </ErrorBoundary>
     </div>
   )
 }

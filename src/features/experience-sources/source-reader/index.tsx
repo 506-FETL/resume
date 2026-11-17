@@ -97,7 +97,7 @@ function ReaderContent({
       {blockId && <h3 className='text-sm font-medium'>完整原文</h3>}
       {result?.version.blockCount === 0 && (
         <p className='text-sm text-muted-foreground'>
-          这份图片没有提取文字，可查看上方原件或下载。
+          此文件保留原件，不提取文字。可查看原件或下载。
         </p>
       )}
       {!result && loading ? (

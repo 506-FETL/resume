@@ -8,12 +8,17 @@ import {
 } from 'lucide-react'
 
 export const EXPERIENCE_DESCRIPTION =
-  '保存周报、项目记录和旧简历，写简历时随时取用。'
+  '保存职业背景、工作经历和项目资料，随时查看和取用。'
 
 export const EXPERIENCE_GRID_CLASS =
   'grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-4'
 
 export const EXPERIENCE_SOURCE_APPEARANCE = {
+  file: {
+    label: '文件',
+    icon: FileText,
+    className: 'bg-muted text-muted-foreground',
+  },
   image: {
     label: '图片',
     icon: Image,

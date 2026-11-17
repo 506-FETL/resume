@@ -68,6 +68,7 @@ export function SectionRow({
               }}
               className='touch-none shrink-0 cursor-grab rounded p-1 text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing'
               aria-label={`拖动「${label}」模块调整顺序`}
+              data-feature-guide-sort
               aria-keyshortcuts='ArrowUp ArrowDown'
             >
               <GripVertical className='size-4' />

@@ -2,7 +2,8 @@ import type { EditorWorkspaceProps } from './types'
 import { useEditorWorkspace } from './use-editor-workspace'
 import { WorkingResumeComments } from './working-resume-comments'
 import { JobContextBar } from '@/components/job-context'
-import type { CSSProperties } from 'react'
+import { lazy, Suspense, type CSSProperties } from 'react'
+import { ErrorBoundary } from 'react-error-boundary'
 import { Edit } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { RouteSkeleton } from '@/components/route-skeleton'
@@ -29,6 +30,8 @@ import { CheckModeToggle } from '../../components/check-workspace/mode-toggle'
 import CheckRuntime from '../../components/check-runtime'
 import ResumePreview from '../../components/preview'
 import SidebarEditor from '../../components/sidebar'
+
+const EditorGuides = lazy(() => import('@/features/feature-guides/editor'))
 
 function EditorWorkspace({ currentUser, loading }: EditorWorkspaceProps) {
   const {
@@ -317,6 +320,27 @@ function EditorWorkspace({ currentUser, loading }: EditorWorkspaceProps) {
       ) : null}
       <CollaborationDialog />
       <QuickDialog getSnapshot={getShareSnapshot} />
+      <ErrorBoundary fallback={null}>
+        <Suspense fallback={null}>
+          <EditorGuides
+            rootRef={documentRef}
+            contextKey={`${currentResumeId}:${commentReview.selectedKey}`}
+            mobile={isMobile}
+            commentEnabled={Boolean(
+              currentResumeId &&
+              currentUser &&
+              editorMode === 'online' &&
+              !collaboratorMode &&
+              commentReview.isWorking &&
+              documentState.status === 'ready' &&
+              !panelOpen &&
+              !open &&
+              !commentsOpen,
+            )}
+            sortingEnabled={commentReview.isWorking && (panelOpen || open)}
+          />
+        </Suspense>
+      </ErrorBoundary>
     </CollaborationPanelProvider>
   )
 }

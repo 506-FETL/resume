@@ -47,6 +47,7 @@ export type ExperienceInput =
       blockIds?: string[]
     }
   | { action: 'download'; sourceId: string; versionId?: string }
+  | { action: 'text'; sourceId: string; versionId: string }
   | { action: 'rename'; sourceId: string; name: string }
   | { action: 'delete'; sourceId: string }
   | { action: 'delete-conversation'; conversationId: string }
@@ -136,12 +137,18 @@ function references(value: unknown): ExperienceSourceReference[] {
 function extracted(value: unknown): ExtractedExperienceFile {
   const row = object(value)
   const kind = string(row.kind, 16)
-  const text = string(row.text, EXPERIENCE_MAX_TEXT, kind === 'image')
+
+  const text = string(
+    row.text,
+    EXPERIENCE_MAX_TEXT,
+    kind === 'image' || kind === 'file',
+  )
 
   if (text.includes('\0')) invalid('文字包含无法保存的字符，请重新粘贴纯文本。')
 
   if (
     ![
+      'file',
       'pdf',
       'docx',
       'text',
@@ -156,13 +163,16 @@ function extracted(value: unknown): ExtractedExperienceFile {
     invalid('请刷新页面后重新读取文件。')
   if (
     !Array.isArray(row.blocks) ||
-    (kind !== 'image' && !row.blocks.length) ||
+    (!['image', 'file'].includes(kind) && !row.blocks.length) ||
     row.blocks.length > EXPERIENCE_MAX_BLOCKS
   )
     invalid()
 
-  if (kind === 'image' && (text !== '' || row.blocks.length !== 0))
-    invalid('图片仅保存原件，不能附带未经识别的文字。')
+  if (
+    ['image', 'file'].includes(kind) &&
+    (text !== '' || row.blocks.length !== 0)
+  )
+    invalid('文件仅保存原件，不能附带提取文字。')
 
   let previousEnd = 0
   const ids = new Set<string>()
@@ -280,6 +290,12 @@ export function parseExperienceInput(value: unknown): ExperienceInput {
       }
     }
 
+    case 'text':
+      return {
+        action,
+        sourceId: uuid(input.sourceId),
+        versionId: uuid(input.versionId),
+      }
     case 'download':
       return {
         action,

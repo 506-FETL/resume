@@ -224,7 +224,7 @@ export default function ExperienceLibrary({
                     <EmptyDescription>
                       {filtered
                         ? '换个名称搜索，或清除筛选查看全部资料。'
-                        : '把周报、项目记录或旧简历放在这里，也可以直接粘贴文字。'}
+                        : '上传职业背景、工作经历或项目资料，也可以直接粘贴文字。'}
                     </EmptyDescription>
                   </EmptyHeader>
                   <EmptyContent className='flex-row flex-wrap justify-center'>

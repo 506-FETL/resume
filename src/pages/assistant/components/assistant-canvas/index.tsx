@@ -22,6 +22,7 @@ import { CONTENT_SWITCH, DURATION, EASE } from '@/lib/motion'
 import { CANVAS_MAX_WIDTH, CANVAS_MIN_WIDTH, CHAT_MIN_WIDTH } from '../../const'
 import { useCanvasModel } from '../../hooks/use-canvas-model'
 import useAssistantStore from '../../store'
+import { useFeatureGuidesStore } from '@/store/feature-guides'
 import BoardSnapshot from './board-snapshot'
 import { CanvasTabs } from './canvas-tabs'
 import ChangeLog from './change-log'
@@ -139,6 +140,10 @@ function CanvasInner() {
 }
 
 export default function AssistantCanvas() {
+  const guiding = useFeatureGuidesStore(
+    (state) => state.active?.id === 'assistant-quote',
+  )
+
   const {
     canvasOpen,
     canvasMobileOpen,
@@ -166,11 +171,17 @@ export default function AssistantCanvas() {
   const [dragging, setDragging] = useState(false)
   // 首次打开后保留分页结果与滚动位置，关闭时由外层裁切并禁用交互。
   const [hasOpened, setHasOpened] = useState(canvasOpen)
+  const [openedDuringGuide, setOpenedDuringGuide] = useState(false)
   const dragState = useRef<{ startX: number; startWidth: number } | null>(null)
 
   useEffect(() => {
     if (canvasOpen) setHasOpened(true)
   }, [canvasOpen])
+
+  useEffect(() => {
+    if (canvasMobileOpen && guiding) setOpenedDuringGuide(true)
+    if (!canvasMobileOpen) setOpenedDuringGuide(false)
+  }, [canvasMobileOpen, guiding])
 
   const onHandlePointerDown = (e: ReactPointerEvent) => {
     e.preventDefault()
@@ -200,11 +211,14 @@ export default function AssistantCanvas() {
   if (isMobile) {
     return (
       <Drawer
+        modal={!guiding && !openedDuringGuide}
+        disablePointerDismissal={guiding || openedDuringGuide}
         open={canvasMobileOpen}
         onOpenChange={setCanvasMobileOpen}
         swipeDirection='right'
       >
         <DrawerContent
+          initialFocus={guiding ? false : undefined}
           data-assistant-canvas
           className='flex-col! gap-0 overflow-hidden p-0 motion-reduce:transition-none'
           overlayClassName='motion-reduce:transition-none'
@@ -227,7 +241,10 @@ export default function AssistantCanvas() {
             } as CSSProperties
           }
         >
-          <DrawerHeader className='relative border-b pr-14 text-left'>
+          <DrawerHeader
+            data-feature-guide-canvas-header
+            className='relative border-b pr-14 text-left'
+          >
             <DrawerTitle>画布</DrawerTitle>
             <DrawerDescription className='sr-only'>
               简历预览与本轮变更。
@@ -294,7 +311,10 @@ export default function AssistantCanvas() {
               }}
               className='absolute inset-y-0 left-0 z-10 w-1.5 cursor-col-resize bg-transparent transition-colors hover:bg-primary/30 active:bg-primary/50'
             />
-            <div className='flex h-12 shrink-0 items-center justify-between border-b px-3'>
+            <div
+              data-feature-guide-canvas-header
+              className='flex h-12 shrink-0 items-center justify-between border-b px-3'
+            >
               <span className='text-sm font-medium'>画布</span>
               <Button
                 variant='ghost'

@@ -1,5 +1,6 @@
 import type { ExtractedExperienceFile } from './types'
 import { saveExperienceSource } from './api'
+import { prepareExperienceFile } from './file'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
 
 export async function persistExperienceUpload(options: {
@@ -25,13 +26,15 @@ export async function persistExperienceUpload(options: {
     let extracted = options.extracted
 
     if (!extracted) {
-      const extract = await import('./extract')
-
       signal.throwIfAborted()
 
-      extracted = options.file
-        ? await extract.extractExperienceFile(options.file, signal)
-        : extract.extractExperienceText(options.text ?? '', options.name)
+      if (options.file) extracted = prepareExperienceFile(options.file)
+      else {
+        const { extractExperienceText } = await import('./extract')
+
+        signal.throwIfAborted()
+        extracted = extractExperienceText(options.text ?? '', options.name)
+      }
 
       options.onExtracted(extracted)
     }

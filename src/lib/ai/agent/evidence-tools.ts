@@ -249,7 +249,7 @@ export function createEvidenceTools(
             versionId: result.version.id,
             name: result.source.name,
             error:
-              '这是一份图片原件，当前未识别图中文字。不能声称已看懂图片；请用户补充相关文字。',
+              '这份文件仅保存原件，没有可读取的文字。不能声称已读过文件内容；请用户粘贴相关文字。',
           }
 
         return {

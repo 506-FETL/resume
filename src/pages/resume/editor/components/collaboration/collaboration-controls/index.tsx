@@ -150,6 +150,7 @@ export function CollaborationControls({
             variant='outline'
             onClick={onOpenSortDialog}
             aria-label='调整模块顺序'
+            data-feature-guide-sort
           >
             <ArrowUpDown className='size-4' />
           </Button>

@@ -1,7 +1,5 @@
-import { PDFDocument } from 'npm:pdf-lib@1.17.1'
 import type { ExtractedExperienceFile } from '../shared/experience-source-contract.ts'
 import { EXPERIENCE_MAX_BYTES } from '../shared/experience-source-contract.ts'
-import { validateSubmissionFile } from '../job-submissions/files.ts'
 import { ExperienceRequestError } from './input.ts'
 import {
   EXPERIENCE_IMAGE_MIMES,
@@ -21,7 +19,11 @@ export async function validateExperienceFile(
 
     return { fileName: null, fileMime: null, fileSize: null }
   }
-  if (!file || !file.size || file.size > EXPERIENCE_MAX_BYTES)
+  if (
+    !file ||
+    file.size > EXPERIENCE_MAX_BYTES ||
+    (extracted.kind !== 'file' && !file.size)
+  )
     throw new ExperienceRequestError(
       'too_large',
       '请选择 10 MB 以内的原文件。',
@@ -33,6 +35,13 @@ export async function validateExperienceFile(
       'invalid_request',
       '原文件名称与提取记录不一致，请重新读取。',
     )
+
+  if (extracted.kind === 'file')
+    return {
+      fileName: file.name,
+      fileMime: file.type || 'application/octet-stream',
+      fileSize: file.size,
+    }
 
   const extension = file.name.split('.').pop()?.toLowerCase() ?? ''
 
@@ -62,9 +71,13 @@ export async function validateExperienceFile(
 
   try {
     if (extracted.kind === 'pdf' || extracted.kind === 'docx') {
+      const { validateSubmissionFile } =
+        await import('../job-submissions/files.ts')
+
       await validateSubmissionFile(new File([file], file.name, { type: mime }))
 
       if (extracted.kind === 'pdf') {
+        const { PDFDocument } = await import('npm:pdf-lib@1.17.1')
         const document = await PDFDocument.load(await file.arrayBuffer())
 
         if (

@@ -58,8 +58,25 @@ export default function ResumePreview() {
     documentState?.key === previewKey ? documentState.state : null,
   )
 
+  const guidePreviewStatus =
+    status !== 'idle'
+      ? status
+      : !snapshot || !previewData
+        ? 'empty'
+        : documentState?.key === previewKey &&
+            documentState.state.status !== 'measuring'
+          ? documentState.state.status
+          : 'loading'
+
   return (
-    <div ref={rootRef} className='flex h-full min-h-0 flex-col'>
+    <div
+      ref={rootRef}
+      data-feature-guide-canvas-resume={
+        guidePreviewStatus === 'ready' ? '' : undefined
+      }
+      data-feature-guide-preview-status={guidePreviewStatus}
+      className='flex h-full min-h-0 flex-col'
+    >
       <div className='flex shrink-0 items-center gap-2 border-b px-3 py-2 text-sm'>
         <FileText className='size-4 shrink-0 text-muted-foreground' />
         <span className='min-w-0 flex-1 truncate font-medium'>

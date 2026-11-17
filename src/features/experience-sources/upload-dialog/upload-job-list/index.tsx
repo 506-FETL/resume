@@ -53,12 +53,12 @@ export function UploadJobList({
               {
                 {
                   queued: '待保存',
-                  reading: '正在读取文件',
+                  reading: '正在准备资料',
                   saving: '正在保存资料',
                   ready: '已保存',
                   failed: job.error,
                   unknown: job.error,
-                  cancelled: '已停止提取，尚未上传',
+                  cancelled: '已停止，尚未保存',
                 }[job.status]
               }
             </p>
@@ -67,7 +67,7 @@ export function UploadJobList({
             <Button
               size='icon-sm'
               variant='ghost'
-              aria-label={`停止提取${job.name}`}
+              aria-label={`停止保存${job.name}`}
               onClick={() => job.controller.abort()}
             >
               <X />

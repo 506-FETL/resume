@@ -47,7 +47,7 @@ const ACCOUNT_PAGES: Record<string, { title: string; description: string }> = {
   },
   '/experience': {
     title: '登录后管理职业档案',
-    description: '保存周报、项目记录和旧简历，并在助手中引用。',
+    description: '保存职业背景、工作经历和项目资料，随时查看和取用。',
   },
   '/assistant': {
     title: '登录后使用 AI 助手',

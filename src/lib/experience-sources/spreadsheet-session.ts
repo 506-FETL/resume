@@ -59,7 +59,6 @@ export function createSpreadsheetSession() {
         extension,
       })
     },
-    extract: () => request<string>({ action: 'extract' }),
     preview: (sheet: string, page: number) =>
       request<SpreadsheetPage>({ action: 'preview', sheet, page }),
     dispose() {

@@ -35,6 +35,7 @@ import { useExperiencePageStore } from '../../../store'
 import type { ExperienceSourceReference } from '@/lib/experience-sources/types'
 import { RenameSourceDialog } from '../rename-dialog'
 import { DeleteSourceDialog } from '../delete-dialog'
+import { CopySourceButton } from '../copy-source-button'
 
 export function SourceActions({
   sourceId,
@@ -126,7 +127,7 @@ export function SourceActions({
       <div className='flex flex-wrap items-center gap-2'>
         {(detail
           ? detail.version.blockCount > 0
-          : source?.kind !== 'image') && (
+          : source && !['image', 'file'].includes(source.kind)) && (
           <Button
             disabled={!reference || source?.status !== 'ready'}
             onClick={() => {
@@ -149,6 +150,9 @@ export function SourceActions({
             <Download />
             下载原件
           </Button>
+        )}
+        {detail && !detail.version.fileName && (
+          <CopySourceButton sourceId={sourceId} versionId={detail.version.id} />
         )}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>

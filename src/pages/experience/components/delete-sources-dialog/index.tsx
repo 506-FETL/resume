@@ -56,7 +56,7 @@ export default function DeleteSourcesDialog() {
             资料？
           </AlertDialogTitle>
           <AlertDialogDescription>
-            原件、提取文字与全部版本将被删除，后续无法继续引用。已发送的聊天文字仍会保留。
+            文件、文字内容与全部版本将被删除，后续无法继续引用。已发送的聊天文字仍会保留。
           </AlertDialogDescription>
         </AlertDialogHeader>
         <ul

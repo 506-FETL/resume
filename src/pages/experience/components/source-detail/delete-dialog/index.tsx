@@ -55,7 +55,7 @@ export function DeleteSourceDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>删除这份资料？</AlertDialogTitle>
           <AlertDialogDescription>
-            原件、提取文字与全部版本将被删除，后续无法继续引用。已发送的聊天文字仍会保留，需要清除时请另行删除对应对话。
+            文件、文字内容与全部版本将被删除，后续无法继续引用。已发送的聊天文字仍会保留，需要清除时请另行删除对应对话。
           </AlertDialogDescription>
         </AlertDialogHeader>
         {error && (

@@ -2,6 +2,7 @@ import { prepareOriginalViewer } from '@/features/experience-sources/original-pr
 import { useCallback, useEffect, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { formatBytes } from '@/components/ui/file-upload/utils'
 import {
   Popover,
   PopoverContent,
@@ -164,8 +165,12 @@ export default function SourceDetail({
                   <>
                     <p>
                       此版本保存于 {formatSourceDate(detail.version.createdAt)}{' '}
-                      · {detail.version.textLength} 字符 ·{' '}
-                      {detail.version.blockCount} 段
+                      ·{' '}
+                      {detail.version.fileName
+                        ? detail.version.fileSize !== null
+                          ? formatBytes(detail.version.fileSize)
+                          : '文件原件'
+                        : `${detail.version.textLength} 字符 · ${detail.version.blockCount} 段`}
                     </p>
                     <p>
                       {detail.version.id === source.currentVersionId

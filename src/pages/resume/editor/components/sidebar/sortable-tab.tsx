@@ -82,6 +82,7 @@ export function SortableTab({
           tabIndex={0}
           className='touch-none cursor-grab rounded text-muted-foreground hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing'
           aria-label={`拖动 ${label} 模块`}
+          data-feature-guide-sort
           aria-keyshortcuts='ArrowLeft ArrowRight'
           onPointerDown={(event) => dragControls.start(event)}
           onKeyDown={(event) => {

@@ -14,15 +14,17 @@ import { BUCKET } from './constants.ts'
 export async function readExperienceSource(
   admin: SupabaseClient,
   owner: string,
-  input: Extract<ExperienceInput, { action: 'read' | 'download' }>,
+  input: Extract<ExperienceInput, { action: 'read' | 'download' | 'text' }>,
 ): Promise<unknown | Response> {
   const source = await ownedSource(admin, owner, input.sourceId)
   const versionId = input.versionId ?? source.current_version_id
 
   const versionFields: string =
-    input.action === 'download'
-      ? 'id,object_key,file_name,file_mime'
-      : VERSION_FIELDS
+    input.action === 'text'
+      ? 'id,object_key,extracted_text'
+      : input.action === 'download'
+        ? 'id,object_key,file_name,file_mime'
+        : VERSION_FIELDS
 
   const { data: versionRow, error: versionError } = await admin
     .from('experience_source_versions')
@@ -36,6 +38,18 @@ export async function readExperienceSource(
   if (!versionRow) fail('version_not_found', '这个资料版本不存在。', 404)
 
   const version = versionRow as unknown as VersionRow
+
+  if (input.action === 'text') {
+    if (version.object_key)
+      fail('not_text_source', '这份资料保存的是原文件，请下载原件。', 400)
+
+    await ownedSource(admin, owner, source.id)
+
+    return {
+      text: (versionRow as unknown as { extracted_text: string })
+        .extracted_text,
+    }
+  }
 
   if (input.action === 'download') {
     if (!version.object_key)

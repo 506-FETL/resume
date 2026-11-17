@@ -178,7 +178,9 @@ export default function SourceItem({
               ? '资料尚未准备完成。'
               : source.kind === 'image'
                 ? '打开查看图片原件，可放大或下载。'
-                : '打开查看保存的原文。')}
+                : source.kind === 'file'
+                  ? '原件已保存，打开查看或下载。'
+                  : '打开查看保存的原文。')}
         </p>
         <div className='mt-auto flex flex-wrap items-center justify-between gap-x-2 gap-y-1 pt-1 text-xs leading-5 text-muted-foreground'>
           <time dateTime={source.updatedAt}>

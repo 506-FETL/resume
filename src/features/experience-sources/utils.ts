@@ -1,6 +1,7 @@
 import type { ExperienceSource } from '@/lib/experience-sources/types'
 
 export const KIND_LABEL = {
+  file: '文件',
   pdf: 'PDF',
   docx: 'DOCX',
   text: 'TXT',

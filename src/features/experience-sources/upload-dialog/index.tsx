@@ -18,11 +18,7 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  EXPERIENCE_FILE_ACCEPT,
-  EXPERIENCE_FILE_FORMATS_LABEL,
-  EXPERIENCE_MAX_BYTES,
-} from '@/lib/experience-sources/const'
+import { EXPERIENCE_MAX_BYTES } from '@/lib/experience-sources/const'
 
 import { ExperienceSourceError } from '@/lib/experience-sources/types'
 import { persistExperienceUpload } from '@/lib/experience-sources/upload'
@@ -62,7 +58,7 @@ function UploadDialogContent({
     (job) =>
       !job.file &&
       job.sourceId === sourceId &&
-      job.name === (title.trim().slice(0, 160) || '补充经历') &&
+      job.name === (title.trim().slice(0, 160) || '职业背景与经历') &&
       job.text === text &&
       job.status !== 'ready',
   )
@@ -163,7 +159,7 @@ function UploadDialogContent({
     if (
       job.file ||
       job.text !== draft.text ||
-      job.name !== (draft.title.trim().slice(0, 160) || '补充经历')
+      job.name !== (draft.title.trim().slice(0, 160) || '职业背景与经历')
     )
       return
 
@@ -197,7 +193,7 @@ function UploadDialogContent({
       const job: UploadJob = pendingPaste ?? {
         operationId: crypto.randomUUID(),
         sourceId,
-        name: title.trim().slice(0, 160) || '补充经历',
+        name: title.trim().slice(0, 160) || '职业背景与经历',
         text,
         status: 'queued',
         controller: new AbortController(),
@@ -239,7 +235,8 @@ function UploadDialogContent({
           {sourceId ? '上传新版本' : '添加职业档案'}
         </ResponsiveDialogTitle>
         <ResponsiveDialogDescription>
-          资料将私密保存到你的账户；对话时，相关文字会按需发送给 AI。
+          保存职业背景、工作经历或项目记录，仅自己可见。文件保留原件，粘贴的文字可供
+          AI 助手按需使用。
         </ResponsiveDialogDescription>
       </ResponsiveDialogHeader>
       <div className='min-h-0 flex-1 overflow-y-auto px-6 pb-4'>
@@ -257,14 +254,13 @@ function UploadDialogContent({
               disabled={saving}
               value={jobs.flatMap((job) => (job.file ? [job.file] : []))}
               label='选择职业档案文件'
-              accept={EXPERIENCE_FILE_ACCEPT}
               maxSize={EXPERIENCE_MAX_BYTES}
               multiple={!sourceId}
               maxFiles={sourceId ? 1 : undefined}
               onAccept={addFiles}
-              onFileReject={(file, message) =>
+              onFileReject={(file) =>
                 setFileError(
-                  `${file.name}：${file.size > EXPERIENCE_MAX_BYTES ? '文件超过 10 MB。' : sourceId && message.includes('Maximum') ? '更新版本时请一次选择一份文件。' : `请选择 ${EXPERIENCE_FILE_FORMATS_LABEL} 文件。`}`,
+                  `${file.name}：${file.size > EXPERIENCE_MAX_BYTES ? '文件超过 10 MB。' : '更新版本时请一次选择一份文件。'}`,
                 )
               }
             >
@@ -272,8 +268,7 @@ function UploadDialogContent({
                 <Upload className='size-7 text-muted-foreground' aria-hidden />
                 <p className='text-sm'>拖入文件，或选择本机文件</p>
                 <p className='text-xs text-muted-foreground'>
-                  {EXPERIENCE_FILE_FORMATS_LABEL} · 单份不超过 10 MB；PDF 不超过
-                  30 页，文字不超过 60000 字符
+                  单份文件不超过 10 MB
                 </p>
                 <FileUploadTrigger asChild>
                   <Button variant='outline'>选择文件</Button>
@@ -299,7 +294,7 @@ function UploadDialogContent({
               />
             </div>
             <div className='space-y-2'>
-              <Label htmlFor='experience-text'>经历原文</Label>
+              <Label htmlFor='experience-text'>资料内容</Label>
               <Textarea
                 id='experience-text'
                 className='min-h-44 max-h-64'
@@ -307,7 +302,7 @@ function UploadDialogContent({
                 value={text}
                 maxLength={60000}
                 onChange={(event) => setText(event.target.value)}
-                placeholder='粘贴周报、项目记录或旧简历中的文字'
+                placeholder='粘贴职业背景、工作经历、项目记录等内容'
               />
             </div>
           </TabsContent>

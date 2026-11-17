@@ -70,9 +70,6 @@ export default function PdfPreview({ blob }: { blob: Blob }) {
           </Button>
         </div>
       )}
-      <p className='text-xs text-muted-foreground'>
-        需要复制文字时，可打开下方提取文字。
-      </p>
     </div>
   )
 }

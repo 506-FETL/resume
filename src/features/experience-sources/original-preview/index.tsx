@@ -70,7 +70,7 @@ export default function ExperienceOriginalPreview({
           {version.fileSize !== null
             ? ` · ${(version.fileSize / 1024).toFixed(1)} KB`
             : ''}
-          。下载后可查看完整排版，也可在下方阅读提取文字。
+          。此格式暂不支持在线预览，请下载查看。
         </p>
       </div>
     )

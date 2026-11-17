@@ -1,7 +1,6 @@
 import { useComposer } from './use-composer'
 import { UploadTasks } from './upload-tasks'
 import { ArrowUp, Brain, Square, WandSparkles } from 'lucide-react'
-import { EXPERIENCE_FILE_ACCEPT } from '@/lib/experience-sources/const'
 import { QuotaMeter } from '@/components/quota/quota-meter'
 import {
   InputGroup,
@@ -119,7 +118,6 @@ export default function Composer() {
         type='file'
         hidden
         multiple
-        accept={EXPERIENCE_FILE_ACCEPT}
         onChange={(event) => {
           uploads.addFiles(Array.from(event.target.files ?? []))
           event.target.value = ''

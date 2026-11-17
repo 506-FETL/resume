@@ -2,7 +2,6 @@ import { read, utils } from 'xlsx'
 import { fileTypeFromBuffer } from 'file-type'
 import type { WorkBook, WorkSheet } from 'xlsx'
 import type { SpreadsheetCommand, SpreadsheetPage } from './spreadsheet-types'
-import { EXPERIENCE_MAX_TEXT } from './const'
 
 const PAGE_ROWS = 100
 const MAX_CELLS = 100000
@@ -14,7 +13,7 @@ self.onmessage = async (
   const command = event.data
 
   try {
-    let value: string | string[] | SpreadsheetPage
+    let value: string[] | SpreadsheetPage
 
     if (command.action === 'open') {
       if (command.extension !== 'csv') {
@@ -54,32 +53,10 @@ self.onmessage = async (
         cells += (range.e.r - range.s.r + 1) * (range.e.c - range.s.c + 1)
 
         if (cells > MAX_CELLS)
-          throw new Error('表格范围超过 10 万个单元格，请拆分工作表后上传。')
+          throw new Error('表格范围较大，暂时无法在线预览，请下载原件查看。')
       }
 
       value = workbook.SheetNames
-    } else if (command.action === 'extract') {
-      const sections: string[] = []
-      let length = 0
-
-      for (const name of workbook.SheetNames) {
-        const content = utils
-          .sheet_to_csv(workbook.Sheets[name], { blankrows: false })
-          .trim()
-
-        if (!content) continue
-
-        const section = `工作表：${name}\n${content}`
-
-        length += section.length + (sections.length ? 2 : 0)
-
-        if (length > EXPERIENCE_MAX_TEXT)
-          throw new Error('表格文字超过 60000 字符，请拆分后上传。')
-
-        sections.push(section)
-      }
-
-      value = sections.join('\n\n')
     } else {
       const sheet = workbook.Sheets[command.sheet]
 

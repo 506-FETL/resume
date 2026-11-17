@@ -9,6 +9,7 @@ export const EXPERIENCE_MAX_BLOCK_TEXT = 2400
 export const EXPERIENCE_MAX_BLOCKS = 30000
 
 export type ExperienceSourceKind =
+  | 'file'
   | 'pdf'
   | 'docx'
   | 'text'

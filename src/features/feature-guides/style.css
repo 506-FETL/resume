@@ -1,0 +1,5 @@
+@media print {
+  [data-feature-guide-ui] {
+    display: none !important;
+  }
+}
