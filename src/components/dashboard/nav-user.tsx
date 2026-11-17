@@ -10,6 +10,7 @@ import {
 import useCurrentUser from '@/hooks/use-current-user'
 import { CurrentUserAvatar } from '../current-user-avatar'
 import { AccountMenu } from './account-menu'
+import { ChangelogIndicator } from './changelog-indicator'
 
 export function NavUser() {
   const user = useCurrentUser()
@@ -23,7 +24,10 @@ export function NavUser() {
             size='lg'
             className='data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground'
           >
-            <CurrentUserAvatar />
+            <span className='relative shrink-0'>
+              <CurrentUserAvatar />
+              <ChangelogIndicator className='absolute top-0 right-0 ring-2 ring-sidebar' />
+            </span>
             <div className='grid flex-1 text-left text-sm leading-tight'>
               <span className='truncate font-medium'>
                 {user ? user.user_metadata.full_name : '未登录'}

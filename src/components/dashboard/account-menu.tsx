@@ -1,6 +1,6 @@
 import type React from 'react'
 import { CircleUser, LogIn, LogOut, ScrollText, Settings } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { QuotaMenuRow } from '@/components/quota/quota-menu-row'
 import {
@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import useCurrentUser from '@/hooks/use-current-user'
 import { SignOut } from '@/lib/supabase/user'
+import { ChangelogIndicator } from './changelog-indicator'
 
 interface AccountMenuProps {
   children: React.ReactNode
@@ -66,9 +67,12 @@ export function AccountMenu({
             <Settings />
             设置
           </DropdownMenuItem>
-          <DropdownMenuItem onClick={() => navigate('/changelog')}>
-            <ScrollText />
-            更新日志
+          <DropdownMenuItem asChild>
+            <Link to='/changelog'>
+              <ScrollText />
+              更新日志
+              <ChangelogIndicator className='ml-auto' />
+            </Link>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />

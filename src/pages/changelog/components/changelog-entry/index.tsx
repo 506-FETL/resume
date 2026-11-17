@@ -7,6 +7,7 @@ import { isValidElement } from 'react'
 import { CodeSnippet } from '@/components/ui/code-snippet'
 import { DURATION, EASE } from '@/lib/motion'
 import { formatDate } from '../../utils'
+import { MilestoneEntry } from '../milestone-entry'
 
 function MdxPre({ children }: { children?: ReactNode }) {
   if (!isValidElement<{ className?: string; children?: string }>(children)) {
@@ -33,6 +34,10 @@ interface ChangelogEntryProps {
 export function ChangelogEntry({ entry }: ChangelogEntryProps) {
   const { frontmatter, Content } = entry
   const reduceMotion = useReducedMotion()
+
+  if (frontmatter.milestone) {
+    return <MilestoneEntry entry={entry} />
+  }
 
   return (
     <motion.div

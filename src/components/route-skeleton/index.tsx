@@ -7,6 +7,7 @@ import {
   PaperSkeleton,
 } from '@/components/loading-skeleton'
 import { AssistantPageSkeleton } from '@/components/page-skeletons/assistant'
+import { ChangelogPageSkeleton } from '@/components/page-skeletons/changelog'
 import { DashboardPageSkeleton } from '@/components/page-skeletons/dashboard'
 import { ExperiencePageSkeleton } from '@/components/page-skeletons/experience'
 import { HistoryPageSkeleton } from '@/components/page-skeletons/history'
@@ -85,15 +86,7 @@ export function RouteSkeleton({
   }
 
   if (path === '/changelog') {
-    return (
-      <PageLayout className='max-w-5xl'>
-        <PageHeader
-          title='更新日志'
-          description='查看 GResume 的功能更新与体验改进。'
-        />
-        <ContentSkeleton label={label} className='px-0 pt-2' rows={3} />
-      </PageLayout>
-    )
+    return <ChangelogPageSkeleton />
   }
 
   return (

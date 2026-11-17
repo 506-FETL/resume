@@ -1,10 +1,11 @@
 import { PageHeader, PageLayout } from '@/components/layout/page-layout'
 import { ChangelogEntry } from './components/changelog-entry'
-import { loadChangelogEntries } from './utils'
-
-const entries = loadChangelogEntries()
+import { useReadChangelog } from './hooks/use-read-changelog'
+import { changelogEntries } from './store'
 
 export default function ChangelogPage() {
+  useReadChangelog()
+
   return (
     <PageLayout className='max-w-5xl'>
       <PageHeader
@@ -13,7 +14,7 @@ export default function ChangelogPage() {
       />
       <div className='pt-2'>
         <div className='relative'>
-          {entries.map((entry) => (
+          {changelogEntries.map((entry) => (
             <ChangelogEntry key={entry.frontmatter.date} entry={entry} />
           ))}
         </div>

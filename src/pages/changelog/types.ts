@@ -5,6 +5,8 @@ export interface ChangelogFrontmatter {
   date: string
   tags?: string[]
   version?: string
+  milestone?: boolean
+  description?: string
 }
 
 export interface ChangelogEntry {
