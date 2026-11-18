@@ -1,3 +1,4 @@
+import { Fragment } from 'react'
 import {
   ArrowRight,
   Activity,
@@ -57,18 +58,28 @@ export function DashboardChartSkeleton() {
   )
 }
 
-export function DashboardPageSkeleton({ guest = false }: { guest?: boolean }) {
+export function DashboardPageSkeleton({
+  guest = false,
+  contentOnly = false,
+}: {
+  guest?: boolean
+  contentOnly?: boolean
+}) {
+  const Wrapper = contentOnly ? Fragment : PageLayout
+
   return (
-    <PageLayout>
-      <PageHeader
-        title='首页'
-        description={
-          guest
-            ? '创建或导入简历，从已有内容开始。'
-            : '继续编辑简历，查看待办与求职进展。'
-        }
-        actions={<Button disabled>创建简历</Button>}
-      />
+    <Wrapper>
+      {!contentOnly && (
+        <PageHeader
+          title='首页'
+          description={
+            guest
+              ? '创建或导入简历，从已有内容开始。'
+              : '继续编辑简历，查看待办与求职进展。'
+          }
+          actions={<Button disabled>创建简历</Button>}
+        />
+      )}
       {guest && <GettingStarted isAuthenticated={false} hasResume={false} />}
       <section className='flex flex-col gap-3'>
         <div className='flex items-center justify-between gap-3'>
@@ -282,6 +293,6 @@ export function DashboardPageSkeleton({ guest = false }: { guest?: boolean }) {
           </div>
         </>
       )}
-    </PageLayout>
+    </Wrapper>
   )
 }

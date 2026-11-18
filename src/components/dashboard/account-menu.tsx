@@ -2,7 +2,8 @@ import type React from 'react'
 import { CircleUser, LogIn, LogOut, ScrollText, Settings } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { QuotaMenuRow } from '@/components/quota/quota-menu-row'
+import { createDeferredComponent } from '@/components/deferred-content'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,8 +13,16 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import useCurrentUser from '@/hooks/use-current-user'
-import { SignOut } from '@/lib/supabase/user'
 import { ChangelogIndicator } from './changelog-indicator'
+
+const QuotaMenuRow = createDeferredComponent(
+  () =>
+    import('@/components/quota/quota-menu-row').then((module) => ({
+      default: module.QuotaMenuRow,
+    })),
+  'AI 额度',
+  <Skeleton className='h-12 w-full' />,
+)
 
 interface AccountMenuProps {
   children: React.ReactNode
@@ -31,6 +40,8 @@ export function AccountMenu({
 
   const handleSignOut = async () => {
     try {
+      const { SignOut } = await import('@/lib/supabase/user/auth')
+
       await SignOut()
       navigate('/login')
     } catch (error) {

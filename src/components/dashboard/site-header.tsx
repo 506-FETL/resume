@@ -8,6 +8,7 @@ import {
   GithubStars,
   GithubStarsIcon,
   GithubStarsNumber,
+  useGithubStars,
 } from '@/components/animate-ui/primitives/animate/github-stars'
 import {
   Breadcrumb,
@@ -120,29 +121,39 @@ export function SiteHeader() {
         )}
       >
         <GithubStars>
-          <Button
-            asChild
-            variant='ghost'
-            size='sm'
-            className='gap-1.5 px-2 text-xs text-muted-foreground'
-          >
-            <a
-              href='https://github.com/506-fetl/resume'
-              target='_blank'
-              rel='noreferrer'
-              aria-label='在 GitHub 查看 GResume 仓库'
-            >
-              <GithubStarsIcon
-                icon={StarIcon}
-                className='size-3.5'
-                color='var(--color-amber-500)'
-              />
-              <GithubStarsNumber className='font-medium tabular-nums' />
-            </a>
-          </Button>
+          <GithubRepositoryLink />
         </GithubStars>
         <AnimatedThemeToggler />
       </div>
     </div>
+  )
+}
+
+function GithubRepositoryLink() {
+  const { stars } = useGithubStars()
+
+  return (
+    <Button
+      asChild
+      variant='ghost'
+      size='sm'
+      className='gap-1.5 px-2 text-xs text-muted-foreground'
+    >
+      <a
+        href='https://github.com/506-fetl/resume'
+        target='_blank'
+        rel='noreferrer'
+        aria-label={`在 GitHub 查看 GResume 仓库，${stars} 颗星`}
+      >
+        <GithubStarsIcon
+          icon={StarIcon}
+          className='size-3.5'
+          color='var(--color-amber-500)'
+        />
+        <span aria-hidden>
+          <GithubStarsNumber className='font-medium tabular-nums' />
+        </span>
+      </a>
+    </Button>
   )
 }

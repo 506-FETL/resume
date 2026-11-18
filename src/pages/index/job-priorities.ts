@@ -1,7 +1,10 @@
 import type { JobApplicationSummary } from '@/lib/supabase/resume/company'
-import { jobContextUrl } from '@/lib/job-context'
+import { jobContextUrl } from '@/lib/job-context-url'
 import { APPLICATION_STATUS_CONFIG } from '@/pages/tracker/const'
-import { getDaysUntil, isJobPendingFollowUp } from '@/pages/tracker/utils'
+import {
+  getDaysUntil,
+  isJobPendingFollowUp,
+} from '@/pages/tracker/utils/follow-up'
 
 export interface JobPriorityItem {
   id: string

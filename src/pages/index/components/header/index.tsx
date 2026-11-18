@@ -3,12 +3,18 @@ import { PageHeader } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
 
 interface HeaderProps {
+  createDisabled?: boolean
   focus?: string
   isGettingStarted?: boolean
   onCreate: MouseEventHandler<HTMLButtonElement>
 }
 
-function Header({ focus, onCreate, isGettingStarted }: HeaderProps) {
+function Header({
+  focus,
+  onCreate,
+  isGettingStarted,
+  createDisabled,
+}: HeaderProps) {
   return (
     <PageHeader
       title='首页'
@@ -19,7 +25,11 @@ function Header({ focus, onCreate, isGettingStarted }: HeaderProps) {
           : '继续编辑简历，查看待办与求职进展。')
       }
       actions={
-        <Button aria-label='打开创建简历表单' onClick={onCreate}>
+        <Button
+          aria-label='打开创建简历表单'
+          onClick={onCreate}
+          disabled={createDisabled}
+        >
           创建简历
         </Button>
       }

@@ -2,7 +2,7 @@ import * as React from 'react'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { Tabs as TabsPrimitive } from 'radix-ui'
+import * as TabsPrimitive from '@radix-ui/react-tabs'
 import { CONTENT_SWITCH, DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 

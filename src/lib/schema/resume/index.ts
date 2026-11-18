@@ -1,3 +1,4 @@
+import { RESUME_TYPES, type ResumeType } from './resume-type'
 import type { ResumeTemplateBinding } from './persisted'
 import type { DerivedStatus, VariantMetadata } from './variant'
 
@@ -16,21 +17,11 @@ export {
 export type { ORDERType, ResumeSchema, VisibilityItemsType } from './form'
 
 // 模板类型
-export const resumeTypeEnum = z.enum(['default', 'simple', 'modern'])
+export const resumeTypeEnum = z.enum(RESUME_TYPES)
 
-export type ResumeType = z.infer<typeof resumeTypeEnum>
+export type { ResumeType } from './resume-type'
 
-export function normalizeResumeType(value: unknown): ResumeType {
-  if (value === 'default' || value === 'simple' || value === 'modern') {
-    return value
-  }
-
-  if (value === 'basic') {
-    return 'default'
-  }
-
-  return 'default'
-}
+export { normalizeResumeType } from './resume-type'
 
 // 简历列表
 export interface ResumeListItem {

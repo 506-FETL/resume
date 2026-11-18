@@ -7,7 +7,6 @@ import { PresenceDiv } from '@/components/motion/presence-item'
 import { ResumeLibrarySkeleton } from '@/components/resume/library-skeleton'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { jobContextUrl } from '@/lib/job-context'
 import { DURATION, EASE } from '@/lib/motion'
@@ -20,10 +19,18 @@ import useCurrentResumeStore from '@/store/resume/current'
 import useUserStore from '@/store/user'
 import { AnimatePresence } from 'motion/react'
 import type { MouseEvent } from 'react'
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
 import { useNavigate } from 'react-router-dom'
 import CreateResumeCard from './components/create-resume-card'
 import HeadBars from './components/head-bars'
+import { LibraryFilters } from './components/library-filters'
 import { LibraryPagination } from './components/library-pagination'
 import { LibraryResults } from './components/library-results'
 import LibrarySearch from './components/library-search'
@@ -36,6 +43,7 @@ const EMPTY_RESUMES: ResumeItem[] = []
 const LOADING_HINT_DELAY_MS = 200
 
 export default function ResumePage() {
+  const libraryResultsId = useId()
   const user = useUserStore((state) => state.currentUser)
   const authStatus = useUserStore((state) => state.authStatus)
   const [createOpen, setCreateOpen] = useState(false)
@@ -67,7 +75,6 @@ export default function ResumePage() {
     refreshLibrary,
     setupRealtimeSubscription,
     filterMode,
-    setLibraryFilter,
     derivePendingFor,
     openDeriveFor,
     derivedJobsOpen,
@@ -250,21 +257,10 @@ export default function ResumePage() {
               <div className='flex min-w-0 flex-col gap-2 sm:flex-row sm:justify-between [@media(max-height:500px)]:gap-1'>
                 <LibrarySearch />
                 <div className='flex min-w-0 items-center gap-2'>
-                  <Tabs
-                    value={filterMode}
-                    onValueChange={(v) =>
-                      setLibraryFilter(v as 'all' | 'roots' | 'variants')
-                    }
-                    className='min-w-0'
-                  >
-                    <TabsList className='max-w-full'>
-                      <TabsTrigger ref={allFilterTriggerRef} value='all'>
-                        全部
-                      </TabsTrigger>
-                      <TabsTrigger value='roots'>原始简历</TabsTrigger>
-                      <TabsTrigger value='variants'>岗位版本</TabsTrigger>
-                    </TabsList>
-                  </Tabs>
+                  <LibraryFilters
+                    resultsId={libraryResultsId}
+                    allTriggerRef={allFilterTriggerRef}
+                  />
                   <div className='flex h-4 w-16 shrink-0 items-center text-muted-foreground'>
                     <AnimatePresence initial={false}>
                       {loading && showLoadingHint && (
@@ -298,6 +294,7 @@ export default function ResumePage() {
             </div>
 
             <LibraryResults
+              id={libraryResultsId}
               resumes={resumes}
               loading={loading}
               loadError={loadError}

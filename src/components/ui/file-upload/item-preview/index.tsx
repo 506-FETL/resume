@@ -6,7 +6,7 @@ import { ITEM_PREVIEW_NAME } from '../constants'
 import { useFileUploadContext } from '../upload-context'
 import * as React from 'react'
 import { getFileIcon } from '../file-icon'
-import { Slot as SlotPrimitive } from 'radix-ui'
+import * as SlotPrimitive from '@radix-ui/react-slot'
 import { cn } from '@/lib/utils'
 
 export function FileUploadItemPreview(props: FileUploadItemPreviewProps) {

@@ -14,7 +14,6 @@ import { AvatarCropDialog } from '../avatar-crop-dialog'
 interface PendingAvatarSelection {
   name: string
   src: string
-  type: string
 }
 
 export function ProfileAvatar() {
@@ -67,7 +66,6 @@ export function ProfileAvatar() {
     setPendingAvatar({
       name: file.name,
       src: URL.createObjectURL(file),
-      type: file.type,
     })
 
     setCropOpen(true)
@@ -99,7 +97,8 @@ export function ProfileAvatar() {
         crop,
         fileName: pendingAvatar.name,
         shape,
-        mimeType: pendingAvatar.type,
+        mimeType: 'image/webp',
+        outputSize: 192,
       })
 
       await changeAvatar(croppedFile)

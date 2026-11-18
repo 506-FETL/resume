@@ -59,6 +59,7 @@ export default defineConfig({
     minify: 'terser',
   },
   optimizeDeps: {
+    esbuildOptions: { minify: true },
     entries: ['index.html'],
     include: [
       'react',

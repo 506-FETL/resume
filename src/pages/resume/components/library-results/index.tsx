@@ -21,6 +21,7 @@ import type { RefObject } from 'react'
 import type { useJobPreparation } from '../../hooks/use-job-preparation'
 
 export function LibraryResults({
+  id,
   resumes,
   loading,
   loadError,
@@ -30,6 +31,7 @@ export function LibraryResults({
   openCreate,
   jobPreparation,
 }: {
+  id: string
   resumes: ResumeItem[]
   loading: boolean
   loadError: string | null
@@ -59,9 +61,10 @@ export function LibraryResults({
 
   return (
     <div
+      id={id}
       ref={resumeListRef}
-      role='region'
-      aria-label='简历列表'
+      role='tabpanel'
+      aria-labelledby={`${id}-${filterMode}`}
       tabIndex={-1}
       className='min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain outline-none [scrollbar-gutter:stable]'
       aria-busy={loading}
@@ -202,7 +205,7 @@ export function LibraryResults({
                     </Button>
                   )
                 )}
-                <Button aria-label='打开创建简历表单' onClick={openCreate}>
+                <Button onClick={openCreate}>
                   <Plus aria-hidden />
                   创建新简历
                 </Button>

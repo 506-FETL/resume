@@ -10,7 +10,6 @@ import type {
 import supabase from '../client'
 import { collectPages } from '../pagination'
 import { getCurrentUser } from '../user'
-import { sanitizeAtsPersistInput } from './utils'
 
 export interface AtsSummaryRecord {
   id: AtsRecordId
@@ -188,6 +187,7 @@ export async function updateAtsConfig(
     throw new Error('用户未登录')
   }
 
+  const { sanitizeAtsPersistInput } = await import('./utils')
   const safePayload = sanitizeAtsPersistInput(payload)
 
   const { error } = await supabase
@@ -208,6 +208,7 @@ export async function createAtsConfig(payload: AtsCreatePayload) {
     throw new Error('用户未登录')
   }
 
+  const { sanitizeAtsPersistInput } = await import('./utils')
   const safePayload = sanitizeAtsPersistInput(payload)
 
   if (!safePayload.resume_id) {

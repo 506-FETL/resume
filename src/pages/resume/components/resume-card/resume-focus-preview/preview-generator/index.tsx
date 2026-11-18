@@ -2,9 +2,11 @@ import type { PersistedResumeSnapshot } from '@/lib/schema'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
 import type { ResumePreviewPaper } from '../../../../store/preview-types'
 import { useCallback, useEffect, useMemo, useRef } from 'react'
-import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
+import CanonicalPagedDocument from '@/components/resume/pagination/canonical-paged-document'
+import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import { useResolvedResumeTemplate } from '@/hooks/use-resolved-resume-template'
+import { normalizeResumeAppearance } from '@/lib/schema/resume/persisted'
 
 export default function PreviewGenerator({
   snapshot,
@@ -23,6 +25,13 @@ export default function PreviewGenerator({
   const capturingRef = useRef(false)
   const retriedRef = useRef(false)
   const data = useMemo(() => buildTemplateResumeData(snapshot), [snapshot])
+
+  const appearance = useMemo(
+    () => normalizeResumeAppearance(snapshot),
+    [snapshot],
+  )
+
+  const projectionReferenceDate = new Date().toISOString().slice(0, 10)
 
   const {
     resource,
@@ -77,15 +86,28 @@ export default function PreviewGenerator({
   if (resource.status !== 'ready') return null
 
   return (
-    <ScaledReadonlyPreview
-      data={data}
-      appearance={snapshot}
+    <CanonicalPagedDocument
+      firstPageOnly
+      appearance={appearance}
       definition={resource.data}
-      assetUrls={assetUrls}
+      contentVersion={JSON.stringify([
+        data,
+        resource.data,
+        appearance,
+        projectionReferenceDate,
+      ])}
       documentRef={documentRef}
       sourceRef={setMeasurementSource}
-      onDocumentStateChange={onDocumentStateChange}
-    />
+      onStateChange={onDocumentStateChange}
+    >
+      <ResumeTemplateRuntime
+        data={data}
+        definition={resource.data}
+        appearance={appearance}
+        projectionReferenceDate={projectionReferenceDate}
+        assetUrls={assetUrls}
+      />
+    </CanonicalPagedDocument>
   )
 }
 

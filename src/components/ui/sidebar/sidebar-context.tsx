@@ -23,6 +23,7 @@ interface SidebarContextProps {
   setOpenMobile: (open: boolean) => void
   isMobile: boolean
   toggleSidebar: () => void
+  mobileTriggerRef: React.RefObject<HTMLButtonElement | null>
 }
 
 const SidebarContext = React.createContext<SidebarContextProps | null>(null)
@@ -51,6 +52,7 @@ export function SidebarProvider({
   onOpenChange?: (open: boolean) => void
 }) {
   const isMobile = useIsMobile()
+  const mobileTriggerRef = React.useRef<HTMLButtonElement>(null)
   const [openMobile, setOpenMobile] = React.useState(false)
 
   const [_open, _setOpen] = React.useState(defaultOpen)
@@ -88,6 +90,7 @@ export function SidebarProvider({
       openMobile,
       setOpenMobile,
       toggleSidebar,
+      mobileTriggerRef,
     }),
     [state, open, setOpen, isMobile, openMobile, setOpenMobile, toggleSidebar],
   )

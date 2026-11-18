@@ -19,15 +19,17 @@ export type ResumePreviewEntry = {
   request: ResumePreviewRequest
   attempt: number
 } & (
-  | { status: 'queued' | 'generating' | 'error' }
+  | { status: 'queued' | 'preparing' | 'generating' | 'error' }
   | { status: 'ready'; paper: ResumePreviewPaper }
 )
 
-export type GenerateResumePreview = (
+export type RenderResumePreview = () => Promise<ResumePreviewPaper>
+
+export type PrepareResumePreview = (
   request: ResumePreviewRequest,
   signal: AbortSignal,
   retry: boolean,
-) => Promise<ResumePreviewPaper>
+) => Promise<RenderResumePreview>
 
 export function resumePreviewKey(request: ResumePreviewRequest): string {
   const binding = request.templateBinding

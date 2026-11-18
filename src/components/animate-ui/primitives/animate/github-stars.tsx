@@ -17,7 +17,6 @@ import { SlidingNumber } from '@/components/animate-ui/primitives/texts/sliding-
 import { useIsInView } from '@/hooks/use-is-in-view'
 import { getStrictContext } from '@/lib/get-strict-context'
 import { DURATION, EASE } from '@/lib/motion'
-import { getGithubStars } from '@/lib/supabase/github-stars'
 import { cn } from '@/lib/utils'
 
 interface GithubStarsContextType {
@@ -110,7 +109,8 @@ function GithubStars({
     let cancelled = false
 
     const timeout = setTimeout(() => {
-      getGithubStars()
+      import('@/lib/supabase/github-stars')
+        .then((module) => module.getGithubStars())
         .then((result) => {
           if (cancelled) return
           if (result) {

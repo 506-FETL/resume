@@ -161,7 +161,8 @@ supabase.auth.onAuthStateChange((_event, session) => {
         isCurrentIdentity(
           { userId: uid, generation },
           useAiQuotaStore.getState().currentUserId,
-        )
+        ) &&
+        !useAiQuotaStore.getState().hasFetched
       )
         useAiQuotaStore.getState().fetchQuota()
     }, 0)

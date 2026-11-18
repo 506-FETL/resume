@@ -1,6 +1,6 @@
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useLocation, useRoutes } from 'react-router-dom'
 import routes from '~react-pages'
 import { AuthRequired } from '@/components/auth-required'
@@ -11,7 +11,8 @@ import { RouteSkeleton } from '@/components/route-skeleton'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { DURATION, EASE } from '@/lib/motion'
-import { useRecoveryNavigation } from '@/pages/reset-password/hooks/use-recovery-navigation'
+import { hasAuthCallback } from '@/lib/auth/recovery-callback'
+import useUpgradeDialogStore from '@/store/upgrade-dialog'
 import useUserStore from '@/store/user'
 
 const DashboardShell = lazy(() =>
@@ -31,6 +32,11 @@ const UpgradeDialog = lazy(() =>
     default: module.UpgradeDialog,
   })),
 )
+
+const loadAuthSession = () => import('@/components/auth-session')
+
+const loadRecoveryGate = () =>
+  import('@/pages/reset-password/components/recovery-gate')
 
 const ACCOUNT_PAGES: Record<string, { title: string; description: string }> = {
   '/tracker': {
@@ -60,10 +66,19 @@ const ACCOUNT_PAGES: Record<string, { title: string; description: string }> = {
 }
 
 function App() {
+  const [AuthSession] = useState(() => lazy(loadAuthSession))
+  const [RecoveryGate] = useState(() => lazy(loadRecoveryGate))
+
   const element = useRoutes(routes)
   const location = useLocation()
   const reduceMotion = useReducedMotion()
-  const recoveryPending = useRecoveryNavigation()
+  const upgradeOpen = useUpgradeDialogStore((state) => state.open)
+  const [upgradeMounted, setUpgradeMounted] = useState(false)
+
+  useEffect(() => {
+    if (upgradeOpen) setUpgradeMounted(true)
+  }, [upgradeOpen])
+
   const authStatus = useUserStore((state) => state.authStatus)
 
   const isAssistantRoute =
@@ -88,9 +103,18 @@ function App() {
     contextualElement
   )
 
+  const guardedPage = hasAuthCallback ? (
+    <RecoveryGate>{page}</RecoveryGate>
+  ) : (
+    page
+  )
+
   return (
     <ThemeProvider defaultTheme='system' storageKey='vite-ui-theme'>
       <MotionProvider>
+        <Suspense fallback={null}>
+          <AuthSession />
+        </Suspense>
         <div tabIndex={-1} className='h-dvh w-full outline-none'>
           <AnimatePresence mode='wait' initial={false}>
             <PresencePage
@@ -119,11 +143,7 @@ function App() {
                     />
                   }
                 >
-                  {recoveryPending ? (
-                    <PageLoading label='正在恢复会话' />
-                  ) : (
-                    element
-                  )}
+                  {guardedPage}
                 </Suspense>
               ) : (
                 <Suspense fallback={<PageLoading label='正在打开工作台' />}>
@@ -139,11 +159,7 @@ function App() {
                         />
                       }
                     >
-                      {recoveryPending ? (
-                        <PageLoading label='正在恢复会话' />
-                      ) : (
-                        page
-                      )}
+                      {guardedPage}
                     </Suspense>
                   </DashboardShell>
                 </Suspense>
@@ -152,7 +168,7 @@ function App() {
           </AnimatePresence>
         </div>
         <Toaster position='top-right' richColors />
-        {!isShareViewRoute && (
+        {!isShareViewRoute && (upgradeOpen || upgradeMounted) && (
           <Suspense fallback={null}>
             <UpgradeDialog />
           </Suspense>

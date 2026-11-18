@@ -1,14 +1,15 @@
 import { ResumeNotFoundError } from '@/lib/resume-id'
-import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
+import { readResumeListTemplateBinding } from '@/lib/resume-template/list-binding'
 import type { ResumeListItem } from '@/lib/schema'
 import type { OfflineResumeRecord } from './database'
 import { getDB } from './database'
-import { hydrateOfflineResumeRecord } from './hydrate'
 
 /**
  * 获取所有离线简历
  */
 export async function getAllOfflineResumes() {
+  const { hydrateOfflineResumeRecord } = await import('./hydrate')
+
   const db = await getDB()
   const resumes = await db.getAllFromIndex('resumes', 'created_at')
 
@@ -162,6 +163,8 @@ export async function getOfflineResumeSummaries(limit?: number) {
  * 获取单个离线简历
  */
 export async function getOfflineResumeById(resumeId: string) {
+  const { hydrateOfflineResumeRecord } = await import('./hydrate')
+
   const db = await getDB()
 
   return await hydrateOfflineResumeRecord(db, await db.get('resumes', resumeId))

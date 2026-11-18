@@ -5,7 +5,7 @@ import { useStoreContext } from '../store-context'
 import { ITEM_DELETE_NAME } from '../constants'
 import { useFileUploadItemContext } from '../item-context'
 import * as React from 'react'
-import { Slot as SlotPrimitive } from 'radix-ui'
+import * as SlotPrimitive from '@radix-ui/react-slot'
 
 export function FileUploadItemDelete(props: FileUploadItemDeleteProps) {
   const { asChild, onClick: onClickProp, ...deleteProps } = props

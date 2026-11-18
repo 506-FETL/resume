@@ -1,6 +1,5 @@
 import { ResumeNotFoundError } from '@/lib/resume-id'
-import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
-import { resolveDefaultTemplateBinding } from '@/lib/resume-template/runtime/default-selection'
+import { readResumeListTemplateBinding } from '@/lib/resume-template/list-binding'
 import supabase from '../client'
 
 /** 只补齐当前账号的无效引用；并发切换模板时保留服务端最新选择。 */
@@ -12,6 +11,9 @@ export async function ensureCloudResumeTemplateBinding(
   const existing = readResumeListTemplateBinding(value)
 
   if (existing) return existing
+
+  const { resolveDefaultTemplateBinding } =
+    await import('@/lib/resume-template/runtime/default-selection')
 
   const binding = await resolveDefaultTemplateBinding(value)
 

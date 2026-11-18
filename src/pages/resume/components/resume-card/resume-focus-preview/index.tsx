@@ -69,10 +69,10 @@ export function PreviewContent({
 
     if (!element) return
 
-    const updateWidth = () => setWidth(element.clientWidth)
-    const observer = new ResizeObserver(updateWidth)
+    const observer = new ResizeObserver(([entry]) => {
+      setWidth(entry.contentRect.width)
+    })
 
-    updateWidth()
     observer.observe(element)
 
     return () => observer.disconnect()

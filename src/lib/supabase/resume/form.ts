@@ -1,16 +1,12 @@
 import type { ResumeTemplateBinding, ResumeType } from '@/lib/schema'
 import { notifyResumeReadChanged } from '@/lib/resume-read-events'
 import { isCloudResumeId, ResumeNotFoundError } from '@/lib/resume-id'
-import {
-  readResumeListTemplateBinding,
-  toTemplateBinding,
-} from '@/lib/resume-template/binding'
+import { toTemplateBinding } from '@/lib/resume-template/binding'
 import { getDefaultTemplateSelection } from '@/lib/resume-template/runtime/default-selection'
 import { resolveTemplate } from '@/lib/resume-template/runtime/resolve-template'
 import { resumeTemplateSource } from '@/lib/resume-template/source'
 import { DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
 import supabase from '../client'
-import { collectPages } from '../pagination'
 import { getCurrentUser } from '../user'
 import { RESUME_PERSISTED_FIELDS } from './persisted-fields'
 import { ensureCloudResumeTemplateBinding } from './template-binding'
@@ -22,52 +18,7 @@ export {
 
 export { RESUME_PERSISTED_SELECTOR } from './persisted-fields'
 
-export async function getResumeOptions() {
-  const user = await getCurrentUser()
-
-  if (!user) throw new Error('用户未登陆')
-
-  const { data, error } = await supabase
-    .from('resume_config')
-    .select('id,resume_id,display_name,type')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-
-  return data
-}
-
-export async function getResumeSummaries(limit?: number) {
-  const user = await getCurrentUser()
-
-  if (!user) throw new Error('用户未登陆')
-
-  const fetchPage = async (from: number, to: number) => {
-    const { data, error } = await supabase
-      .from('resume_config')
-      .select(
-        'id,resume_id,created_at,updated_at,type,display_name,description,parent_resume_id,derived_status,template_binding',
-      )
-      .eq('user_id', user.id)
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: false })
-      .range(from, to)
-
-    if (error) throw error
-
-    return data ?? []
-  }
-
-  const data = await (limit === undefined
-    ? collectPages(fetchPage)
-    : fetchPage(0, limit - 1))
-
-  return data.map((resume) => ({
-    ...resume,
-    templateBinding: readResumeListTemplateBinding(resume.template_binding),
-  }))
-}
+export { getResumeOptions, getResumeSummaries } from './summaries'
 
 export async function getAllResumesFromUser() {
   const user = await getCurrentUser()
@@ -99,38 +50,7 @@ export async function getAllResumesFromUser() {
   )
 }
 
-export async function getResumeById<T = Record<string, unknown>>(
-  id: string,
-  selector = '*',
-) {
-  if (!isCloudResumeId(id)) throw new ResumeNotFoundError()
-
-  const user = await getCurrentUser()
-
-  if (!user) throw new Error('用户未登陆')
-
-  const { data, error } = await supabase
-    .from('resume_config')
-    .select(selector)
-    .eq('user_id', user.id)
-    .eq('resume_id', id)
-    .maybeSingle()
-
-  if (error) {
-    throw error
-  }
-
-  if (!data) throw new ResumeNotFoundError()
-
-  if ('template_binding' in data)
-    data.template_binding = await ensureCloudResumeTemplateBinding(
-      id,
-      user.id,
-      data.template_binding,
-    )
-
-  return data as T
-}
+export { getResumeById } from './get-by-id'
 
 export async function uploadOfflineResumeToCloud(
   resumeData: Record<string, unknown>,

@@ -1,9 +1,8 @@
 import type { Resume, ResumeStats } from './types'
 import { create } from 'zustand'
-import { getOfflineResumeSummaries } from '@/lib/offline-resume-manager'
-import { normalizeResumeType } from '@/lib/schema'
-import { getResumeSummaries } from '@/lib/supabase/resume/form'
-import { getCurrentUser } from '@/lib/supabase/user'
+import { getOfflineResumeSummaries } from '@/lib/offline-resume-manager/queries'
+import { normalizeResumeType } from '@/lib/schema/resume/resume-type'
+import useUserStore from '@/store/user'
 import { diffDates } from '@/utils/date'
 
 interface ResumeResourceState {
@@ -40,6 +39,8 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
   initialized: false,
   isOnline: false,
   async loadData() {
+    if (useUserStore.getState().authStatus === 'unknown') return
+
     const requestId = ++loadRequestId
 
     set((state) => ({
@@ -51,7 +52,7 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
     if (!get().initialized && !get().loading) set({ loading: true })
 
     try {
-      const user = await getCurrentUser()
+      const user = useUserStore.getState().currentUser
 
       if (requestId !== loadRequestId) return
 
@@ -76,7 +77,11 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
       const outcomes = await Promise.allSettled([
         (async () => {
           try {
-            const rawOnlineResumes = user ? await getResumeSummaries() : []
+            const rawOnlineResumes = user
+              ? await import('@/lib/supabase/resume/summaries').then((module) =>
+                  module.getResumeSummaries(),
+                )
+              : []
 
             onlineResumes = rawOnlineResumes.map((r) => ({
               ...r,

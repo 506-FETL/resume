@@ -5,7 +5,7 @@ import * as React from 'react'
 import { useFileUploadContext } from '../upload-context'
 import { ITEM_NAME } from '../constants'
 import { useStore } from '../store-context'
-import { Slot as SlotPrimitive } from 'radix-ui'
+import * as SlotPrimitive from '@radix-ui/react-slot'
 import { FileUploadItemContext } from '../item-context'
 import { cn } from '@/lib/utils'
 

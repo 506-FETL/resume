@@ -1,5 +1,6 @@
 import type {
-  GenerateResumePreview,
+  PrepareResumePreview,
+  RenderResumePreview,
   ResumePreviewEntry,
   ResumePreviewRequest,
 } from './preview-types'
@@ -8,6 +9,14 @@ import { releasePreviewPaper, resumePreviewKey } from './preview-types'
 
 const MAX_PREVIEWS = 40
 const MAX_PREVIEW_BYTES = 32 * 1024 * 1024
+const MAX_PENDING_PREVIEWS = 2
+
+interface PreviewJob {
+  key: string
+  entry: ResumePreviewEntry
+  controller: AbortController
+  render?: RenderResumePreview
+}
 
 interface ResumePreviewStore {
   accountId: string | null
@@ -18,13 +27,14 @@ interface ResumePreviewStore {
 }
 
 export function createResumePreviewStore(
-  generate: GenerateResumePreview,
+  prepare: PrepareResumePreview,
   accountId: string | null = null,
 ) {
   const consumers = new Map<string, number>()
   const recent = new Set<string>()
   const latest = new Map<string, string>()
-  let active: { key: string; controller: AbortController } | null = null
+  const jobs = new Map<string, PreviewJob>()
+  let active: PreviewJob | null = null
   let accountGeneration = 0
 
   return create<ResumePreviewStore>((set, get) => {
@@ -53,7 +63,7 @@ export function createResumePreviewStore(
       for (const key of recent) {
         const entry = entries[key]
 
-        if (consumers.has(key) || active?.key === key) continue
+        if (consumers.has(key) || jobs.has(key)) continue
 
         const superseded = latest.get(entry.request.resumeId) !== key
 
@@ -68,17 +78,27 @@ export function createResumePreviewStore(
       set({ entries })
     }
 
-    function pump() {
+    function finish(job: PreviewJob) {
+      if (jobs.get(job.key) !== job) return
+
+      jobs.delete(job.key)
+
+      if (active === job) active = null
+
+      prune()
+      pump()
+    }
+
+    function renderNext() {
       if (active) return
 
-      const next = Object.entries(get().entries).find(
-        ([key, entry]) => entry.status === 'queued' && consumers.has(key),
+      const job = [...jobs.values()].find(
+        (candidate) => candidate.render && consumers.has(candidate.key),
       )
 
-      if (!next) return
+      if (!job?.render) return
 
-      const [key, entry] = next
-      const job = { key, controller: new AbortController() }
+      const { key, entry } = job
 
       active = job
 
@@ -89,7 +109,8 @@ export function createResumePreviewStore(
         },
       }))
 
-      generate(entry.request, job.controller.signal, entry.attempt > 0)
+      job
+        .render()
         .then((paper) => {
           if (active !== job || job.controller.signal.aborted) {
             releasePreviewPaper(paper)
@@ -111,13 +132,62 @@ export function createResumePreviewStore(
             entries: { ...state.entries, [key]: { ...entry, status: 'error' } },
           }))
         })
-        .finally(() => {
-          if (active !== job) return
+        .finally(() => finish(job))
+    }
 
-          active = null
-          prune()
+    function prepareNext(key: string, entry: ResumePreviewEntry) {
+      const job: PreviewJob = {
+        key,
+        entry,
+        controller: new AbortController(),
+      }
+
+      jobs.set(key, job)
+
+      set((state) => ({
+        entries: {
+          ...state.entries,
+          [key]: { ...entry, status: 'preparing' },
+        },
+      }))
+
+      prepare(entry.request, job.controller.signal, entry.attempt > 0)
+        .then((render) => {
+          if (jobs.get(key) !== job) return
+
+          if (!consumers.has(key)) {
+            const entries = { ...get().entries }
+
+            remove(entries, key)
+            set({ entries })
+            finish(job)
+
+            return
+          }
+
+          job.render = render
           pump()
         })
+        .catch(() => {
+          if (jobs.get(key) !== job) return
+
+          set((state) => ({
+            entries: { ...state.entries, [key]: { ...entry, status: 'error' } },
+          }))
+
+          finish(job)
+        })
+    }
+
+    function pump() {
+      renderNext()
+
+      for (const [key, entry] of Object.entries(get().entries)) {
+        if (jobs.size >= MAX_PENDING_PREVIEWS) break
+        if (entry.status !== 'queued' || !consumers.has(key)) continue
+
+        prepareNext(key, entry)
+      }
     }
 
     return {
@@ -154,14 +224,23 @@ export function createResumePreviewStore(
           if (remaining > 0) consumers.set(key, remaining)
           else consumers.delete(key)
 
-          if (!remaining && get().entries[key]?.status === 'queued') {
+          const job = jobs.get(key)
+
+          if (
+            !remaining &&
+            (get().entries[key]?.status === 'queued' ||
+              (job?.render && active !== job))
+          ) {
             const entries = { ...get().entries }
 
+            job?.controller.abort()
+            jobs.delete(key)
             remove(entries, key)
             set({ entries })
           }
 
           prune()
+          pump()
         }
       },
       retry(key) {
@@ -182,7 +261,8 @@ export function createResumePreviewStore(
         if (nextAccountId === get().accountId) return
 
         accountGeneration += 1
-        active?.controller.abort()
+        jobs.forEach((job) => job.controller.abort())
+        jobs.clear()
         active = null
 
         Object.values(get().entries).forEach((entry) => {

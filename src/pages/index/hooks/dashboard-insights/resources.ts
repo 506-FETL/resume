@@ -1,12 +1,25 @@
+import { requestDashboardResource } from './resource-request'
 import { useCallback, useEffect, useState } from 'react'
-import { listAtsSummaries } from '@/lib/supabase/resume/ats'
-import { listJobApplicationSummaries } from '@/lib/supabase/resume/company'
-import { listResumeHistoryVersionSummaries } from '@/lib/supabase/resume/history/queries'
 import type { JobSummaries } from './types'
 import type { AtsSummaries } from './types'
 import type { VersionSummaries } from './types'
 import type { DashboardResource } from './types'
 import type { DashboardResources } from './types'
+
+const listAtsSummaries = () =>
+  import('@/lib/supabase/resume/ats').then((module) =>
+    module.listAtsSummaries(),
+  )
+
+const listJobApplicationSummaries = () =>
+  import('@/lib/supabase/resume/company/queries').then((module) =>
+    module.listJobApplicationSummaries(),
+  )
+
+const listResumeHistoryVersionSummaries = () =>
+  import('@/lib/supabase/resume/history/queries/versions').then((module) =>
+    module.listResumeHistoryVersionSummaries(),
+  )
 
 export function useDashboardResource<T>(
   fetcher: () => Promise<T>,
@@ -54,7 +67,7 @@ export function useDashboardResource<T>(
       return
     }
 
-    fetcher()
+    requestDashboardResource(fetcher, accountId)
       .then((data) => {
         if (!cancelled)
           setState({

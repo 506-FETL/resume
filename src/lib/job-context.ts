@@ -33,15 +33,7 @@ interface JobContextRow {
 const JOB_CONTEXT_FIELDS =
   'id,user_id,company,position,jd_text,resume_id,resume:resume_config!company_resume_id_fkey(type,display_name)'
 
-export function jobContextUrl(
-  path: string,
-  jobId: string,
-  extra: Record<string, string> = {},
-) {
-  const params = new URLSearchParams({ jobId, ...extra })
-
-  return `${path}?${params.toString()}`
-}
+export { jobContextUrl } from './job-context-url'
 
 export async function readJobContext(
   jobId: string,

@@ -4,7 +4,7 @@ import type { FileUploadItemMetadataProps } from '../types'
 import { useFileUploadContext } from '../upload-context'
 import { ITEM_METADATA_NAME } from '../constants'
 import { useFileUploadItemContext } from '../item-context'
-import { Slot as SlotPrimitive } from 'radix-ui'
+import * as SlotPrimitive from '@radix-ui/react-slot'
 import { cn } from '@/lib/utils'
 import { formatBytes } from '../utils'
 

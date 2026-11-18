@@ -5,7 +5,7 @@ import { useFileUploadContext } from '../upload-context'
 import { TRIGGER_NAME } from '../constants'
 import { useValueAsRef } from '@/hooks/use-value-as-ref'
 import * as React from 'react'
-import { Slot as SlotPrimitive } from 'radix-ui'
+import * as SlotPrimitive from '@radix-ui/react-slot'
 
 export function FileUploadTrigger(props: FileUploadTriggerProps) {
   const { asChild, onClick: onClickProp, ...triggerProps } = props

@@ -50,7 +50,7 @@ export default function TemplateBadge({
           asChild
           variant='secondary'
           aria-label={title}
-          className='max-w-full min-w-0 shrink text-muted-foreground transition-none'
+          className='max-w-full min-w-0 shrink transition-none'
         >
           <div>
             {loading ? (

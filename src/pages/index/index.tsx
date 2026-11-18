@@ -117,202 +117,218 @@ export default function DashboardPage() {
     return () => useIndexStore.getState().cancelLoad()
   }, [loadData, user?.id, authStatus])
 
-  if (mode === 'pending') return <DashboardPageSkeleton />
-
   return (
     <PageLayout>
       <div className='flex min-w-0 flex-col gap-8'>
         <div>
-          <Header onCreate={openCreate} isGettingStarted={isGettingStarted} />
+          <Header
+            onCreate={openCreate}
+            isGettingStarted={isGettingStarted}
+            createDisabled={mode === 'pending'}
+          />
         </div>
 
         <AnimatedContent key={user?.id ?? 'guest'} animationKey={mode}>
           <div className='flex min-w-0 flex-col gap-8'>
-            <ImportDraftNotice onResume={openCreate} />
-            {isGettingStarted && (
-              <GettingStarted
-                isAuthenticated={isOnline}
-                hasResume={resumes.length > 0}
-                onCreate={openCreate}
-              />
-            )}
-            {showRecentResumes && (
-              <section
-                className='flex flex-col gap-3'
-                aria-labelledby='recent-resumes-title'
-              >
-                <div className='flex items-center justify-between gap-3'>
-                  <h2
-                    id='recent-resumes-title'
-                    className='text-base font-semibold'
-                  >
-                    最近简历
-                  </h2>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    onClick={() => navigate('/resume')}
-                  >
-                    查看全部
-                  </Button>
-                </div>
-                <AnimatedContent
-                  animationKey={
-                    resumes.length
-                      ? 'resumes'
-                      : resumesLoading
-                        ? 'loading'
-                        : 'empty'
-                  }
-                >
-                  {resumesLoading && resumes.length === 0 ? (
-                    <RecentResumesSkeleton />
-                  ) : resumes.length === 0 ? (
-                    <p className='rounded-lg border p-4 text-sm text-muted-foreground'>
-                      {resumeError
-                        ? '暂时无法加载简历'
-                        : '还没有简历，点击“创建简历”开始填写。'}
-                    </p>
-                  ) : (
-                    <div className='grid gap-3 md:grid-cols-2'>
-                      {[...resumes]
-                        .sort(
-                          (a, b) =>
-                            new Date(b.updated_at || b.created_at).getTime() -
-                            new Date(a.updated_at || a.created_at).getTime(),
-                        )
-                        .slice(0, 2)
-                        .map((resume) => (
-                          <RecentResumeCard
-                            key={`${accountId ?? 'guest'}:${resume.isOffline ? 'local' : 'cloud'}:${resume.resume_id}:${resume.updated_at}`}
-                            resume={resume}
-                          />
-                        ))}
-                    </div>
-                  )}
-                </AnimatedContent>
-                {accountMatches && cloudState.error && (
-                  <ResourceError
-                    label='云端简历'
-                    hasLoaded={cloudState.hasLoaded}
-                    retry={loadData}
-                  />
-                )}
-                {accountMatches && localState.error && (
-                  <ResourceError
-                    label='本地简历'
-                    hasLoaded={localState.hasLoaded}
-                    retry={loadData}
-                  />
-                )}
-                {resumeError && !cloudState.error && !localState.error && (
-                  <ResourceError
-                    label='简历'
-                    hasLoaded={resumes.length > 0}
-                    retry={loadData}
-                  />
-                )}
-              </section>
-            )}
-            {mode === 'workspace' && (
+            {mode === 'pending' ? (
+              <DashboardPageSkeleton contentOnly />
+            ) : (
               <>
-                <div>
-                  <JobPriorities resources={resources} />
-                </div>
-                <div className='flex flex-col gap-2 empty:hidden'>
-                  {Object.entries(resources).map(
-                    ([key, resource]) =>
-                      resource.error && (
-                        <ResourceError
-                          key={key}
-                          label={
-                            {
-                              jobs: '岗位',
-                              ats: 'ATS 检测',
-                              versions: '版本动态',
-                            }[key] ?? key
-                          }
-                          hasLoaded={resource.hasLoaded}
-                          retry={resource.retry}
-                        />
-                      ),
-                  )}
-                </div>
-                <div className='grid min-w-0 items-start gap-6 lg:grid-cols-2'>
-                  <div className='min-w-0 self-stretch'>
-                    <TodoCard
-                      unavailable={
-                        cloudUnavailable ||
-                        Boolean(
-                          (resources.jobs.error && !resources.jobs.hasLoaded) ||
-                          (resources.ats.error && !resources.ats.hasLoaded),
-                        )
-                      }
-                      actions={insights.actions}
-                      loading={insights.loading}
-                      isAuthenticated={isOnline}
-                      hasCloudResume={insights.hasCloudResume}
-                    />
-                  </div>
-                  <div className='min-w-0'>
-                    <StatisticalCard
-                      funnel={insights.funnel}
-                      jobsLoading={insights.jobsLoading}
-                      atsLoading={insights.atsLoading}
-                      jobsUnavailable={Boolean(
-                        resources.jobs.error && !resources.jobs.hasLoaded,
-                      )}
-                      atsUnavailable={
-                        cloudUnavailable ||
-                        Boolean(resources.ats.error && !resources.ats.hasLoaded)
-                      }
-                    />
-                  </div>
-                </div>
-                <div className='grid min-w-0 items-start gap-6 lg:grid-cols-3'>
-                  {(!resources.jobs.error || resources.jobs.hasLoaded) && (
-                    <FunnelCard
-                      funnel={extras.funnel}
-                      loading={extras.funnelLoading}
-                    />
-                  )}
-                  {!cloudUnavailable &&
-                    (!resources.ats.error || resources.ats.hasLoaded) && (
-                      <AtsTrendCard
-                        trend={extras.atsTrend}
-                        loading={extras.atsTrendLoading}
-                      />
-                    )}
-                  {!cloudUnavailable &&
-                    (!resources.jobs.error || resources.jobs.hasLoaded) &&
-                    (!resources.versions.error ||
-                      resources.versions.hasLoaded) && (
-                      <ActivityCard
-                        activity={extras.activity}
-                        loading={extras.activityLoading}
-                      />
-                    )}
-                </div>
-                <div className='min-w-0'>
-                  <Entry
-                    unavailable={
-                      cloudUnavailable ||
-                      Boolean(
-                        (resources.jobs.error && !resources.jobs.hasLoaded) ||
-                        (resources.versions.error &&
-                          !resources.versions.hasLoaded),
-                      )
-                    }
+                <ImportDraftNotice onResume={openCreate} />
+                {isGettingStarted && (
+                  <GettingStarted
+                    isAuthenticated={isOnline}
+                    hasResume={resumes.length > 0}
                     onCreate={openCreate}
-                    events={timeline.events}
-                    timelineLoading={timeline.loading}
-                    resumeCount={
-                      cloudHasLoaded && localState.hasLoaded
-                        ? resumes.length
-                        : undefined
-                    }
                   />
-                </div>
+                )}
+                {showRecentResumes && (
+                  <section
+                    className='flex flex-col gap-3'
+                    aria-labelledby='recent-resumes-title'
+                  >
+                    <div className='flex items-center justify-between gap-3'>
+                      <h2
+                        id='recent-resumes-title'
+                        className='text-base font-semibold'
+                      >
+                        最近简历
+                      </h2>
+                      <Button
+                        variant='ghost'
+                        size='sm'
+                        onClick={() => navigate('/resume')}
+                      >
+                        查看全部
+                      </Button>
+                    </div>
+                    <AnimatedContent
+                      animationKey={
+                        resumes.length
+                          ? 'resumes'
+                          : resumesLoading
+                            ? 'loading'
+                            : 'empty'
+                      }
+                    >
+                      {resumesLoading && resumes.length === 0 ? (
+                        <RecentResumesSkeleton />
+                      ) : resumes.length === 0 ? (
+                        <p className='rounded-lg border p-4 text-sm text-muted-foreground'>
+                          {resumeError
+                            ? '暂时无法加载简历'
+                            : '还没有简历，点击“创建简历”开始填写。'}
+                        </p>
+                      ) : (
+                        <div className='grid gap-3 md:grid-cols-2'>
+                          {[...resumes]
+                            .sort(
+                              (a, b) =>
+                                new Date(
+                                  b.updated_at || b.created_at,
+                                ).getTime() -
+                                new Date(
+                                  a.updated_at || a.created_at,
+                                ).getTime(),
+                            )
+                            .slice(0, 2)
+                            .map((resume) => (
+                              <RecentResumeCard
+                                key={`${accountId ?? 'guest'}:${resume.isOffline ? 'local' : 'cloud'}:${resume.resume_id}:${resume.updated_at}`}
+                                resume={resume}
+                              />
+                            ))}
+                        </div>
+                      )}
+                    </AnimatedContent>
+                    {accountMatches && cloudState.error && (
+                      <ResourceError
+                        label='云端简历'
+                        hasLoaded={cloudState.hasLoaded}
+                        retry={loadData}
+                      />
+                    )}
+                    {accountMatches && localState.error && (
+                      <ResourceError
+                        label='本地简历'
+                        hasLoaded={localState.hasLoaded}
+                        retry={loadData}
+                      />
+                    )}
+                    {resumeError && !cloudState.error && !localState.error && (
+                      <ResourceError
+                        label='简历'
+                        hasLoaded={resumes.length > 0}
+                        retry={loadData}
+                      />
+                    )}
+                  </section>
+                )}
+                {mode === 'workspace' && (
+                  <>
+                    <div>
+                      <JobPriorities resources={resources} />
+                    </div>
+                    <div className='flex flex-col gap-2 empty:hidden'>
+                      {Object.entries(resources).map(
+                        ([key, resource]) =>
+                          resource.error && (
+                            <ResourceError
+                              key={key}
+                              label={
+                                {
+                                  jobs: '岗位',
+                                  ats: 'ATS 检测',
+                                  versions: '版本动态',
+                                }[key] ?? key
+                              }
+                              hasLoaded={resource.hasLoaded}
+                              retry={resource.retry}
+                            />
+                          ),
+                      )}
+                    </div>
+                    <div className='grid min-w-0 items-start gap-6 lg:grid-cols-2'>
+                      <div className='min-w-0 self-stretch'>
+                        <TodoCard
+                          unavailable={
+                            cloudUnavailable ||
+                            Boolean(
+                              (resources.jobs.error &&
+                                !resources.jobs.hasLoaded) ||
+                              (resources.ats.error && !resources.ats.hasLoaded),
+                            )
+                          }
+                          actions={insights.actions}
+                          loading={insights.loading}
+                          isAuthenticated={isOnline}
+                          hasCloudResume={insights.hasCloudResume}
+                        />
+                      </div>
+                      <div className='min-w-0'>
+                        <StatisticalCard
+                          funnel={insights.funnel}
+                          jobsLoading={insights.jobsLoading}
+                          atsLoading={insights.atsLoading}
+                          jobsUnavailable={Boolean(
+                            resources.jobs.error && !resources.jobs.hasLoaded,
+                          )}
+                          atsUnavailable={
+                            cloudUnavailable ||
+                            Boolean(
+                              resources.ats.error && !resources.ats.hasLoaded,
+                            )
+                          }
+                        />
+                      </div>
+                    </div>
+                    <div className='grid min-w-0 items-start gap-6 lg:grid-cols-3'>
+                      {(!resources.jobs.error || resources.jobs.hasLoaded) && (
+                        <FunnelCard
+                          funnel={extras.funnel}
+                          loading={extras.funnelLoading}
+                        />
+                      )}
+                      {!cloudUnavailable &&
+                        (!resources.ats.error || resources.ats.hasLoaded) && (
+                          <AtsTrendCard
+                            trend={extras.atsTrend}
+                            loading={extras.atsTrendLoading}
+                          />
+                        )}
+                      {!cloudUnavailable &&
+                        (!resources.jobs.error || resources.jobs.hasLoaded) &&
+                        (!resources.versions.error ||
+                          resources.versions.hasLoaded) && (
+                          <ActivityCard
+                            activity={extras.activity}
+                            loading={extras.activityLoading}
+                          />
+                        )}
+                    </div>
+                    <div className='min-w-0'>
+                      <Entry
+                        unavailable={
+                          cloudUnavailable ||
+                          Boolean(
+                            (resources.jobs.error &&
+                              !resources.jobs.hasLoaded) ||
+                            (resources.versions.error &&
+                              !resources.versions.hasLoaded),
+                          )
+                        }
+                        onCreate={openCreate}
+                        events={timeline.events}
+                        timelineLoading={timeline.loading}
+                        resumeCount={
+                          cloudHasLoaded && localState.hasLoaded
+                            ? resumes.length
+                            : undefined
+                        }
+                      />
+                    </div>
+                  </>
+                )}
               </>
             )}
           </div>

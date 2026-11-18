@@ -15,6 +15,19 @@ if (pathname === '/' && hasAuthCallback) {
   )
 }
 
+// 认证与界面并行加载；模块失败仍交给 App 的错误边界。
+if (!isPublicHome) {
+  import('./components/auth-session').catch(() => {})
+}
+
+// 首次工作台的外壳与页面并行取回；加载失败仍由实际路由展示错误。
+if (!isPublicHome && !pathname.startsWith('/share/view/')) {
+  import('./components/layout/dashboard-shell').catch(() => {})
+}
+if (pathname === WORKSPACE_PATH) {
+  import('./pages/index').catch(() => {})
+}
+
 const root = createRoot(document.getElementById('root')!)
 
 async function loadPage() {

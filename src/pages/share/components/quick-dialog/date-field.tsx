@@ -1,6 +1,8 @@
 import { CalendarIcon, X } from 'lucide-react'
+import { useState } from 'react'
+import { createDeferredComponent } from '@/components/deferred-content'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   Popover,
   PopoverContent,
@@ -8,6 +10,20 @@ import {
 } from '@/components/ui/popover'
 import { cn } from '@/lib/utils'
 import { formatDate } from '@/utils/date'
+
+const Calendar = createDeferredComponent(
+  () => import('./calendar-content'),
+  '日历',
+  <div role='status' aria-label='正在加载日历' className='w-62 space-y-4 p-3'>
+    <Skeleton className='mx-auto h-8 w-32' />
+    <div className='grid grid-cols-7 gap-2' aria-hidden>
+      {Array.from({ length: 42 }, (_, index) => (
+        <Skeleton key={index} className='h-6' />
+      ))}
+    </div>
+  </div>,
+  { wrapFallback: false },
+)
 
 interface DateFieldProps {
   value: Date | undefined
@@ -30,15 +46,17 @@ export default function DateField({
   className,
   disabled = false,
 }: DateFieldProps) {
+  const [open, setOpen] = useState(false)
+
   return (
     <div className={cn('flex min-w-0 items-center gap-2', className)}>
-      <Popover modal>
+      <Popover modal open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
           <Button
             type='button'
             variant='outline'
             disabled={disabled}
-            aria-label='分享有效期'
+            aria-label={`分享有效期：${value ? formatDate(value) : '长期有效'}`}
             className='min-w-0 flex-1 justify-start font-normal'
           >
             <CalendarIcon data-icon='inline-start' />
@@ -52,6 +70,7 @@ export default function DateField({
           align='start'
         >
           <Calendar
+            autoFocus={open}
             mode='single'
             captionLayout='dropdown'
             selected={value}

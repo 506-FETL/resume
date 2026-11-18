@@ -1,6 +1,5 @@
 import type { getCurrentUser } from '@/lib/supabase/user'
 import { create } from 'zustand'
-import supabase from '@/lib/supabase/client'
 
 export type SupabaseUser = Awaited<ReturnType<typeof getCurrentUser>> | null
 
@@ -21,9 +20,5 @@ const useUserStore = create<UserStore>()((set) => ({
       authStatus: user ? 'authenticated' : 'anonymous',
     }),
 }))
-
-supabase.auth.onAuthStateChange((_event, session) => {
-  useUserStore.getState().setCurrentUser(session?.user ?? null)
-})
 
 export default useUserStore

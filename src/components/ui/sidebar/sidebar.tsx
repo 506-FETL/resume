@@ -3,16 +3,10 @@
 import { PanelLeftIcon } from 'lucide-react'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
+import { MobileSidebarDeferred } from './mobile-sidebar/deferred'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
-import { SIDEBAR_WIDTH_MOBILE, useSidebar } from './sidebar-context'
+import { useSidebar } from './sidebar-context'
 
 export function Sidebar({
   side = 'left',
@@ -26,7 +20,7 @@ export function Sidebar({
   variant?: 'sidebar' | 'floating' | 'inset'
   collapsible?: 'offcanvas' | 'icon' | 'none'
 }) {
-  const { isMobile, state, openMobile, setOpenMobile } = useSidebar()
+  const { isMobile, state } = useSidebar()
 
   if (collapsible === 'none') {
     return (
@@ -45,39 +39,9 @@ export function Sidebar({
 
   if (isMobile) {
     return (
-      <Drawer
-        open={openMobile}
-        onOpenChange={setOpenMobile}
-        swipeDirection={side}
-      >
-        <DrawerContent
-          {...props}
-          data-sidebar='sidebar'
-          data-mobile='true'
-          className={cn(
-            'bg-sidebar text-sidebar-foreground overflow-hidden p-0',
-            className,
-          )}
-          style={
-            {
-              ...props.style,
-              '--sidebar-width': SIDEBAR_WIDTH_MOBILE,
-              '--drawer-content-height': 'calc(100dvh - 1rem)',
-              '--drawer-content-width': SIDEBAR_WIDTH_MOBILE,
-            } as React.CSSProperties
-          }
-        >
-          <DrawerHeader className='sr-only'>
-            <DrawerTitle>主导航</DrawerTitle>
-            <DrawerDescription>
-              选择要打开的页面，按 Escape 关闭导航。
-            </DrawerDescription>
-          </DrawerHeader>
-          <div className='flex min-h-0 w-full flex-1 flex-col overflow-hidden'>
-            {children}
-          </div>
-        </DrawerContent>
-      </Drawer>
+      <MobileSidebarDeferred side={side} className={className} {...props}>
+        {children}
+      </MobileSidebarDeferred>
     )
   }
 
@@ -133,7 +97,7 @@ export function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar } = useSidebar()
+  const { toggleSidebar, mobileTriggerRef } = useSidebar()
 
   return (
     <Button
@@ -143,6 +107,7 @@ export function SidebarTrigger({
       size='icon'
       className={cn('size-7', className)}
       onClick={(event) => {
+        mobileTriggerRef.current = event.currentTarget
         onClick?.(event)
         toggleSidebar()
       }}

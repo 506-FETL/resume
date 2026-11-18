@@ -5,20 +5,14 @@ import type {
   VariantMetadata,
 } from '@/lib/schema'
 import {
-  deleteOfflineResume,
   getOfflineResumeSummaries,
   getOfflineResumeById,
   getOfflineResumeProjection,
   isOfflineResumeId,
-  updateOfflineResumeMeta,
-} from '@/lib/offline-resume-manager'
+} from '@/lib/offline-resume-manager/queries'
 import { ResumeNotFoundError } from '@/lib/resume-id'
-import {
-  deleteResume,
-  getResumeSummaries,
-  getResumeById,
-  updateResumeConfig,
-} from '@/lib/supabase/resume'
+import { getResumeSummaries } from '@/lib/supabase/resume/summaries'
+import { getResumeById } from '@/lib/supabase/resume/get-by-id'
 import { getCurrentUser } from '@/lib/supabase/user'
 
 export type ResumeStorage = 'local' | 'cloud'
@@ -149,12 +143,18 @@ export async function updateAccessibleResumeMeta(
   if (isOfflineResumeId(resumeId)) {
     await getOfflineResumeProjection(resumeId, ['resume_id'])
 
+    const { updateOfflineResumeMeta } =
+      await import('@/lib/offline-resume-manager/mutations')
+
     await updateOfflineResumeMeta(resumeId, patch)
 
     return
   }
 
   await getResumeById(resumeId, 'resume_id')
+
+  const { updateResumeConfig } = await import('@/lib/supabase/resume/config')
+
   await updateResumeConfig(resumeId, patch)
 }
 
@@ -162,11 +162,17 @@ export async function deleteAccessibleResume(resumeId: string): Promise<void> {
   if (isOfflineResumeId(resumeId)) {
     await getOfflineResumeProjection(resumeId, ['resume_id'])
 
+    const { deleteOfflineResume } =
+      await import('@/lib/offline-resume-manager/mutations')
+
     await deleteOfflineResume(resumeId)
 
     return
   }
 
   await getResumeById(resumeId, 'resume_id')
+
+  const { deleteResume } = await import('@/lib/supabase/resume/form')
+
   await deleteResume(resumeId, 'resume_id')
 }

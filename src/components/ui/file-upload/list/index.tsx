@@ -4,7 +4,7 @@ import type { FileUploadListProps } from '../types'
 import { useFileUploadContext } from '../upload-context'
 import { LIST_NAME } from '../constants'
 import { useStore } from '../store-context'
-import { Slot as SlotPrimitive } from 'radix-ui'
+import * as SlotPrimitive from '@radix-ui/react-slot'
 import { cn } from '@/lib/utils'
 
 export function FileUploadList(props: FileUploadListProps) {

@@ -20,6 +20,7 @@ interface CanonicalPagedDocumentProps {
   sourceRef?: Ref<HTMLDivElement>
   onStateChange?: ResumeDocumentStateChange
   commentOverlayRoot?: boolean
+  firstPageOnly?: boolean
 }
 
 function assignRef<T>(ref: Ref<T> | undefined, value: T | null) {
@@ -37,6 +38,7 @@ export default function CanonicalPagedDocument({
   sourceRef,
   onStateChange,
   commentOverlayRoot = false,
+  firstPageOnly = false,
 }: PropsWithChildren<CanonicalPagedDocumentProps>) {
   const { appearance: resolvedAppearance, font } = useResumeStyles(appearance)
 
@@ -107,7 +109,9 @@ export default function CanonicalPagedDocument({
     height: A4_PAGE_HEIGHT,
   }
 
-  const pageCount = displaySnapshot?.signature.pages.length ?? 1
+  const pageCount = firstPageOnly
+    ? 1
+    : (displaySnapshot?.signature.pages.length ?? 1)
 
   const renderRegions = (pageIndex: number | null) =>
     plan.regions.map((region) => {

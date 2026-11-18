@@ -21,6 +21,11 @@ export function SlidingNumberDisplay({
     return translateY
   })
 
+  // 滚轮之外的数字不属于可见标签；仅裁切仍会被可访问名称检查当作正文。
+  const visibility = useTransform(y, (offset) =>
+    Math.abs(offset) < height ? 'visible' : 'hidden',
+  )
+
   if (!height) {
     return (
       <span style={{ visibility: 'hidden', position: 'absolute' }}>
@@ -34,6 +39,7 @@ export function SlidingNumberDisplay({
       data-slot='sliding-number-display'
       style={{
         y,
+        visibility,
         position: 'absolute',
         inset: 0,
         display: 'flex',

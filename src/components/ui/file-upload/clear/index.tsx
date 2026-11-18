@@ -5,7 +5,7 @@ import { useFileUploadContext } from '../upload-context'
 import { CLEAR_NAME } from '../constants'
 import { useStoreContext, useStore } from '../store-context'
 import * as React from 'react'
-import { Slot as SlotPrimitive } from 'radix-ui'
+import * as SlotPrimitive from '@radix-ui/react-slot'
 
 export function FileUploadClear(props: FileUploadClearProps) {
   const {

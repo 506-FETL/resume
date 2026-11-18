@@ -1,5 +1,5 @@
 import type { Finding, Severity } from '../schema/ats.ts'
-import { ensureAtsFindingsHaveSuggestions } from './result.ts'
+import { ensureAtsFindingsHaveSuggestions } from './result/persisted-findings.ts'
 
 const SEVERITIES: Severity[] = ['high', 'medium', 'low']
 

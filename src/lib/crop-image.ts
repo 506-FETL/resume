@@ -23,6 +23,7 @@ const IMAGE_MIME_TYPE_MAP = {
 } as const
 
 function resolveExportMimeType(shape: AvatarCropShape, mimeType?: string) {
+  if (mimeType === 'image/webp') return mimeType
   if (shape === 'circle') return 'image/png'
 
   if (mimeType && mimeType in IMAGE_MIME_TYPE_MAP)
@@ -103,15 +104,22 @@ export async function createCroppedImageFile({
         resolve(result)
       },
       exportMimeType,
-      exportMimeType === 'image/jpeg' ? 0.92 : undefined,
+      exportMimeType === 'image/webp'
+        ? 0.85
+        : exportMimeType === 'image/jpeg'
+          ? 0.92
+          : undefined,
     )
   })
 
+  // 不支持请求编码的浏览器会返回 PNG，文件后缀必须与实际字节一致。
+  const outputMimeType = blob.type as keyof typeof IMAGE_MIME_TYPE_MAP
+
   return new File(
     [blob],
-    `${stripExtension(fileName)}.${IMAGE_MIME_TYPE_MAP[exportMimeType]}`,
+    `${stripExtension(fileName)}.${IMAGE_MIME_TYPE_MAP[outputMimeType]}`,
     {
-      type: exportMimeType,
+      type: outputMimeType,
       lastModified: Date.now(),
     },
   )

@@ -83,6 +83,7 @@ export function DashboardShell({
         <div
           tabIndex={-1}
           aria-label='页面内容'
+          role='region'
           className={cn(
             'min-h-0 min-w-0 flex-1 outline-none',
             fullBleed

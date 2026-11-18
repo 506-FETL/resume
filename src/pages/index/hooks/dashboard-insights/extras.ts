@@ -4,7 +4,10 @@ import {
   APPLICATION_STATUS_CONFIG,
   APPLICATION_STATUS_ORDER,
 } from '@/pages/tracker/const'
-import { getDaysUntil, isJobPendingFollowUp } from '@/pages/tracker/utils'
+import {
+  getDaysUntil,
+  isJobPendingFollowUp,
+} from '@/pages/tracker/utils/follow-up'
 import { diffDates, formatDateTime } from '@/utils/date'
 import type { JobSummaries } from './types'
 import type { DashboardResources } from './types'

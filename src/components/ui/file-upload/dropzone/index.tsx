@@ -7,7 +7,7 @@ import { useStoreContext, useStore } from '../store-context'
 import { useValueAsRef } from '@/hooks/use-value-as-ref'
 import * as React from 'react'
 import { setInputFiles } from '../utils'
-import { Slot as SlotPrimitive } from 'radix-ui'
+import * as SlotPrimitive from '@radix-ui/react-slot'
 import { cn } from '@/lib/utils'
 
 export function FileUploadDropzone(props: FileUploadDropzoneProps) {

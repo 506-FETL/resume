@@ -3,7 +3,7 @@
 import type { FileUploadItemProgressProps } from '../types'
 import { useFileUploadItemContext } from '../item-context'
 import { ITEM_PROGRESS_NAME } from '../constants'
-import { Slot as SlotPrimitive } from 'radix-ui'
+import * as SlotPrimitive from '@radix-ui/react-slot'
 import { cn } from '@/lib/utils'
 
 export function FileUploadItemProgress(props: FileUploadItemProgressProps) {
