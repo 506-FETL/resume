@@ -19,12 +19,11 @@ export default function SortingGuide({
         target: '[data-feature-guide-sort]',
         title: '把更重要的经历放前面',
         hint: mobile ? '这里能调整栏目顺序' : '栏目可以拖动排序',
-        hintDetail: '经历用上下箭头移动',
         description: mobile
           ? '点这里调整栏目顺序。栏目内的经历，也能用上下箭头移动。'
           : '拖动栏目左侧的手柄调整顺序。栏目内的经历，用上下箭头移动。',
         nextLabel: '知道了',
-        side: mobile ? 'bottom' : 'left',
+        side: mobile ? 'top' : 'left',
       },
     ],
   })

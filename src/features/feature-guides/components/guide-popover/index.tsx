@@ -24,9 +24,18 @@ export default function GuidePopover({
   const removeRef = useRef(safeToRemove)
   const [element, setElement] = useState<HTMLDivElement | null>(null)
   const [card, setCard] = useState<HTMLDivElement | null>(null)
+  const mobile = useIsMobile()
 
+  const mobileSortingHint =
+    mobile && index === 0 && target?.matches('[data-feature-guide-sort]')
+
+  // 排序提示位于抽屉上方，须避开内容层裁切并保留抽屉焦点范围。
   const [portalContainer] = useState(() =>
-    target?.closest<HTMLElement>('[data-slot="drawer-content"]'),
+    target?.closest<HTMLElement>(
+      mobileSortingHint
+        ? '[data-slot="drawer-popup"]'
+        : '[data-slot="drawer-content"]',
+    ),
   )
 
   const [positioned, setPositioned] = useState(false)
@@ -35,7 +44,6 @@ export default function GuidePopover({
   const anchorRectRef = useRef<DOMRect | null>(null)
   const presentRef = useRef(present)
   const reduced = useReducedMotion()
-  const mobile = useIsMobile()
 
   presentRef.current = present
   removeRef.current = safeToRemove
@@ -89,14 +97,24 @@ export default function GuidePopover({
                   rect.width,
                   rect.height,
                 )
-              : rect
+              : mobileSortingHint
+                ? new DOMRect(
+                    rect.x,
+                    Math.max(
+                      rect.y,
+                      (contentRef.current?.offsetHeight ?? 0) + 80 + 12,
+                    ),
+                    rect.width,
+                    rect.height,
+                  )
+                : rect
           }
 
           return anchorRectRef.current
         },
       },
     }),
-    [target, mobileCommentHint, topInset],
+    [target, mobileCommentHint, mobileSortingHint, topInset],
   )
 
   const setContent = useCallback((node: HTMLDivElement | null) => {
@@ -115,7 +133,7 @@ export default function GuidePopover({
       '[data-slot="sidebar-inset"] > header',
     )
 
-    if (!mobile || index !== 0 || !toolbar) {
+    if (!mobile || index !== 0 || mobileSortingHint || !toolbar) {
       setTopInset(12)
 
       return
@@ -128,7 +146,7 @@ export default function GuidePopover({
     update()
 
     return () => observer.disconnect()
-  }, [mobile, index])
+  }, [mobile, index, mobileSortingHint])
 
   useLayoutEffect(() => {
     if (

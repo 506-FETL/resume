@@ -337,7 +337,9 @@ function EditorWorkspace({ currentUser, loading }: EditorWorkspaceProps) {
               !open &&
               !commentsOpen,
             )}
-            sortingEnabled={commentReview.isWorking && (panelOpen || open)}
+            sortingEnabled={
+              commentReview.isWorking && (panelOpen || open) && !sortDialogOpen
+            }
           />
         </Suspense>
       </ErrorBoundary>
