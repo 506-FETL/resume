@@ -21,6 +21,8 @@ export function buildOptimizePrompt(input: AtsAssessmentInput): string {
   return `
 你是 ATS 简历评估引擎。请对用户实际提供的简历内容进行内容自适应评估，并只输出一个合法 JSON 对象。
 
+本次检测时间（UTC）：${new Date().toISOString()}。涉及当前时间或日期先后关系的判断，以此时间为准，不要自行假定当前年份。
+
 ========================
 一、最重要的评估原则
 ========================
@@ -228,6 +230,6 @@ scores 必须固定包含以下五项，score 必须是整数：
 
 ${serializeAssessmentInput(input)}
 
-最终只输出合法 JSON 对象。
+最终只输出完整、合法的紧凑 JSON 对象，不添加缩进或换行；不得省略任何必需字段、原文证据或完整建议。
 `.trim()
 }

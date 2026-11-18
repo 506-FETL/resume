@@ -8,20 +8,6 @@ import { resumeHtmlToText } from '@/lib/resume-import/text'
 import { hasResumeContent } from '@/lib/resume-import/mapping'
 import { REVIEW_MODULES } from './const'
 
-export function emptyDraft(): ImportDraft {
-  return {
-    displayName: '示例简历',
-    description: '',
-    sourceText: '',
-    sourceName: '粘贴内容',
-    content: null,
-    unassignedText: '',
-    warnings: [],
-    profile: 'graduate',
-    updatedAt: new Date().toISOString(),
-  }
-}
-
 export function populatedSections(content: ResumeSchema): ORDERType[] {
   return REVIEW_MODULES.filter((module) => {
     if (module.section === 'basics') return true

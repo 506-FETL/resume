@@ -1,6 +1,5 @@
 import type { AiMessage } from '@/lib/ai/types'
 import { AnimatePresence, useIsPresent } from 'motion/react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef } from 'react'
 import {
   MessageScroller,
@@ -11,27 +10,16 @@ import {
   useMessageScroller,
 } from '@/components/ui/message-scroller'
 import { Skeleton } from '@/components/ui/skeleton'
-import {
-  CONVERSATION_BOTTOM_TARGET,
-  MESSAGE_HIGHLIGHT_DURATION_MS,
-} from '../../../const'
 import { useAssistantNavigation } from '../../../hooks/use-assistant-navigation'
 import { useChatStream } from '../../../hooks/use-chat-stream'
 import { useMessageRowKeys } from '../../../hooks/use-message-row-keys'
+import {
+  isCurrentMessageView,
+  useMessageTarget,
+} from '../../../hooks/use-message-target'
 import useAssistantStore from '../../../store'
 import type { MessageViewSnapshot } from '../types'
 import { MessageRow } from '../message-row'
-
-function isCurrentMessageView(version: number, conversationId: string | null) {
-  const current = useAssistantStore.getState()
-
-  return (
-    current.conversationViewVersion === version &&
-    current.activeConversationId === conversationId &&
-    !current.initializing &&
-    !current.loadingMessages
-  )
-}
 
 // 真实消息挂载后才注册定位和哨兵；退出期间保留当时的内容，不消费新会话的定位目标。
 export function LoadedMessages({
@@ -64,11 +52,16 @@ function MessageTranscript({ snapshot }: { snapshot: MessageViewSnapshot }) {
   const { regenerateFrom, editUserMessageAndRerun } = useChatStream()
   const { loadOlderMessages } = useAssistantNavigation()
   const isPresent = useIsPresent()
-  const shouldReduceMotion = useReducedMotion()
-  const { scrollToEnd, scrollToMessage } = useMessageScroller()
+  const { scrollToEnd } = useMessageScroller()
   const rowKeys = useMessageRowKeys(messages)
   const viewportRef = useRef<HTMLDivElement>(null)
   const topSentinelRef = useRef<HTMLDivElement>(null)
+
+  const highlightedMessageId = useMessageTarget(
+    snapshot,
+    viewportRef,
+    isPresent,
+  )
 
   const visibleMessages: AiMessage[] = streaming
     ? [
@@ -88,50 +81,6 @@ function MessageTranscript({ snapshot }: { snapshot: MessageViewSnapshot }) {
     // 主动发送恢复跟随；后续增量与完成不再抢走阅读位置。
     if (isPresent && streaming) scrollToEnd()
   }, [isPresent, scrollToEnd, streaming])
-
-  useEffect(() => {
-    if (!isPresent || !targetMessageId) return
-
-    const ownsTarget = () =>
-      isCurrentMessageView(conversationViewVersion, activeConversationId) &&
-      useAssistantStore.getState().targetMessageId === targetMessageId
-
-    if (!ownsTarget()) return
-
-    if (targetMessageId === CONVERSATION_BOTTOM_TARGET) {
-      if (scrollToEnd({ behavior: 'instant' })) setTargetMessageId(null)
-
-      return
-    }
-
-    const frame = window.requestAnimationFrame(() => {
-      if (!ownsTarget()) return
-
-      scrollToMessage(targetMessageId, {
-        align: 'center',
-        behavior: shouldReduceMotion ? 'instant' : 'smooth',
-      })
-    })
-
-    const timer = window.setTimeout(() => {
-      if (ownsTarget()) setTargetMessageId(null)
-    }, MESSAGE_HIGHLIGHT_DURATION_MS)
-
-    return () => {
-      window.cancelAnimationFrame(frame)
-      window.clearTimeout(timer)
-    }
-  }, [
-    activeConversationId,
-    conversationViewVersion,
-    isPresent,
-    messages,
-    setTargetMessageId,
-    shouldReduceMotion,
-    scrollToEnd,
-    scrollToMessage,
-    targetMessageId,
-  ])
 
   // 历史补入的位置由 MessageScrollerViewport 保持，避免叠加手动补偿。
   useEffect(() => {
@@ -226,7 +175,10 @@ function MessageTranscript({ snapshot }: { snapshot: MessageViewSnapshot }) {
                 <MessageRow
                   key={rowKey}
                   message={message}
-                  highlighted={message.id === targetMessageId}
+                  highlighted={
+                    message.id === targetMessageId &&
+                    message.id === highlightedMessageId
+                  }
                   showConfirmation={isLast}
                   hasConfirmation={isLast && pendingConfirm !== null}
                   onEditSave={editUserMessageAndRerun}

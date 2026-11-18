@@ -1,0 +1,52 @@
+@import '@fontsource-variable/arimo/wght.css';
+@import '@fontsource/tinos/latin-400.css';
+@import '@fontsource/tinos/latin-700.css';
+@import '@fontsource/tinos/latin-400-italic.css';
+@import '@fontsource/tinos/latin-700-italic.css';
+@import '@fontsource-variable/noto-sans-sc/wght.css';
+@import '@fontsource-variable/noto-serif-sc/wght.css';
+
+@font-face {
+  font-family: 'IBM Plex Sans SC';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 400;
+  src: url('@ibm/plex-sans-sc/fonts/complete/woff2/hinted/IBMPlexSansSC-Regular.woff2')
+    format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans SC';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 600;
+  src: url('@ibm/plex-sans-sc/fonts/complete/woff2/hinted/IBMPlexSansSC-SemiBold.woff2')
+    format('woff2');
+}
+
+@font-face {
+  font-family: 'IBM Plex Sans SC';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('@ibm/plex-sans-sc/fonts/complete/woff2/hinted/IBMPlexSansSC-Bold.woff2')
+    format('woff2');
+}
+
+@font-face {
+  font-family: 'LXGW WenKai';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 500;
+  src: url('@fontsource/lxgw-wenkai/files/lxgw-wenkai-latin-500-normal.woff2')
+    format('woff2');
+}
+
+@font-face {
+  font-family: 'LXGW WenKai';
+  font-style: normal;
+  font-display: swap;
+  font-weight: 700;
+  src: url('@fontsource/lxgw-wenkai/files/lxgw-wenkai-latin-700-normal.woff2')
+    format('woff2');
+}

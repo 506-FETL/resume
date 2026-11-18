@@ -22,6 +22,7 @@ import { getErrorMessage } from '@/utils'
 import { DEFAULT_CONVERSATION_TITLE } from '../../const'
 import useAssistantStore from '../../store'
 import { writeLastConversationId } from '../../utils'
+import { TextPart } from '../../components/message-bubble/text-part'
 
 export async function executeSend(
   trimmed: string,
@@ -63,6 +64,9 @@ export async function executeSend(
       truncateFrom.userId !== initialUserId)
   )
     return 'paused'
+
+  // 正文分包与会话准备并行，失败仍由回复区的重试入口处理。
+  TextPart.preload().catch(() => undefined)
 
   // 1. 同步占用运行锁；重跑保留原消息，普通发送立即上屏。
   let frozenSources = freezeSourceScope(submission?.sources ?? [], references)

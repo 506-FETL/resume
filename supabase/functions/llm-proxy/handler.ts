@@ -158,7 +158,7 @@ export async function handleLLMRequest(request: Request) {
 
     upstreamController = new AbortController()
 
-    const abortUpstream = () => upstreamController?.abort()
+    const abortUpstream = () => upstreamController?.abort('client_cancelled')
 
     request.signal.addEventListener('abort', abortUpstream, { once: true })
 
@@ -166,7 +166,7 @@ export async function handleLLMRequest(request: Request) {
 
     const timeoutId = setTimeout(() => {
       upstreamTimedOut = true
-      upstreamController?.abort()
+      upstreamController?.abort('upstream_timeout')
     }, UPSTREAM_TIMEOUT_MS)
 
     let upstream: Response
@@ -190,13 +190,13 @@ export async function handleLLMRequest(request: Request) {
         upstreamTimedOut ? 'upstream_timeout' : 'upstream_fetch_failed',
       )
 
-      record('server_error', 503, 'upstream_unavailable')
+      const errorCode = upstreamTimedOut
+        ? 'upstream_timeout'
+        : 'upstream_unavailable'
 
-      return context.json(
-        { error: 'upstream_unavailable' },
-        503,
-        reservationHeaders,
-      )
+      record('server_error', 503, errorCode)
+
+      return context.json({ error: errorCode }, 503, reservationHeaders)
     }
 
     if (!upstream.ok) {

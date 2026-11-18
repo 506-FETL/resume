@@ -6,7 +6,7 @@ import {
 import {
   createResumeFromSnapshot,
   findPreparedCloudResume,
-} from '@/lib/supabase/resume/form'
+} from '@/lib/supabase/resume/create-template'
 import { createdResumeResult } from './prepare'
 
 export const browserResumePersistence: ResumeCreationPersistence = {

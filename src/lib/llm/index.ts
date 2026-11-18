@@ -273,9 +273,10 @@ export async function runAtsStructured(
       type: 'json_object',
     },
     // 思考模式用于先判断候选人画像、模块适用性与跨模块证据，再生成结构化报告。
-    // 同步提高输出预算，避免 reasoning_content 挤占最终 JSON 的可用空间。
+    // 显式使用 low 保留判断过程，避免默认 high 的长推理耗尽代理运行时间。
     max_tokens: 16384,
     thinking: { type: 'enabled' },
+    reasoning_effort: 'low',
     // 标记本次调用为 ATS 用途（服务端据系统提示词权威判定 cost，此字段仅作辅助/日志）。
     action: 'ats',
   } as ChatCompletionCreateParamsBase & {
@@ -283,7 +284,10 @@ export async function runAtsStructured(
     thinking?: { type: string }
   }
 
-  return await streamStructuredJson(req, onUpdate, options)
+  return await streamStructuredJson(req, onUpdate, {
+    ...options,
+    requireComplete: true,
+  })
 }
 
 export async function runBulletRewrite(

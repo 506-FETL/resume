@@ -12,6 +12,7 @@ export function CreationFooter({
   headingRef,
   flow,
   detailsFormId,
+  detailsFormReady,
   isOnline,
 }: {
   step: CreationStep
@@ -19,6 +20,7 @@ export function CreationFooter({
   headingRef: RefObject<HTMLHeadingElement | null>
   flow: ReturnType<typeof useCreationFlow>
   detailsFormId: string
+  detailsFormReady: boolean
   isOnline: boolean
 }) {
   const draft = useCreationDraftStore((state) => state.draft)
@@ -101,7 +103,11 @@ export function CreationFooter({
           <Button
             type='submit'
             form={detailsFormId}
-            disabled={busy || (!draft.selectedTemplate && !draft.creation)}
+            disabled={
+              busy ||
+              !detailsFormReady ||
+              (!draft.selectedTemplate && !draft.creation)
+            }
           >
             {flow.creating
               ? '正在创建…'

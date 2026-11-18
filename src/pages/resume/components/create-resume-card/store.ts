@@ -5,7 +5,6 @@ import {
   loadImportDraft,
   saveImportDraft,
 } from '@/lib/resume-preparation/storage'
-import { emptyDraft } from './utils'
 
 interface CreationDraftState {
   step: CreationStep
@@ -137,3 +136,17 @@ export const useCreationDraftStore = create<CreationDraftState>((set, get) => ({
     }
   },
 }))
+
+function emptyDraft(): ImportDraft {
+  return {
+    displayName: '示例简历',
+    description: '',
+    sourceText: '',
+    sourceName: '粘贴内容',
+    content: null,
+    unassignedText: '',
+    warnings: [],
+    profile: 'graduate',
+    updatedAt: new Date().toISOString(),
+  }
+}

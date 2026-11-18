@@ -27,6 +27,26 @@ export function createStreamingResponse({
   let upstreamRequestId: string | null = null
   let finishReason: string | null = null
   let usage: StreamUsage | null = null
+  let clientCancelled = false
+
+  // 运行时的 fetch abort 不保证已返回的 body 停止，必须直接取消正在读取的流。
+  const cancelReader = () => {
+    reader.cancel(upstreamController.signal.reason).catch(() => undefined)
+  }
+
+  upstreamController.signal.addEventListener('abort', cancelReader, {
+    once: true,
+  })
+
+  if (upstreamController.signal.aborted) cancelReader()
+
+  const failureCode = () => {
+    const reason = upstreamController.signal.reason
+
+    return reason === 'upstream_timeout' || reason === 'client_cancelled'
+      ? reason
+      : 'upstream_stream_failed'
+  }
 
   const finishLedger = async (
     deliveryState: 'completed' | 'partial' | 'none',
@@ -35,6 +55,8 @@ export function createStreamingResponse({
     if (ledgerFinalized) return true
 
     ledgerFinalized = true
+    upstreamController.signal.removeEventListener('abort', cancelReader)
+    cleanupUpstream()
 
     const ok =
       deliveryState === 'none'
@@ -47,15 +69,14 @@ export function createStreamingResponse({
             failureCode,
           })
 
-    cleanupUpstream()
-
     return ok
   }
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
       const failStream = async (code: string) => {
-        upstreamController?.abort()
+        upstreamController.abort(code)
+        cancelReader()
 
         const finalState = streamFailureDeliveryState(deliveryStarted)
 
@@ -70,17 +91,33 @@ export function createStreamingResponse({
         })
 
         record('server_error', 502, code)
-        controller.error(new Error(code))
+
+        if (!clientCancelled) {
+          const message =
+            code === 'upstream_timeout'
+              ? 'AI 处理超时，结果未完成，请重试'
+              : 'AI 输出中断，结果未完成，请重试'
+
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({ error: { message, code } })}\n\n`,
+            ),
+          )
+
+          controller.close()
+        }
       }
 
       try {
         while (true) {
           const result = await reader.read()
 
+          if (clientCancelled) return
+
           if (result.done) {
             buffer += decoder.decode()
 
-            if (!ledgerFinalized) await failStream('upstream_stream_failed')
+            if (!ledgerFinalized) await failStream(failureCode())
 
             return
           }
@@ -124,11 +161,29 @@ export function createStreamingResponse({
               deliveryStarted = true
             }
 
+            if (upstreamController.signal.aborted) {
+              if (!clientCancelled) await failStream(failureCode())
+
+              return
+            }
+
             if (inspected.done) {
-              await finishLedger(
+              if (deliveryStarted && !finishReason) {
+                await failStream('upstream_stream_failed')
+
+                return
+              }
+
+              const finalized = await finishLedger(
                 deliveryStarted ? 'completed' : 'none',
                 deliveryStarted ? undefined : 'upstream_empty_response',
               )
+
+              if (!finalized) {
+                await failStream('quota_finalization_failed')
+
+                return
+              }
 
               record('success', 200)
               controller.enqueue(encoder.encode(rawEvent))
@@ -143,11 +198,13 @@ export function createStreamingResponse({
           }
         }
       } catch {
-        if (!ledgerFinalized) await failStream('upstream_stream_failed')
+        if (!ledgerFinalized && !clientCancelled)
+          await failStream(failureCode())
       }
     },
     async cancel() {
-      upstreamController?.abort()
+      clientCancelled = true
+      upstreamController.abort('client_cancelled')
       await reader.cancel().catch(() => undefined)
 
       if (!ledgerFinalized) {

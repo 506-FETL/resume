@@ -1,14 +1,17 @@
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import type { Ref } from 'react'
 import { useCreationDraftStore } from '../../store'
 
 export default function ResumeDetails({
   formId,
+  formRef,
   busy,
   onSubmit,
 }: {
   formId: string
+  formRef: Ref<HTMLFormElement>
   busy: boolean
   onSubmit: () => void
 }) {
@@ -24,6 +27,7 @@ export default function ResumeDetails({
   return (
     <form
       id={formId}
+      ref={formRef}
       onSubmit={(event) => {
         event.preventDefault()
 

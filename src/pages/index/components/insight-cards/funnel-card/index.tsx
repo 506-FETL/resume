@@ -1,29 +1,21 @@
+import { createDeferredComponent } from '@/components/deferred-content'
 import { DashboardChartSkeleton } from '@/components/page-skeletons/dashboard'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import type { ChartConfig } from '@/components/ui/chart'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { DURATION } from '@/lib/motion'
-import { cn } from '@/lib/utils'
 import { BriefcaseBusiness, Plus, TrendingUp } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import type { FunnelStage } from '../../../insights'
-import { CHART_HEIGHT } from '../const'
-import { CHART_MARGIN } from '../const'
 import { CardHead } from '../card-head/index'
 import { ChartEmpty } from '../chart-empty/index'
+import { ChartViewport } from '../chart-viewport'
 
-// ==================== 求职漏斗图 ====================
-const funnelConfig = {
-  count: { label: '岗位数', color: 'var(--chart-1)' },
-} satisfies ChartConfig
+const FunnelChart = createDeferredComponent(
+  () => import('../funnel-chart'),
+  '求职漏斗',
+  <DashboardChartSkeleton />,
+  { wrapFallback: false },
+)
 
 export function FunnelCard({
   funnel,
@@ -32,7 +24,6 @@ export function FunnelCard({
   funnel: FunnelStage[]
   loading: boolean
 }) {
-  const reduceMotion = useReducedMotion()
   const navigate = useNavigate()
   const hasData = funnel.some((stage) => stage.count > 0)
 
@@ -50,44 +41,9 @@ export function FunnelCard({
           {loading ? (
             <DashboardChartSkeleton />
           ) : hasData ? (
-            <ChartContainer
-              config={funnelConfig}
-              className={cn(CHART_HEIGHT, 'w-full')}
-            >
-              <BarChart accessibilityLayer data={funnel} margin={CHART_MARGIN}>
-                <CartesianGrid
-                  vertical={false}
-                  stroke='var(--border)'
-                  strokeDasharray='3 3'
-                />
-                <XAxis
-                  dataKey='label'
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tickLine={false}
-                  axisLine={false}
-                  width={28}
-                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent />}
-                />
-                <Bar
-                  isAnimationActive={!reduceMotion}
-                  animationDuration={DURATION.slow * 1000}
-                  animationEasing='ease-out'
-                  dataKey='count'
-                  fill='var(--chart-1)'
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={44}
-                />
-              </BarChart>
-            </ChartContainer>
+            <ChartViewport>
+              <FunnelChart funnel={funnel} />
+            </ChartViewport>
           ) : (
             <ChartEmpty
               icon={<BriefcaseBusiness className='size-4' aria-hidden />}

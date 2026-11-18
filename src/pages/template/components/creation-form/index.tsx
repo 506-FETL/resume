@@ -2,13 +2,16 @@ import type { useTemplateCreation } from '../../hooks/use-template-creation'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import type { Ref } from 'react'
 
 export default function TemplateCreationForm({
   formId,
+  formRef,
   creation,
   onCreate,
 }: {
   formId: string
+  formRef: Ref<HTMLFormElement>
   creation: ReturnType<typeof useTemplateCreation>
   onCreate: () => void
 }) {
@@ -18,6 +21,7 @@ export default function TemplateCreationForm({
   return (
     <form
       id={formId}
+      ref={formRef}
       onSubmit={(event) => {
         event.preventDefault()
 

@@ -52,6 +52,20 @@
         "files": ["src/components/tiptap-templates/simple/simple-editor.scss"],
         "createdAt": "2026-11-15T07:28:49.224Z",
         "reason": "代理复核保留既有编辑器字体：src/workspace-app.tsx 已加载 Noto Sans SC；本期仅调整聚焦样式，避免改变富文本排版。"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "ibm plex sans sc",
+        "files": ["src/styles/resume-fonts.css"],
+        "createdAt": "2026-11-18T06:37:21.485Z",
+        "reason": "Agent: existing resume font declarations moved unchanged from src/index.css; supported font option in src/lib/schema/resume/config/font.ts; no brand typography change"
+      },
+      {
+        "rule": "design-system-font",
+        "value": "lxgw wenkai",
+        "files": ["src/styles/resume-fonts.css"],
+        "createdAt": "2026-11-18T06:37:21.590Z",
+        "reason": "Agent: existing resume font declarations moved unchanged from src/index.css; supported font option in src/lib/schema/resume/config/font.ts; no brand typography change"
       }
     ]
   }

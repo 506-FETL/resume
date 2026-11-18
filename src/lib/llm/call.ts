@@ -117,29 +117,33 @@ export async function requestLLM(
 
   if (!response.ok) {
     const errorText = await response.text()
+    let errorCode: string | undefined
 
     // 额度超限：抛出可识别的 QuotaExceededError，供上层兜底处理（本阶段不做专门 UI）
-    if (response.status === 403) {
-      try {
-        const parsed = JSON.parse(errorText) as {
-          error?: string
-          remaining?: number
-          daily_limit?: number
-          reset_at?: string
-        }
-
-        if (parsed?.error === 'quota_exceeded') {
-          throw new QuotaExceededError({
-            remaining: parsed.remaining,
-            dailyLimit: parsed.daily_limit,
-            resetAt: parsed.reset_at,
-          })
-        }
-      } catch (e) {
-        if (e instanceof QuotaExceededError) throw e
-        // JSON 解析失败则回退到通用错误
+    try {
+      const parsed = JSON.parse(errorText) as {
+        error?: string
+        remaining?: number
+        daily_limit?: number
+        reset_at?: string
       }
+
+      errorCode = parsed?.error
+
+      if (response.status === 403 && errorCode === 'quota_exceeded') {
+        throw new QuotaExceededError({
+          remaining: parsed.remaining,
+          dailyLimit: parsed.daily_limit,
+          resetAt: parsed.reset_at,
+        })
+      }
+    } catch (e) {
+      if (e instanceof QuotaExceededError) throw e
+      // JSON 解析失败则回退到通用错误
     }
+
+    if (errorCode === 'upstream_timeout')
+      throw new Error('AI 处理超时，结果未完成，请重试')
 
     throw new Error(`LLM request failed: ${response.status} ${errorText}`)
   }

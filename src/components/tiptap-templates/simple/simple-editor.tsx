@@ -53,6 +53,7 @@ import '@/components/tiptap-node/image-node/image-node.scss'
 import '@/components/tiptap-node/heading-node/heading-node.scss'
 import '@/components/tiptap-node/paragraph-node/paragraph-node.scss'
 // --- Styles ---
+import '@fontsource-variable/noto-sans-sc/wght.css'
 import '@/components/tiptap-templates/simple/simple-editor.scss'
 import { toast } from 'sonner'
 

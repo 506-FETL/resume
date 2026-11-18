@@ -9,7 +9,7 @@ import type { PersistedResumeSnapshot } from '@/lib/schema'
 import { next as Automerge } from '@automerge/automerge'
 import { parseAutomergeUrl } from '@automerge/automerge-repo'
 import supabase from '@/lib/supabase/client'
-import { RESUME_PERSISTED_SELECTOR } from '@/lib/supabase/resume/form'
+import { RESUME_PERSISTED_SELECTOR } from '@/lib/supabase/resume/persisted-fields'
 import { ensureCloudResumeTemplateBinding } from '@/lib/supabase/resume/template-binding'
 import {
   CollaborationDocumentLoadError,

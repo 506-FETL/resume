@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils'
 import CatalogSkeleton from '@/pages/template/components/catalog-skeleton'
 import { FileText } from 'lucide-react'
 import { LayoutGroup, motion, useAnimationControls } from 'motion/react'
+import type { Ref } from 'react'
 import { useEffect, useId, useLayoutEffect, useRef, useState } from 'react'
 import { useCreationDraftStore } from '../../../store'
 import { mergeTemplateOptions } from '../../../utils'
@@ -17,10 +18,12 @@ import { TemplateOption } from '../template-option/index'
 
 export function TemplatePicker({
   formId,
+  formRef,
   busy,
   onCreate,
 }: {
   formId: string
+  formRef: Ref<HTMLFormElement>
   busy: boolean
   onCreate: () => void
 }) {
@@ -361,7 +364,12 @@ export function TemplatePicker({
               }}
               animate={detailsControls}
             >
-              <ResumeDetails formId={formId} busy={busy} onSubmit={onCreate} />
+              <ResumeDetails
+                formId={formId}
+                formRef={formRef}
+                busy={busy}
+                onSubmit={onCreate}
+              />
             </motion.div>
           </div>
         </motion.div>

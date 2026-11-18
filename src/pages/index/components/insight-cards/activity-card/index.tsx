@@ -1,30 +1,21 @@
+import { createDeferredComponent } from '@/components/deferred-content'
 import { DashboardChartSkeleton } from '@/components/page-skeletons/dashboard'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import type { ChartConfig } from '@/components/ui/chart'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { DURATION } from '@/lib/motion'
-import { cn } from '@/lib/utils'
 import { Activity, ArrowRight, CalendarDays } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts'
 import type { ActivityDay } from '../../../insights'
-import { CHART_HEIGHT } from '../const'
-import { CHART_MARGIN } from '../const'
 import { CardHead } from '../card-head/index'
 import { ChartEmpty } from '../chart-empty/index'
+import { ChartViewport } from '../chart-viewport'
 
-// ==================== 本周活跃度 ====================
-const activityConfig = {
-  edits: { label: '编辑', color: 'var(--chart-1)' },
-  applies: { label: '投递', color: 'var(--chart-3)' },
-} satisfies ChartConfig
+const ActivityChart = createDeferredComponent(
+  () => import('../activity-chart'),
+  '本周活跃度',
+  <DashboardChartSkeleton />,
+  { wrapFallback: false },
+)
 
 export function ActivityCard({
   activity,
@@ -33,7 +24,6 @@ export function ActivityCard({
   activity: ActivityDay[]
   loading: boolean
 }) {
-  const reduceMotion = useReducedMotion()
   const navigate = useNavigate()
   const total = activity.reduce((sum, day) => sum + day.total, 0)
   const hasData = total > 0
@@ -52,59 +42,9 @@ export function ActivityCard({
           {loading ? (
             <DashboardChartSkeleton />
           ) : total > 0 ? (
-            <ChartContainer
-              config={activityConfig}
-              className={cn(CHART_HEIGHT, 'w-full')}
-            >
-              <BarChart
-                accessibilityLayer
-                data={activity}
-                margin={CHART_MARGIN}
-              >
-                <CartesianGrid
-                  vertical={false}
-                  stroke='var(--border)'
-                  strokeDasharray='3 3'
-                />
-                <XAxis
-                  dataKey='label'
-                  tickLine={false}
-                  axisLine={false}
-                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
-                />
-                <YAxis
-                  allowDecimals={false}
-                  tickLine={false}
-                  axisLine={false}
-                  width={28}
-                  tick={{ fontSize: 12, fill: 'var(--muted-foreground)' }}
-                />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent />}
-                />
-                <Bar
-                  isAnimationActive={!reduceMotion}
-                  animationDuration={DURATION.slow * 1000}
-                  animationEasing='ease-out'
-                  dataKey='edits'
-                  stackId='a'
-                  fill='var(--chart-1)'
-                  radius={[0, 0, 0, 0]}
-                  maxBarSize={28}
-                />
-                <Bar
-                  isAnimationActive={!reduceMotion}
-                  animationDuration={DURATION.slow * 1000}
-                  animationEasing='ease-out'
-                  dataKey='applies'
-                  stackId='a'
-                  fill='var(--chart-3)'
-                  radius={[4, 4, 0, 0]}
-                  maxBarSize={28}
-                />
-              </BarChart>
-            </ChartContainer>
+            <ChartViewport>
+              <ActivityChart activity={activity} />
+            </ChartViewport>
           ) : (
             <ChartEmpty
               icon={<CalendarDays className='size-4' aria-hidden />}

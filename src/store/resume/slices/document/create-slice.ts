@@ -3,6 +3,7 @@ import { readAutomergeSnapshot } from '@/lib/automerge/document/read-snapshot'
 import { CollaborationDocumentLoadError } from '@/lib/automerge/shared/types'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import { ResumeNotFoundError } from '@/lib/resume-id'
+import { takeCreatedResumeInitialization } from '@/lib/resume-template/create/initialization-handoff'
 import {
   applyResumeEntryIdPatches,
   collectMissingResumeEntryIdPatches,
@@ -130,6 +131,11 @@ export function createDocumentSlice(
       let manager: DocumentManager | null = null
 
       try {
+        const createdInitialization =
+          source.kind === 'owner'
+            ? takeCreatedResumeInitialization(resumeId, user.id)
+            : undefined
+
         // 两个只读请求并行；确认配置存在前不能导入、创建或保存文档。
         // 协作来源已经由 Edge 返回的 bootstrap 鉴权，不得再读 owner-only 外观数据或回退 owner 文档。
         const persistedSnapshotRequest =
@@ -183,6 +189,10 @@ export function createDocumentSlice(
           (binding) => {
             if (isCurrentRequest()) preloadTemplate(binding)
           },
+          createdInitialization?.updatedAt ===
+            initialCloudAppearanceResult?.updatedAt
+            ? createdInitialization?.snapshot
+            : undefined,
         )
 
         assertCurrentRequest()

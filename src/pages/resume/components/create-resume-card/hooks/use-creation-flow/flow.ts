@@ -23,6 +23,7 @@ import useResumeListStore from '@/pages/resume/store'
 import { useResumeCreationStore } from '@/store/resume-creation'
 import useCurrentResumeStore from '@/store/resume/current'
 import useUserStore from '@/store/user'
+import type { Dispatch, SetStateAction } from 'react'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
@@ -35,11 +36,15 @@ export function useCreationFlow({
   online,
   onCreated,
   onClose,
+  creating,
+  setCreating,
 }: {
   open: boolean
   online: boolean
   onCreated?: () => void
   onClose: () => void
+  creating: boolean
+  setCreating: Dispatch<SetStateAction<boolean>>
 }) {
   const userId = useUserStore((state) => state.currentUser?.id ?? null)
   const scope = preparationScope(userId)
@@ -49,7 +54,6 @@ export function useCreationFlow({
   const [error, setError] = useState<string | null>(null)
   const [importStage, setImportStage] = useState<ImportStage | null>(null)
   const reading = importStage !== null
-  const [creating, setCreating] = useState(false)
   const abortRef = useRef<AbortController | null>(null)
   const mountedRef = useRef(true)
   const sessionRef = useRef(0)
@@ -57,19 +61,9 @@ export function useCreationFlow({
   useEffect(() => {
     mountedRef.current = true
 
-    const beforeUnload = (event: BeforeUnloadEvent) => {
-      const state = useCreationDraftStore.getState()
-
-      if (state.draft.sourceText && (state.saving || state.saveError))
-        event.preventDefault()
-    }
-
-    window.addEventListener('beforeunload', beforeUnload)
-
     return () => {
       mountedRef.current = false
       abortRef.current?.abort()
-      window.removeEventListener('beforeunload', beforeUnload)
     }
   }, [])
 
@@ -84,7 +78,7 @@ export function useCreationFlow({
       useCreationDraftStore.getState().setStep('choose')
       useCreationDraftStore.getState().load(scope)
     }
-  }, [open, scope])
+  }, [open, scope, setCreating])
 
   async function importSource(file?: File) {
     const state = useCreationDraftStore.getState()

@@ -1,6 +1,9 @@
+import { createDeferredComponent } from '@/components/deferred-content'
+import { PaperSkeleton } from '@/components/loading-skeleton'
+import { Skeleton } from '@/components/ui/skeleton'
 import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
 import { ArrowLeft, ArrowRight, X } from 'lucide-react'
-import { useId, useLayoutEffect, useRef } from 'react'
+import { useId, useLayoutEffect, useRef, useState } from 'react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
@@ -36,7 +39,25 @@ import { useResumeTemplateStore } from '@/store/resume-template'
 import { useTemplateCreation } from '../../hooks/use-template-creation'
 import { useTemplatePageStore } from '../../store.ts'
 import TemplateCreationForm from '../creation-form'
-import PreviewWorkspace from '../preview-workspace'
+
+const PreviewWorkspace = createDeferredComponent(
+  () => import('../preview-workspace'),
+  '模板预览',
+  <div className='flex min-h-0 flex-1 overflow-hidden'>
+    <div className='min-w-0 flex-1 overflow-hidden bg-muted/50 p-4 sm:p-7'>
+      <PaperSkeleton className='mx-auto max-w-2xl' />
+    </div>
+    <aside className='hidden w-80 shrink-0 flex-col gap-6 border-l p-6 md:flex'>
+      <div className='space-y-3'>
+        <Skeleton className='h-4 w-28' />
+        <Skeleton className='h-5 w-full' />
+        <Skeleton className='h-5 w-3/4' />
+      </div>
+      <Skeleton className='h-9 w-full' />
+    </aside>
+  </div>,
+  { wrapFallback: false },
+)
 
 function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
   const {
@@ -58,6 +79,8 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
 
   const details = previewStep === 'details'
   const formId = useId()
+  const [desktopForm, setDesktopForm] = useState<HTMLFormElement | null>(null)
+  const [mobileForm, setMobileForm] = useState<HTMLFormElement | null>(null)
   const titleRef = useRef<HTMLHeadingElement>(null)
   const mobileTitleRef = useRef<HTMLHeadingElement>(null)
   const useTemplateRef = useRef<HTMLButtonElement>(null)
@@ -93,6 +116,7 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
     const Description = mobile ? DrawerDescription : DialogDescription
     const Footer = mobile ? DrawerFooter : DialogFooter
     const currentFormId = `${formId}-${mobile ? 'mobile' : 'desktop'}`
+    const formReady = Boolean(mobile ? mobileForm : desktopForm)
 
     return (
       <>
@@ -159,6 +183,7 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
         >
           <TemplateCreationForm
             formId={currentFormId}
+            formRef={mobile ? setMobileForm : setDesktopForm}
             creation={creation}
             onCreate={() => creation.create(selectedExample)}
           />
@@ -208,6 +233,7 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
             className='h-10 flex-1 px-4 motion-reduce:transform-none sm:flex-none'
             style={transitionStyle}
             disabled={
+              !formReady ||
               !creation.ready ||
               creation.loading ||
               !creation.isExampleReady(selectedExample)

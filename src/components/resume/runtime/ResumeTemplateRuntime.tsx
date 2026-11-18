@@ -14,6 +14,7 @@ import { normalizeResumeAppearance } from '@/lib/schema'
 import { useResumeContext } from './context/resume-context'
 import { DeclarativeRenderer } from './declarative-renderer'
 import { TemplateRuntimeProviders } from './TemplateRuntimeProviders'
+import '@/styles/resume-fonts.css'
 
 function ResumeContent({
   data,

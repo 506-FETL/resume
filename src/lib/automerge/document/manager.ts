@@ -7,7 +7,10 @@ import type {
 import type { AutomergeResumeDocument, ChangeFn } from './schema'
 import type { AutomergeSnapshotRow } from './persistence'
 import type { WriteOp } from '@/hooks/collab/write-plan'
-import type { ResumeTemplateBinding } from '@/lib/schema'
+import type {
+  PersistedResumeSnapshot,
+  ResumeTemplateBinding,
+} from '@/lib/schema'
 import { next as Automerge } from '@automerge/automerge'
 import { applyWriteOpsDefault } from '@/hooks/collab/apply-write-ops'
 import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
@@ -62,6 +65,7 @@ export class DocumentManager {
   async initialize(
     prefetchedSnapshot?: AutomergeSnapshotRow | null,
     onTemplateBindingReady?: (binding: ResumeTemplateBinding) => void,
+    createdSnapshot?: Partial<PersistedResumeSnapshot>,
   ) {
     if (this.handle) {
       return this.handle
@@ -130,7 +134,8 @@ export class DocumentManager {
       return this.attachHandle(existingHandle)
     }
 
-    const seedData = await this.persistence.loadResumeConfig()
+    const seedData =
+      createdSnapshot ?? (await this.persistence.loadResumeConfig())
 
     const handle = await createResumeDocument({
       repo,

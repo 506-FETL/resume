@@ -148,7 +148,6 @@ export default function AssistantCanvas() {
     canvasOpen,
     canvasMobileOpen,
     canvasWidth,
-    setCanvasOpen,
     setCanvasMobileOpen,
     setCanvasWidth,
     layoutMode,

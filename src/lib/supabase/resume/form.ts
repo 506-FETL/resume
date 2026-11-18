@@ -1,4 +1,3 @@
-import type { PreparedResumeCreation } from '@/lib/resume-template/create/types'
 import type { ResumeTemplateBinding, ResumeType } from '@/lib/schema'
 import { notifyResumeReadChanged } from '@/lib/resume-read-events'
 import { isCloudResumeId, ResumeNotFoundError } from '@/lib/resume-id'
@@ -13,104 +12,15 @@ import { DEFAULT_RESUME_APPEARANCE } from '@/lib/schema'
 import supabase from '../client'
 import { collectPages } from '../pagination'
 import { getCurrentUser } from '../user'
+import { RESUME_PERSISTED_FIELDS } from './persisted-fields'
 import { ensureCloudResumeTemplateBinding } from './template-binding'
 
-const RESUME_PERSISTED_FIELDS = [
-  'basics',
-  'job_intent',
-  'application_info',
-  'edu_background',
-  'work_experience',
-  'internship_experience',
-  'campus_experience',
-  'project_experience',
-  'skill_specialty',
-  'honors_certificates',
-  'self_evaluation',
-  'hobbies',
-  'order',
-  'visibility',
-  'type',
-  'template_binding',
-  'spacing',
-  'font',
-  'theme',
-  'parent_resume_id',
-  'linked_jd_text',
-  'derived_metadata',
-  'derived_status',
-] as const
+export {
+  createResumeFromSnapshot,
+  findPreparedCloudResume,
+} from './create-template'
 
-export const RESUME_PERSISTED_SELECTOR = RESUME_PERSISTED_FIELDS.join(',')
-
-async function assertCreationOwner(prepared: PreparedResumeCreation) {
-  const user = await getCurrentUser()
-
-  if (!user || user.id !== prepared.ownerId)
-    throw new Error('登录状态已改变，请使用发起创建时的账号重试')
-  if (
-    prepared.mode !== 'cloud' ||
-    prepared.resumeId !== prepared.operationId ||
-    !isCloudResumeId(prepared.resumeId)
-  )
-    throw new Error('云端创建操作无效')
-
-  return user
-}
-
-export async function findPreparedCloudResume(
-  prepared: PreparedResumeCreation,
-) {
-  const user = await assertCreationOwner(prepared)
-
-  const { data, error } = await supabase
-    .from('resume_config')
-    .select('resume_id,display_name,description,created_at,updated_at')
-    .eq('user_id', user.id)
-    .eq('resume_id', prepared.resumeId)
-    .maybeSingle()
-
-  if (error) throw error
-
-  return data
-}
-
-export async function createResumeFromSnapshot(
-  prepared: PreparedResumeCreation,
-) {
-  const user = await assertCreationOwner(prepared)
-
-  const source: Record<string, unknown> = {
-    ...prepared.snapshot,
-    template_binding: prepared.snapshot.templateBinding,
-  }
-
-  const fields = Object.fromEntries(
-    RESUME_PERSISTED_FIELDS.filter((key) => key in source).map((key) => [
-      key,
-      source[key],
-    ]),
-  )
-
-  const { data, error } = await supabase
-    .from('resume_config')
-    .insert({
-      ...fields,
-      type: 'default',
-      resume_id: prepared.resumeId,
-      user_id: user.id,
-      display_name: prepared.displayName,
-      description: prepared.description,
-    })
-    .select('resume_id,display_name,description,created_at,updated_at')
-    .single()
-
-  if (error) throw error
-
-  notifyResumeReadChanged(prepared.resumeId)
-
-  return data
-}
+export { RESUME_PERSISTED_SELECTOR } from './persisted-fields'
 
 export async function getResumeOptions() {
   const user = await getCurrentUser()
