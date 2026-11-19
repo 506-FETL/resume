@@ -10,6 +10,8 @@ import wasm from 'vite-plugin-wasm'
 import { WORKSPACE_PATH } from './src/lib/workspace-path'
 
 export default defineConfig({
+  // Vite 7 的依赖缓存哈希不包含 entries，隔离旧扫描范围留下的缓存。
+  cacheDir: 'node_modules/.vite/source-scan',
   server: {
     watch: {
       ignored: ['**/.superpowers/**', '**/tests/**'],
@@ -60,7 +62,8 @@ export default defineConfig({
   },
   optimizeDeps: {
     esbuildOptions: { minify: true },
-    entries: ['index.html'],
+    // 路由来自虚拟模块；直接扫描前端源码，避免首次打开功能时补构建并整页刷新。
+    entries: ['index.html', 'src/**/*.{ts,tsx}'],
     include: [
       'react',
       'react-dom',

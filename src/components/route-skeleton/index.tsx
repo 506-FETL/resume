@@ -1,5 +1,3 @@
-import { lazy, Suspense } from 'react'
-import { ErrorBoundary } from 'react-error-boundary'
 import { AuthLayout } from '@/components/layout/auth-layout'
 import { PageHeader, PageLayout } from '@/components/layout/page-layout'
 import {
@@ -8,63 +6,18 @@ import {
   LoadingRegion,
   PaperSkeleton,
 } from '@/components/loading-skeleton'
+import { AssistantPageSkeleton } from '@/components/page-skeletons/assistant'
+import { ChangelogPageSkeleton } from '@/components/page-skeletons/changelog'
 import { DashboardPageSkeleton } from '@/components/page-skeletons/dashboard'
+import { ExperiencePageSkeleton } from '@/components/page-skeletons/experience'
+import { HistoryPageSkeleton } from '@/components/page-skeletons/history'
+import { OptimizePageSkeleton } from '@/components/page-skeletons/optimize'
+import { ProfilePageSkeleton } from '@/components/page-skeletons/profile'
+import { SharePageSkeleton } from '@/components/page-skeletons/share'
+import { TemplatePageSkeleton } from '@/components/page-skeletons/template'
+import { TrackerPageSkeleton } from '@/components/page-skeletons/tracker'
 import { ResumeLibrarySkeleton } from '@/components/resume/library-skeleton'
 import { WORKSPACE_PATH } from '@/lib/workspace-path'
-
-const AssistantPageSkeleton = lazy(() =>
-  import('@/components/page-skeletons/assistant').then((module) => ({
-    default: module.AssistantPageSkeleton,
-  })),
-)
-
-const ChangelogPageSkeleton = lazy(() =>
-  import('@/components/page-skeletons/changelog').then((module) => ({
-    default: module.ChangelogPageSkeleton,
-  })),
-)
-
-const ExperiencePageSkeleton = lazy(() =>
-  import('@/components/page-skeletons/experience').then((module) => ({
-    default: module.ExperiencePageSkeleton,
-  })),
-)
-
-const HistoryPageSkeleton = lazy(() =>
-  import('@/components/page-skeletons/history').then((module) => ({
-    default: module.HistoryPageSkeleton,
-  })),
-)
-
-const OptimizePageSkeleton = lazy(() =>
-  import('@/components/page-skeletons/optimize').then((module) => ({
-    default: module.OptimizePageSkeleton,
-  })),
-)
-
-const ProfilePageSkeleton = lazy(() =>
-  import('@/components/page-skeletons/profile').then((module) => ({
-    default: module.ProfilePageSkeleton,
-  })),
-)
-
-const SharePageSkeleton = lazy(() =>
-  import('@/components/page-skeletons/share').then((module) => ({
-    default: module.SharePageSkeleton,
-  })),
-)
-
-const TemplatePageSkeleton = lazy(() =>
-  import('@/components/page-skeletons/template').then((module) => ({
-    default: module.TemplatePageSkeleton,
-  })),
-)
-
-const TrackerPageSkeleton = lazy(() =>
-  import('@/components/page-skeletons/tracker').then((module) => ({
-    default: module.TrackerPageSkeleton,
-  })),
-)
 
 const authPages: Record<string, { title: string; rows: number }> = {
   '/login': { title: '登录', rows: 2 },
@@ -73,19 +26,8 @@ const authPages: Record<string, { title: string; rows: number }> = {
   '/reset-password': { title: '重置密码', rows: 2 },
 }
 
-const pageTitles: Record<string, string> = {
-  '/template': '简历模板',
-  '/tracker': '求职跟进',
-  '/optimize': '简历优化',
-  '/share': '分享管理',
-  '/experience': '职业档案',
-  '/history': '历史版本',
-  '/profile': '个人信息',
-  '/assistant': 'AI 助手',
-  '/changelog': '更新日志',
-}
-
-function RouteSkeletonContent({
+// 骨架随外壳就绪，避免先显示通用占位、再切换页面骨架。
+export function RouteSkeleton({
   pathname,
   label = '正在加载页面',
   guest = false,
@@ -152,26 +94,5 @@ function RouteSkeletonContent({
     <PageLayout>
       <ContentSkeleton label={label} className='px-0' />
     </PageLayout>
-  )
-}
-
-export function RouteSkeleton(
-  props: Parameters<typeof RouteSkeletonContent>[0],
-) {
-  const title = pageTitles[`/${props.pathname.split('/')[1]}`]
-
-  const fallback = (
-    <PageLayout>
-      {title && <PageHeader title={title} />}
-      <ContentSkeleton label={props.label ?? '正在加载页面'} className='px-0' />
-    </PageLayout>
-  )
-
-  return (
-    <ErrorBoundary key={props.pathname} fallback={fallback}>
-      <Suspense fallback={fallback}>
-        <RouteSkeletonContent {...props} />
-      </Suspense>
-    </ErrorBoundary>
   )
 }
