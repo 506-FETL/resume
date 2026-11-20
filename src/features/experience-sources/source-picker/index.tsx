@@ -226,7 +226,7 @@ function SourcePickerContent({
             onOpenChange(false)
           }}
         >
-          加入草稿{selected.length ? `（${selected.length}）` : ''}
+          加入对话{selected.length ? `（${selected.length}）` : ''}
         </Button>
       </Footer>
     </>

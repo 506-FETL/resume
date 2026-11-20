@@ -51,7 +51,7 @@ const REFERENCE_COLORS = {
 
 const REFERENCE_PURPOSES = {
   resume: '简历引用',
-  annotation: '简历引用',
+  annotation: '简历注释',
   job: '岗位引用',
   'legacy-job': '岗位引用',
   experience: '资料引用',
@@ -157,7 +157,7 @@ export default function ReferenceTags({
           return (
             <motion.div
               key={key}
-              className='w-30 min-w-0 max-w-full shrink-0'
+              className='max-w-30 min-w-0 shrink-0'
               initial={reduced ? false : { opacity: 0, y: 4 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{
