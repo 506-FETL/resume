@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   ResponsiveDialog,
-  ResponsiveDialogDescription,
   ResponsiveDialogFooter,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
@@ -228,19 +227,19 @@ function UploadDialogContent({
     <ResponsiveDialog
       open={open}
       onOpenChange={onOpenChange}
-      contentClassName='h-[min(40rem,85dvh)] max-h-[85dvh] sm:max-w-[560px] [--drawer-content-height:min(40rem,85dvh)]! [--drawer-content-max-height:85dvh]!'
+      contentClassName='h-[min(40rem,60dvh)] max-h-[85dvh] sm:max-w-[560px] [--drawer-content-height:min(40rem,85dvh)]! [--drawer-content-max-height:85dvh]!'
     >
       <ResponsiveDialogHeader className='shrink-0 px-6 pt-6 pb-3'>
         <ResponsiveDialogTitle>
           {sourceId ? '上传新版本' : '添加职业档案'}
         </ResponsiveDialogTitle>
-        <ResponsiveDialogDescription>
-          保存职业背景、工作经历或项目记录，仅自己可见。文件保留原件，AI
-          助手可按需读取支持的文档和粘贴文字。
-        </ResponsiveDialogDescription>
       </ResponsiveDialogHeader>
       <div className='min-h-0 flex-1 overflow-y-auto px-6 pb-4'>
-        <Tabs value={tab} onValueChange={(value) => setTab(value as UploadTab)}>
+        <Tabs
+          className='h-full'
+          value={tab}
+          onValueChange={(value) => setTab(value as UploadTab)}
+        >
           <TabsList>
             <TabsTrigger value='files' disabled={saving}>
               上传文件
@@ -249,7 +248,7 @@ function UploadDialogContent({
               粘贴文字
             </TabsTrigger>
           </TabsList>
-          <TabsContent value='files' className='pt-3'>
+          <TabsContent value='files' className='pt-3 content-center'>
             <FileUpload
               disabled={saving}
               value={jobs.flatMap((job) => (job.file ? [job.file] : []))}
@@ -281,7 +280,7 @@ function UploadDialogContent({
               </p>
             )}
           </TabsContent>
-          <TabsContent value='paste' className='space-y-3 pt-3'>
+          <TabsContent value='paste' className='space-y-3 pt-3 content-center'>
             <div className='space-y-2'>
               <Label htmlFor='experience-title'>资料名称（选填）</Label>
               <Input

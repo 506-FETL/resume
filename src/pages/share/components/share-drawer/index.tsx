@@ -16,7 +16,7 @@ interface ShareDrawerProps {
   open: boolean
   busy?: boolean
   title: ReactNode
-  description: string
+  description?: string
   children: ReactNode
   footer: ReactNode
   onOpenChange: (open: boolean) => void

@@ -18,6 +18,7 @@ import PreviewDialog from './components/preview-dialog'
 import TemplateCard from './components/template-card'
 import TemplateFilters from './components/template-filters'
 import { useTemplatePageStore } from './store.ts'
+import { Badge } from '@/components/ui/badge.tsx'
 
 export default function Template() {
   const catalog = useResumeTemplateStore((state) => state.catalog)
@@ -64,7 +65,7 @@ export default function Template() {
 
   return (
     <PageLayout width='wide'>
-      <PageHeader title='简历模板' description='挑选适合的排版' />
+      <PageHeader title='简历模板' />
       <div className='grid min-w-0 items-start gap-6 lg:grid-cols-[11rem_minmax(0,1fr)]'>
         <TemplateFilters />
         <div className='min-w-0'>
@@ -74,12 +75,9 @@ export default function Template() {
                 <div className='flex min-h-9 flex-wrap items-center justify-between gap-2'>
                   <h2 className='flex items-center gap-2 text-sm font-medium'>
                     {styleFilter || layoutFilter ? '筛选结果' : '全部模板'}
-                    <span
-                      aria-live='polite'
-                      className='rounded-md bg-muted px-1.5 py-0.5 text-xs tabular-nums text-muted-foreground'
-                    >
+                    <Badge variant='secondary'>
                       {nextOffset !== null ? `${items.length}+` : items.length}
-                    </span>
+                    </Badge>
                   </h2>
                   <span role='status' className='sr-only'>
                     {refreshingCatalog ? '正在更新筛选结果' : ''}

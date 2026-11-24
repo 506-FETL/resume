@@ -9,10 +9,7 @@ import {
 } from '@/components/ui/input-group'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import {
-  EXPERIENCE_DESCRIPTION,
-  EXPERIENCE_GRID_CLASS,
-} from '@/pages/experience/const'
+import { EXPERIENCE_GRID_CLASS } from '@/pages/experience/const'
 
 export function ExperienceRowsSkeleton({
   view = 'grid',
@@ -24,7 +21,7 @@ export function ExperienceRowsSkeleton({
       aria-label='正在读取资料'
       className={view === 'grid' ? EXPERIENCE_GRID_CLASS : 'space-y-3'}
     >
-      {Array.from({ length: view === 'grid' ? 6 : 5 }, (_, index) => (
+      {Array.from({ length: view === 'grid' ? 10 : 5 }, (_, index) => (
         <div
           key={index}
           aria-hidden
@@ -54,7 +51,6 @@ export function ExperiencePageSkeleton() {
     <PageLayout workspace className='gap-5'>
       <PageHeader
         title='职业档案'
-        description={EXPERIENCE_DESCRIPTION}
         actions={
           <>
             <Button variant='outline' disabled>

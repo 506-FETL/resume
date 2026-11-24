@@ -18,12 +18,6 @@ function Header({
   return (
     <PageHeader
       title='首页'
-      description={
-        focus ||
-        (isGettingStarted
-          ? '创建或导入简历，从已有内容开始。'
-          : '继续编辑简历，查看待办与求职进展。')
-      }
       actions={
         <Button
           aria-label='打开创建简历表单'

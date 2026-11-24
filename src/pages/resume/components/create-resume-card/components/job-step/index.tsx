@@ -28,9 +28,7 @@ export function CreationJob({
 
   return (
     <div className='space-y-3'>
-      <p className='text-sm text-muted-foreground'>
-        选择原简历，生成岗位定制版本。
-      </p>
+      <p className='text-sm text-muted-foreground'>针对 JD 客制化</p>
       {listLoading ? (
         <ContentSkeleton label='正在读取简历选项' rows={3} className='px-0' />
       ) : listError ? (

@@ -161,7 +161,6 @@ export default function CreateDialog({
       busy={submitting}
       onOpenChange={onOpenChange}
       title='新建分享'
-      description='选择一份简历，设置用途和访问权限后生成链接。'
       footer={
         <>
           <Button

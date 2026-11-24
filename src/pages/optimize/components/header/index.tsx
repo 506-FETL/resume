@@ -61,7 +61,6 @@ function Header() {
     <div className='min-w-0'>
       <PageHeader
         title='简历优化'
-        description='按优先级完善内容'
         actions={
           <>
             <ResumeManager />

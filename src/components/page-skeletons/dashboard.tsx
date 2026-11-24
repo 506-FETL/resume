@@ -52,7 +52,7 @@ export function DashboardPriorityContentSkeleton({ title }: { title: string }) {
 
 export function DashboardChartSkeleton() {
   return (
-    <LoadingRegion label='正在加载图表' className='h-[140px] w-full py-2'>
+    <LoadingRegion label='正在加载图表' className='h-35 w-full py-2'>
       <Skeleton className='h-full w-full rounded-sm' />
     </LoadingRegion>
   )
@@ -70,15 +70,7 @@ export function DashboardPageSkeleton({
   return (
     <Wrapper>
       {!contentOnly && (
-        <PageHeader
-          title='首页'
-          description={
-            guest
-              ? '创建或导入简历，从已有内容开始。'
-              : '继续编辑简历，查看待办与求职进展。'
-          }
-          actions={<Button disabled>创建简历</Button>}
-        />
+        <PageHeader title='首页' actions={<Button disabled>创建简历</Button>} />
       )}
       {guest && <GettingStarted isAuthenticated={false} hasResume={false} />}
       <section className='flex flex-col gap-3'>

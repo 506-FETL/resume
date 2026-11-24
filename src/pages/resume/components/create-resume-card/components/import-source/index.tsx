@@ -93,17 +93,15 @@ export default function ImportSource({
               aria-hidden
             />
             <p className='mb-3 text-sm font-medium'>
-              将旧简历拖到这里，自动识别并填充
+              拖动文件到这里 <br />
+              or
             </p>
             <Button disabled={locked} onClick={() => fileRef.current?.click()}>
               <Upload className='size-4' />
-              {stage ? '换一个文件' : '选择简历文件'}
+              {stage ? '换一个文件' : '选择文件'}
             </Button>
             <p className='mt-4 text-xs leading-5 text-muted-foreground'>
-              PDF、DOCX · 最大 10 MB · PDF 最多 30 页
-            </p>
-            <p className='text-xs leading-5 text-muted-foreground'>
-              扫描件、加密文件和 DOC 可改用粘贴文字
+              PDF、DOCX · 最大 10 MB
             </p>
             <input
               ref={fileRef}
@@ -135,7 +133,7 @@ export default function ImportSource({
               maxLength={60000}
               disabled={locked}
               className='max-h-72 min-h-40 resize-y'
-              placeholder='粘贴完整简历，无需按模块手动拆分…'
+              placeholder='粘贴完整简历内容，或从 PDF、Word 中复制文本'
               value={draft.sourceText}
               onChange={(event) => {
                 onCancel()
@@ -157,7 +155,7 @@ export default function ImportSource({
               disabled={Boolean(stage) || locked || !draft.sourceText.trim()}
               onClick={() => onParse()}
             >
-              自动填充
+              导入
             </Button>
           </div>
         </TabsContent>
@@ -177,9 +175,6 @@ export default function ImportSource({
           </Button>
         </div>
       )}
-      <p className='text-xs leading-5 text-muted-foreground'>
-        文件在本机读取；登录后会发送提取文字进行免费智能识别，不占 AI 额度。
-      </p>
     </div>
   )
 }

@@ -17,7 +17,7 @@ import {
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { CONTENT_SWITCH, DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import { EXPERIENCE_DESCRIPTION, EXPERIENCE_GRID_CLASS } from '../../const'
+import { EXPERIENCE_GRID_CLASS } from '../../const'
 import { useExperienceList } from '../../hooks/use-experience-list'
 import { useExperiencePageStore } from '../../store'
 import LibraryToolbar from '../library-toolbar'
@@ -118,7 +118,6 @@ export default function ExperienceLibrary({
       <div className='shrink-0'>
         <PageHeader
           title='职业档案'
-          description={EXPERIENCE_DESCRIPTION}
           actions={
             <>
               <Button

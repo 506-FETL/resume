@@ -7,7 +7,6 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
@@ -15,7 +14,6 @@ import {
   Drawer,
   DrawerClose,
   DrawerContent,
-  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
@@ -153,8 +151,7 @@ export default function SourceViewer() {
           }
         >
           <DrawerHeader className='relative shrink-0 border-b pr-14 text-left'>
-            <DrawerTitle className='break-words'>{source.name}</DrawerTitle>
-            <DrawerDescription>查看本次引用的原文版本。</DrawerDescription>
+            <DrawerTitle className='wrap-break-word'>{source.name}</DrawerTitle>
             <DrawerClose
               render={
                 <Button
@@ -186,8 +183,7 @@ export default function SourceViewer() {
         }}
       >
         <DialogHeader className='shrink-0 border-b p-5 pr-14'>
-          <DialogTitle className='break-words'>{source.name}</DialogTitle>
-          <DialogDescription>查看本次引用的原文版本。</DialogDescription>
+          <DialogTitle className='wrap-break-word'>{source.name}</DialogTitle>
         </DialogHeader>
         {body}
       </DialogContent>

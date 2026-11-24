@@ -3,9 +3,9 @@ import { useLocation } from 'react-router-dom'
 import { PageLayout } from '@/components/layout/page-layout'
 import { ExperienceUploadDialog } from '@/features/experience-sources'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
-import ExperienceWorkspace from './components/workspace'
 import { useExperiencePageStore } from './store'
 import type { ExperienceLocationState } from './types'
+import ExperienceWorkspace from './components/workspace'
 
 export default function ExperiencePage() {
   const location = useLocation()

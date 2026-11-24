@@ -109,7 +109,6 @@ export function OptimizePageSkeleton() {
       <div className='min-w-0 space-y-4'>
         <PageHeader
           title='简历优化'
-          description='按优先级完善内容'
           actions={
             <>
               <Button variant='outline' size='sm' disabled>

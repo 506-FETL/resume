@@ -17,7 +17,7 @@ export function TemplateFilterOptionsSkeleton() {
 export function TemplatePageSkeleton() {
   return (
     <PageLayout width='wide'>
-      <PageHeader title='简历模板' description='挑选适合的排版' />
+      <PageHeader title='简历模板' />
       <div className='grid min-w-0 items-start gap-6 lg:grid-cols-[11rem_minmax(0,1fr)]'>
         <aside aria-label='筛选模板' className='self-start lg:sticky lg:top-6'>
           <div className='flex items-center justify-between gap-1 pb-2.5'>

@@ -7,9 +7,6 @@ import {
   Sheet,
 } from 'lucide-react'
 
-export const EXPERIENCE_DESCRIPTION =
-  '保存职业背景、工作经历和项目资料，随时查看和取用。'
-
 export const EXPERIENCE_GRID_CLASS =
   'grid grid-cols-[repeat(auto-fill,minmax(min(100%,18rem),1fr))] gap-4'
 

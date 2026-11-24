@@ -31,13 +31,7 @@ export function CreationProfile() {
           )}
         >
           <span className='block text-sm font-medium'>{guide.label}</span>
-          <span className='mt-1 block text-xs leading-5 text-muted-foreground'>
-            {key === 'graduate'
-              ? '教育、实习与项目'
-              : key === 'experienced'
-                ? '工作职责与项目成果'
-                : '相关经历与可迁移技能'}
-          </span>
+          <span className='mt-1 block text-xs leading-5 text-muted-foreground'></span>
         </Button>
       ))}
     </div>

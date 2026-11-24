@@ -165,7 +165,7 @@ export default function CreationContent({
             {step === 'profile'
               ? '将填入对应示例，创建后可修改。'
               : step === 'review'
-                ? '查看自动填充的简历，选择模板或按需修改。'
+                ? '查看简历，选择模板或按需修改。'
                 : step === 'template'
                   ? '选择简历排版。'
                   : step === 'details'
