@@ -24,7 +24,8 @@ interface IssueFixContentProps {
 }
 
 function IssueFixContent({ severity, id }: IssueFixContentProps) {
-  const { update, currentAtsConfig } = useAtsStore()
+  const update = useAtsStore((s) => s.update)
+  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
 
   const finding = currentAtsConfig?.findings?.[severity]?.find(
     (f) => f.id === id,

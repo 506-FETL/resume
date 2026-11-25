@@ -1,4 +1,5 @@
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
+import { useShallow } from 'zustand/react/shallow'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { isResumeNotFoundError } from '@/lib/resume-id'
@@ -34,7 +35,17 @@ export function useCanvasPreview() {
     activeConversationId,
     conversations,
     explicitPreviewResumeId,
-  } = useAssistantStore()
+  } = useAssistantStore(
+    useShallow((s) => ({
+      previewResumeId: s.previewResumeId,
+      setPreviewResumeId: s.setPreviewResumeId,
+      canvasRefreshTick: s.canvasRefreshTick,
+      canvasActiveTab: s.canvasActiveTab,
+      activeConversationId: s.activeConversationId,
+      conversations: s.conversations,
+      explicitPreviewResumeId: s.explicitPreviewResumeId,
+    })),
+  )
 
   const { generation, resumeRevision } = useCanvasResources()
   const currentResumeId = useCurrentResumeStore((state) => state.resumeId)

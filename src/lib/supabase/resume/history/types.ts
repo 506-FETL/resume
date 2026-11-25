@@ -45,9 +45,15 @@ export type ResumeHistoryVersionListRow = ResumeHistoryVersionMeta
 
 export type ResumeHistoryVersionListItem = ResumeHistoryVersionMeta
 
-export interface ResumeVersionListItem extends ResumeHistoryVersionMeta {
-  shared_link_count: number
-}
+export type ResumeVersionListItem = Pick<
+  ResumeHistoryVersionMeta,
+  | 'id'
+  | 'status'
+  | 'version_no'
+  | 'version_name'
+  | 'milestone_name'
+  | 'projection_reference_date'
+>
 
 // 完整版本行/记录（含 snapshot）——create/update/restore 返回、按需加载后使用
 export type ResumeHistoryVersionRow = ResumeHistoryVersionMeta & {
@@ -105,6 +111,7 @@ export interface ResumeHistoryOptionRecord {
 }
 
 export interface ResumeHistoryVersionSummaryRecord {
+  id: number
   resume_id: string
   version_no: number
   created_at: string
@@ -135,11 +142,15 @@ export interface UpdateResumeHistoryVersionInput {
   submitted_at?: string | null
 }
 
-export interface RestoreResumeHistoryVersionInput {
+export type RestoreResumeHistoryVersionInput = {
   resumeId: string
-  targetVersion: ResumeHistoryVersionListItem
+  targetVersion: Pick<
+    ResumeHistoryVersionListItem,
+    'version_no' | 'version_name' | 'milestone_name' | 'tags'
+  >
   targetSnapshot: ResumeSnapshot
-  currentSnapshot: ResumeSnapshot
   currentUpdatedAt: string | null
-  strategy: RestoreStrategy
-}
+} & (
+  | { strategy: 'with_backup'; currentSnapshot: ResumeSnapshot }
+  | { strategy: 'without_backup'; currentSnapshot?: ResumeSnapshot }
+)

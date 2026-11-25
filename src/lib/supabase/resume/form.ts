@@ -112,7 +112,9 @@ export async function uploadOfflineResumeToCloud(
     return JSON.stringify(value)
   }
 
-  const verifyExisting = (existing: Record<string, unknown>) => {
+  const verifyExisting = (
+    existing: Record<string, unknown> & { resume_id: string },
+  ) => {
     if (
       [...new Set([...Object.keys(payload), ...RESUME_PERSISTED_FIELDS])].some(
         (key) =>
@@ -124,7 +126,7 @@ export async function uploadOfflineResumeToCloud(
         '本地与已同步的云端内容不同，已保留本地简历。请核对两份内容后再处理。',
       )
 
-    return existing
+    return { resume_id: existing.resume_id }
   }
 
   if (options) {
@@ -138,7 +140,7 @@ export async function uploadOfflineResumeToCloud(
   const { data, error } = await supabase
     .from('resume_config')
     .insert(payload)
-    .select()
+    .select('resume_id')
     .single()
 
   if (error) {

@@ -1,5 +1,4 @@
 import { RefreshCcw } from 'lucide-react'
-import { useMemo } from 'react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import {
@@ -12,47 +11,38 @@ import {
 } from '@/components/ui/empty'
 import { ShareContentSkeleton } from '@/components/page-skeletons/share'
 import useShareStore from '../../store'
-import { filterShares } from '../../utils'
 import EmptyState from '../empty-state'
 import Grid from '../grid'
 
 export default function Content() {
-  const {
-    allShares,
-    pageLoading,
-    pageError,
-    pageLoaded,
-    searchKeyword,
-    resumeFilters,
-    statusFilter,
-    reloadPage,
-  } = useShareStore()
+  const pageShares = useShareStore((state) => state.pageShares)
+  const pageLoading = useShareStore((state) => state.pageLoading)
+  const pageError = useShareStore((state) => state.pageError)
+  const pageLoaded = useShareStore((state) => state.pageLoaded)
 
-  const filteredShares = useMemo(
-    () =>
-      filterShares(allShares, {
-        keyword: searchKeyword,
-        resumeIds: resumeFilters,
-        status: statusFilter,
-      }),
-    [allShares, resumeFilters, searchKeyword, statusFilter],
+  const resolvingPage = useShareStore(
+    (state) => state.pageNumber > 1 && state.statsLoading,
   )
 
-  const hasFilter =
-    Boolean(searchKeyword.trim()) ||
-    resumeFilters.length > 0 ||
-    statusFilter !== 'all'
+  const reloadPage = useShareStore((state) => state.reloadPage)
+
+  const hasFilter = useShareStore(
+    (state) =>
+      Boolean(state.pageKeyword) ||
+      state.resumeFilters.length > 0 ||
+      state.statusFilter !== 'all',
+  )
 
   const contentState =
-    allShares.length === 0 && pageLoading && !pageLoaded
+    pageShares.length === 0 && (pageLoading || (resolvingPage && !pageError))
       ? 'loading'
-      : allShares.length === 0 && pageError && !pageLoaded
+      : pageShares.length === 0 && pageError
         ? 'error'
-        : filteredShares.length === 0
+        : pageShares.length === 0
           ? 'empty'
           : 'content'
 
-  const hasPartialError = pageError && (pageLoaded || allShares.length > 0)
+  const hasPartialError = pageError && pageShares.length > 0
 
   return (
     <>
@@ -100,7 +90,7 @@ export default function Content() {
         ) : contentState === 'empty' ? (
           <EmptyState filtered={hasFilter} />
         ) : (
-          <Grid shares={filteredShares} />
+          <Grid shares={pageShares} />
         )}
       </AnimatedContent>
     </>

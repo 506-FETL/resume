@@ -70,7 +70,7 @@ export default function VersionDialog({
   getCurrentSnapshot,
 }: VersionDialogProps) {
   const {
-    allShares,
+    pageShares,
     shares,
     resumeMap,
     versionDialogOpen,
@@ -83,7 +83,7 @@ export default function VersionDialog({
   } = useShareStore()
 
   const dialogFocus = useShareDialogFocus()
-  const share = findShareById(allShares, shares, versionShareId)
+  const share = findShareById(pageShares, shares, versionShareId)
 
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,

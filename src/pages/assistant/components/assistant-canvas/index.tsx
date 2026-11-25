@@ -4,6 +4,7 @@ import type {
   ReactNode,
 } from 'react'
 import type { CanvasTabKey } from '../../types'
+import { useShallow } from 'zustand/react/shallow'
 import { X } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -100,7 +101,8 @@ function CanvasPanel({
 function CanvasInner() {
   const model = useCanvasModel()
   const reduceMotion = useReducedMotion()
-  const { canvasActiveTab, setCanvasActiveTab } = useAssistantStore()
+  const canvasActiveTab = useAssistantStore((s) => s.canvasActiveTab)
+  const setCanvasActiveTab = useAssistantStore((s) => s.setCanvasActiveTab)
   const [displayedTab, setDisplayedTab] = useState(canvasActiveTab)
 
   useLayoutEffect(() => {
@@ -152,7 +154,17 @@ export default function AssistantCanvas() {
     setCanvasWidth,
     layoutMode,
     availableWidth,
-  } = useAssistantStore()
+  } = useAssistantStore(
+    useShallow((s) => ({
+      canvasOpen: s.canvasOpen,
+      canvasMobileOpen: s.canvasMobileOpen,
+      canvasWidth: s.canvasWidth,
+      setCanvasMobileOpen: s.setCanvasMobileOpen,
+      setCanvasWidth: s.setCanvasWidth,
+      layoutMode: s.layoutMode,
+      availableWidth: s.availableWidth,
+    })),
+  )
 
   const isMobile = layoutMode === 'drawer'
 

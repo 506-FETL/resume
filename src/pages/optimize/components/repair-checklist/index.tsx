@@ -16,7 +16,9 @@ import { cn } from '@/lib/utils'
 import useAtsStore from '../../store'
 
 export default function RepairChecklist() {
-  const { currentAtsConfig, loading, revertFixChecklist } = useAtsStore()
+  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const loading = useAtsStore((s) => s.loading)
+  const revertFixChecklist = useAtsStore((s) => s.revertFixChecklist)
   const [open, setOpen] = useState(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
   const contentRef = useRef<HTMLDivElement>(null)

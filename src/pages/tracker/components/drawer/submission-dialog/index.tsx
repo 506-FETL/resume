@@ -52,6 +52,7 @@ export function SubmissionForm({
     setVersionId,
     versions,
     versionsError,
+    retryVersions,
     file,
     setFile,
     date,
@@ -275,10 +276,23 @@ export function SubmissionForm({
                     </SelectContent>
                   </Select>
                   {versionsError ? (
-                    <p role='alert' className='text-xs text-destructive'>
-                      历史版本加载失败：{versionsError}
-                      。可重新选择简历重试，或使用云端当前内容。
-                    </p>
+                    <div
+                      role='alert'
+                      className='flex flex-wrap items-center gap-2 text-xs'
+                    >
+                      <span className='text-destructive'>
+                        历史版本加载失败：{versionsError}
+                        。仍可使用云端当前内容。
+                      </span>
+                      <Button
+                        type='button'
+                        variant='outline'
+                        size='sm'
+                        onClick={retryVersions}
+                      >
+                        重新读取历史版本
+                      </Button>
+                    </div>
                   ) : versions === null && resumeId ? (
                     <span
                       role='status'

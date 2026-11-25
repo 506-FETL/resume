@@ -25,6 +25,7 @@ import {
 } from '@/lib/resume-template/source/cache'
 import { exampleKey, templateKey } from '@/lib/resume-template/source/types'
 import { createCatalogActions } from './catalog'
+import { cachedResourceBytes } from './resource-bytes'
 
 export type ResourceState<T> =
   | { status: 'idle' }
@@ -102,13 +103,19 @@ export function createTemplateResourceStore(source: TemplateSource) {
       delete next[key]
       next[key] = value
 
-      let bytes = resourceBytes(next)
+      const keys = Object.keys(next)
+      let count = keys.length
+      // 键数组与对象的括号、逗号字节数相同，对象每个键还需要一个冒号。
+      let bytes = resourceBytes(keys) + count
 
-      for (const candidate of Object.keys(next)) {
-        if (Object.keys(next).length <= 96 && bytes <= MAX_CACHE_BYTES) break
+      for (const entry of keys) bytes += cachedResourceBytes(next[entry])
+
+      for (const candidate of keys) {
+        if (count <= 96 && bytes <= MAX_CACHE_BYTES) break
         if (retained.has(`${kind}:${candidate}`)) continue
 
-        bytes -= resourceBytes(next[candidate])
+        bytes -= cachedResourceBytes(next[candidate])
+        count--
         delete next[candidate]
       }
 

@@ -28,6 +28,7 @@ import { getTrackerNextAction } from '../../utils'
 import ViewTransition from '../view-transition'
 import ActivityTimeline from './activity-timeline'
 import Contacts from './contacts'
+import JobDetailContent from './job-detail-content'
 import DrawerDocument from './document/index'
 import SubmissionList from './submission-list'
 import DrawerEditForm from './edit-form'
@@ -170,11 +171,14 @@ function JobDrawer() {
                 返回
               </Button>
             </div>
-            <DrawerEditForm
-              key={selectedJob.id}
-              onSaved={handleSaved}
-              onCancel={() => setIsEditing(false)}
-            />
+            <JobDetailContent key={selectedJob.id} field='jd_text'>
+              {() => (
+                <DrawerEditForm
+                  onSaved={handleSaved}
+                  onCancel={() => setIsEditing(false)}
+                />
+              )}
+            </JobDetailContent>
           </div>
         ) : (
           <div className='flex min-h-0 flex-1 flex-col gap-2 md:gap-3'>
@@ -273,7 +277,14 @@ function JobDrawer() {
                     )}
                     {activeTab === 'documents' && (
                       <div className='space-y-6'>
-                        <Contacts job={selectedJob} />
+                        <JobDetailContent key={selectedJob.id} field='contacts'>
+                          {(contacts) => (
+                            <Contacts
+                              jobId={selectedJob.id}
+                              storedContacts={contacts}
+                            />
+                          )}
+                        </JobDetailContent>
                         <DrawerDocument key={`document-${selectedJob.id}`} />
                         <SubmissionList
                           key={`submissions-${selectedJob.id}`}

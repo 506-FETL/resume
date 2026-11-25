@@ -1,3 +1,4 @@
+import type { ShareManagementStatus } from '@/lib/supabase/resume/share/management'
 import type { VersionDialogSelection } from './types'
 import type {
   ResumeShareRecord,
@@ -5,12 +6,7 @@ import type {
   ShareVersionSource,
 } from '@/lib/supabase/resume/share.types'
 
-export type ShareStatusFilter =
-  | 'all'
-  | 'active'
-  | 'inactive'
-  | 'expired'
-  | 'archived'
+export type { ShareManagementStatus as ShareStatusFilter } from '@/lib/supabase/resume/share/management'
 
 export function formatShareVersionSource(source: ShareVersionSource) {
   return source.kind === 'current'
@@ -78,7 +74,7 @@ export function expiryIsoToDate(value: string | null) {
 
 export function deriveShareStatus(
   share: ResumeShareRecord,
-): Exclude<ShareStatusFilter, 'all'> {
+): Exclude<ShareManagementStatus, 'all'> {
   if (share.archivedAt) return 'archived'
   if (share.expires_at && new Date(share.expires_at).getTime() < Date.now())
     return 'expired'
@@ -86,41 +82,15 @@ export function deriveShareStatus(
   return share.is_active ? 'active' : 'inactive'
 }
 
-export function filterShares(
-  shares: ResumeShareRecord[],
-  filters: {
-    keyword: string
-    resumeIds: string[]
-    status: ShareStatusFilter
-  },
-) {
-  const keyword = filters.keyword.trim().toLocaleLowerCase()
-
-  return shares.filter((share) => {
-    if (
-      filters.resumeIds.length > 0 &&
-      !filters.resumeIds.includes(share.resume_id)
-    )
-      return false
-    if (filters.status !== 'all' && deriveShareStatus(share) !== filters.status)
-      return false
-    if (!keyword) return true
-
-    return [share.label, share.display_name, share.token].some((value) =>
-      value?.toLocaleLowerCase().includes(keyword),
-    )
-  })
-}
-
 export function findShareById(
-  allShares: ResumeShareRecord[],
+  pageShares: ResumeShareRecord[],
   dialogShares: ResumeShareRecord[],
   shareId: string | null,
 ) {
   if (!shareId) return null
 
   return (
-    allShares.find((share) => share.id === shareId) ??
+    pageShares.find((share) => share.id === shareId) ??
     dialogShares.find((share) => share.id === shareId) ??
     null
   )

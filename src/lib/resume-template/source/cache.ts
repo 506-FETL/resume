@@ -1,5 +1,5 @@
 import type { DBSchema, IDBPDatabase } from 'idb'
-import { openDB } from 'idb'
+import { openDB, unwrap } from 'idb'
 
 export interface CachedResource {
   key: string
@@ -15,7 +15,14 @@ export interface TemplateResourceCache {
   retain?: (key: string) => () => void
 }
 
+interface CacheUsage {
+  key: string
+  savedAt: number
+  bytes: number
+}
+
 interface TemplateCacheDB extends DBSchema {
+  usage: { key: string; value: CacheUsage }
   resources: {
     key: string
     value: CachedResource
@@ -31,26 +38,27 @@ export function resourceBytes(value: unknown): number {
   return new TextEncoder().encode(JSON.stringify(value)).byteLength
 }
 
-export function cacheEvictions(
-  records: CachedResource[],
-  retained: ReadonlySet<string>,
-): string[] {
-  let bytes = records.reduce(
-    (total, record) => total + resourceBytes(record.value),
-    0,
-  )
-
+function cacheEvictions(
+  records: CacheUsage[],
+  retained: ReadonlyMap<string, number>,
+  incoming: string,
+) {
+  let bytes = records.reduce((total, record) => total + record.bytes, 0)
   let count = records.length
   const removed: string[] = []
 
-  for (const record of [...records].sort((a, b) => a.savedAt - b.savedAt)) {
+  for (const record of records.sort((a, b) => a.savedAt - b.savedAt)) {
     if (count <= MAX_CACHE_RECORDS && bytes <= MAX_CACHE_BYTES) break
     if (retained.has(record.key)) continue
 
     removed.push(record.key)
-    bytes -= resourceBytes(record.value)
+    bytes -= record.bytes
     count--
   }
+
+  // 全部候选项都在使用时，内存仍持有新资源，磁盘拒绝超额写入。
+  if (count > MAX_CACHE_RECORDS || bytes > MAX_CACHE_BYTES)
+    removed.push(incoming)
 
   return removed
 }
@@ -83,13 +91,37 @@ export function createTemplateCache(namespace: string): TemplateResourceCache {
 
     pending ??= openDB<TemplateCacheDB>(
       `resume-public-templates-v3:${namespace}`,
-      1,
+      2,
       {
-        upgrade(db) {
-          db.createObjectStore('resources', { keyPath: 'key' }).createIndex(
-            'savedAt',
-            'savedAt',
+        upgrade(db, oldVersion, _newVersion, transaction) {
+          const usage = unwrap(
+            db.createObjectStore('usage', { keyPath: 'key' }),
           )
+
+          if (oldVersion === 0) {
+            db.createObjectStore('resources', { keyPath: 'key' }).createIndex(
+              'savedAt',
+              'savedAt',
+            )
+
+            return
+          }
+
+          // 原缓存仍可离线使用。只在升级事务中逐条补齐大小。
+          const request = unwrap(
+            transaction.objectStore('resources'),
+          ).openCursor()
+
+          request.onsuccess = () => {
+            const cursor = request.result
+
+            if (!cursor) return
+
+            const { key, savedAt, value } = cursor.value
+
+            usage.put({ key, savedAt, bytes: resourceBytes(value) })
+            cursor.continue()
+          }
         },
         blocking() {
           pending?.then((db) => db.close()).catch(() => {})
@@ -126,40 +158,45 @@ export function createTemplateCache(namespace: string): TemplateResourceCache {
       ),
     delete: (key) =>
       bestEffort(
-        database().then((db) => db.delete('resources', key)),
+        database().then(async (db) => {
+          const tx = db.transaction(['resources', 'usage'], 'readwrite')
+
+          await Promise.all([
+            tx.objectStore('resources').delete(key),
+            tx.objectStore('usage').delete(key),
+            tx.done,
+          ])
+        }),
         undefined,
       ),
     set: (record) =>
       bestEffort(
         database().then(async (db) => {
-          const tx = db.transaction('resources', 'readwrite')
+          const bytes = resourceBytes(record.value)
 
-          if (resourceBytes(record.value) > MAX_CACHE_BYTES) {
-            await tx.done
+          if (bytes > MAX_CACHE_BYTES) return
 
-            return
-          }
+          const tx = db.transaction(['resources', 'usage'], 'readwrite')
+          const usage = tx.objectStore('usage')
+          const resources = tx.objectStore('resources')
 
-          await tx.store.put(record)
+          await usage.put({ key: record.key, savedAt: record.savedAt, bytes })
 
-          const records = await tx.store.getAll()
-          const evictions = cacheEvictions(records, new Set(retained.keys()))
-
-          for (const key of evictions) await tx.store.delete(key)
-
-          const kept = records.filter((entry) => !evictions.includes(entry.key))
-          const count = kept.length
-
-          const bytes = kept.reduce(
-            (total, entry) => total + resourceBytes(entry.value),
-            0,
+          const evictions = cacheEvictions(
+            await usage.getAll(),
+            retained,
+            record.key,
           )
 
-          // 活动资源保留在内存；磁盘容量不足时不继续累积写入。
-          if (count > MAX_CACHE_RECORDS || bytes > MAX_CACHE_BYTES)
-            await tx.store.delete(record.key)
+          const writes = evictions.flatMap((key) => [
+            resources.delete(key),
+            usage.delete(key),
+          ])
 
-          await tx.done
+          if (!evictions.includes(record.key))
+            writes.push(resources.put(record).then(() => undefined))
+
+          await Promise.all([...writes, tx.done])
         }),
         undefined,
       ),

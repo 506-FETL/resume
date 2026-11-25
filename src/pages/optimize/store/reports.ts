@@ -81,7 +81,12 @@ export function createAtsReports(
   }
 
   const selectReport = (latest = false): Promise<void> => {
-    const { selectedResumeId, atsConfigs, currentAtsConfig } = get()
+    const {
+      selectedResumeId,
+      selectedResumeType,
+      atsConfigs,
+      currentAtsConfig,
+    } = get()
 
     if (currentRequest?.resumeId === selectedResumeId && !latest)
       return currentRequest.promise
@@ -95,7 +100,10 @@ export function createAtsReports(
       ? atsConfigs?.find((row) => row.resume_id === selectedResumeId)
       : atsConfigs?.[0]
 
-    if (!summary && atsConfigs !== null && !latest) {
+    if (
+      selectedResumeType === 'offline' ||
+      (!summary && atsConfigs !== null && !latest)
+    ) {
       set({ currentAtsConfig: null, loading: false, loadError: null })
 
       return Promise.resolve()
@@ -145,7 +153,16 @@ export function createAtsReports(
 
         if (normalized) reports.set(normalized.id, normalized)
 
-        set({ currentAtsConfig: normalized, loading: false })
+        set({
+          currentAtsConfig: normalized,
+          loading: false,
+          ...(!selectedResumeId && normalized
+            ? {
+                selectedResumeId: normalized.resume_id,
+                selectedResumeType: 'online' as const,
+              }
+            : {}),
+        })
       } catch (error) {
         if (scope === generation && requestId === selectionRequest)
           set({
@@ -234,23 +251,29 @@ export function createAtsReports(
     selectionRequest += 1
     currentRequest = null
 
+    const pending = summariesRequest
+
+    summariesRequest = null
+
     set((state) => ({
       summariesLoading: false,
       summariesError: null,
-      atsConfigs: [
+      ...(state.selectedResumeId === report.resume_id
+        ? { currentAtsConfig: normalized, loading: false, loadError: null }
+        : {}),
+      atsConfigs: state.atsConfigs && [
         {
           id: report.id,
           resume_id: report.resume_id,
           created_at: report.created_at,
           overall_score: report.summary.overall_score,
         },
-        ...(state.atsConfigs ?? []).filter(
-          (row) => row.resume_id !== report.resume_id,
-        ),
+        ...state.atsConfigs.filter((row) => row.resume_id !== report.resume_id),
       ],
     }))
 
-    selectReport()
+    if (pending) loadSummaries()
+    if (get().selectedResumeId !== report.resume_id) selectReport()
   }
 
   const update = <K extends keyof AtsEvaluationResult>(
@@ -288,11 +311,13 @@ export function createAtsReports(
         requests.clear()
       }
 
-      const request = Promise.all([loadSummaries(), selectReport(force)])
-        .then(() => undefined)
-        .finally(() => {
-          if (initRequest === request) initRequest = null
-        })
+      const request = (
+        currentRequest?.resumeId === get().selectedResumeId
+          ? currentRequest.promise
+          : selectReport(true)
+      ).finally(() => {
+        if (initRequest === request) initRequest = null
+      })
 
       initRequest = request
 
@@ -352,7 +377,7 @@ export function createAtsReports(
         selectedResumeType: null,
         loading: true,
         loadError: null,
-        summariesLoading: true,
+        summariesLoading: false,
         summariesError: null,
         analysisError: null,
       })

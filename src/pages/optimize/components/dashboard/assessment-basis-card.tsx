@@ -23,7 +23,8 @@ import ProTips from '../pro-tips'
 import ScoresRadarChart from './scores-radar-chart'
 
 export default function AssessmentBasisCard() {
-  const { currentAtsConfig, loading } = useAtsStore()
+  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const loading = useAtsStore((s) => s.loading)
   const isMobile = useIsMobile()
   const rationaleId = useId()
   const [rationaleOpen, setRationaleOpen] = useState<string[]>([])

@@ -77,6 +77,7 @@ export const RESUME_OPTION_SELECTOR = `
 `
 
 export const VERSION_SUMMARY_SELECTOR = `
+  id,
   resume_id,
   version_no,
   created_at,

@@ -7,8 +7,15 @@ import {
   updateResumeShareSettings,
 } from '@/lib/supabase/resume/share'
 import type { ShareDataSlice, ShareSlice } from '../types'
-import { addPending, mapShareLists, removePending } from './lists'
+import {
+  addPending,
+  mapShareLists,
+  matchesManagementPage,
+  removePending,
+} from './lists'
 import { shareReadGeneration } from './requests'
+import { SHARE_PAGE_SIZE } from '@/lib/supabase/resume/share/management'
+import { findShareById } from '../../utils'
 
 export const createShareMutations: ShareSlice<
   Pick<
@@ -34,29 +41,44 @@ export const createShareMutations: ShareSlice<
           state.openForResumeId === resumeId
             ? [record, ...state.shares]
             : state.shares,
-        allShares: [record, ...state.allShares],
+        pageShares:
+          state.managementOpen &&
+          state.pageNumber === 1 &&
+          matchesManagementPage(state, record)
+            ? [record, ...state.pageShares].slice(0, SHARE_PAGE_SIZE)
+            : state.pageShares,
       }))
+
+      get().invalidateManagement()
     },
     setActive: async (shareId, isActive) => {
       if (get().pendingShareIds.includes(shareId))
         throw new Error('操作正在进行中')
+
+      const generation = shareReadGeneration
 
       set((state) => ({
         pendingShareIds: addPending(state.pendingShareIds, shareId),
       }))
 
       try {
-        await setResumeShareActive(shareId, isActive)
+        const savedActive = await setResumeShareActive(shareId, isActive)
+
+        if (shareReadGeneration !== generation)
+          throw new Error('登录状态已变更，请重新加载')
 
         set((state) => ({
           ...mapShareLists(state, (share) =>
-            share.id === shareId ? { ...share, is_active: isActive } : share,
+            share.id === shareId ? { ...share, is_active: savedActive } : share,
           ),
         }))
+
+        get().invalidateManagement()
       } finally {
-        set((state) => ({
-          pendingShareIds: removePending(state.pendingShareIds, shareId),
-        }))
+        if (shareReadGeneration === generation)
+          set((state) => ({
+            pendingShareIds: removePending(state.pendingShareIds, shareId),
+          }))
       }
     },
     updateSettings: async (shareId, settings) => {
@@ -64,6 +86,8 @@ export const createShareMutations: ShareSlice<
         throw new Error('操作正在进行中')
 
       const generation = shareReadGeneration
+      const { pageShares, shares } = get()
+      const previous = findShareById(pageShares, shares, shareId)
 
       set((state) => ({
         pendingShareIds: addPending(state.pendingShareIds, shareId),
@@ -98,6 +122,11 @@ export const createShareMutations: ShareSlice<
               : share,
           ),
         }))
+
+        get().invalidateManagement(
+          previous?.label !== settings.label ||
+            previous.expires_at !== settings.expiresAt,
+        )
       } finally {
         if (shareReadGeneration === generation) {
           set((state) => ({
@@ -110,6 +139,10 @@ export const createShareMutations: ShareSlice<
       if (get().pendingShareIds.includes(shareId))
         throw new Error('操作正在进行中')
 
+      const generation = shareReadGeneration
+      const { pageShares, shares } = get()
+      const previous = findShareById(pageShares, shares, shareId)
+
       set((state) => ({
         pendingShareIds: addPending(state.pendingShareIds, shareId),
       }))
@@ -117,20 +150,30 @@ export const createShareMutations: ShareSlice<
       try {
         const record = await publishResumeShareRelease(shareId, release)
 
+        if (shareReadGeneration !== generation)
+          throw new Error('登录状态已变更，请重新加载')
+
         set((state) => ({
           ...mapShareLists(state, (share) =>
             share.id === shareId ? record : share,
           ),
         }))
+
+        get().invalidateManagement(
+          previous?.display_name !== record.display_name,
+        )
       } finally {
-        set((state) => ({
-          pendingShareIds: removePending(state.pendingShareIds, shareId),
-        }))
+        if (shareReadGeneration === generation)
+          set((state) => ({
+            pendingShareIds: removePending(state.pendingShareIds, shareId),
+          }))
       }
     },
     archive: async (shareId) => {
       if (get().pendingShareIds.includes(shareId))
         throw new Error('操作正在进行中')
+
+      const generation = shareReadGeneration
 
       set((state) => ({
         pendingShareIds: addPending(state.pendingShareIds, shareId),
@@ -141,6 +184,9 @@ export const createShareMutations: ShareSlice<
 
         const archivedAt = new Date().toISOString()
 
+        if (shareReadGeneration !== generation)
+          throw new Error('登录状态已变更，请重新加载')
+
         set((state) => ({
           ...mapShareLists(state, (share) =>
             share.id === shareId
@@ -150,15 +196,20 @@ export const createShareMutations: ShareSlice<
           archiveDialogOpen:
             state.archiveShareId === shareId ? false : state.archiveDialogOpen,
         }))
+
+        get().invalidateManagement()
       } finally {
-        set((state) => ({
-          pendingShareIds: removePending(state.pendingShareIds, shareId),
-        }))
+        if (shareReadGeneration === generation)
+          set((state) => ({
+            pendingShareIds: removePending(state.pendingShareIds, shareId),
+          }))
       }
     },
     remove: async (shareId) => {
       if (get().pendingShareIds.includes(shareId))
         throw new Error('操作正在进行中')
+
+      const generation = shareReadGeneration
 
       set((state) => ({
         pendingShareIds: addPending(state.pendingShareIds, shareId),
@@ -167,9 +218,12 @@ export const createShareMutations: ShareSlice<
       try {
         await deleteResumeShare(shareId)
 
+        if (shareReadGeneration !== generation)
+          throw new Error('登录状态已变更，请重新加载')
+
         set((state) => ({
           shares: state.shares.filter((share) => share.id !== shareId),
-          allShares: state.allShares.filter((share) => share.id !== shareId),
+          pageShares: state.pageShares.filter((share) => share.id !== shareId),
           settingsDialogOpen:
             state.settingsShareId === shareId
               ? false
@@ -181,10 +235,13 @@ export const createShareMutations: ShareSlice<
           versionDialogOpen:
             state.versionShareId === shareId ? false : state.versionDialogOpen,
         }))
+
+        get().invalidateManagement()
       } finally {
-        set((state) => ({
-          pendingShareIds: removePending(state.pendingShareIds, shareId),
-        }))
+        if (shareReadGeneration === generation)
+          set((state) => ({
+            pendingShareIds: removePending(state.pendingShareIds, shareId),
+          }))
       }
     },
   }

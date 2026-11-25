@@ -19,7 +19,7 @@ import { findShareById } from '../../utils'
 
 export default function ArchiveDialog() {
   const {
-    allShares,
+    pageShares,
     shares,
     archiveDialogOpen,
     archiveShareId,
@@ -29,7 +29,7 @@ export default function ArchiveDialog() {
   } = useShareStore()
 
   const dialogFocus = useShareDialogFocus()
-  const share = findShareById(allShares, shares, archiveShareId)
+  const share = findShareById(pageShares, shares, archiveShareId)
 
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,

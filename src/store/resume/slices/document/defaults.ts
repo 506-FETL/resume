@@ -5,6 +5,7 @@ export const documentDefaults: Pick<
   | 'mode'
   | 'currentResumeId'
   | 'documentDisplayName'
+  | 'documentParentResumeId'
   | 'docManager'
   | 'docHandle'
   | 'cleanupFns'
@@ -19,6 +20,7 @@ export const documentDefaults: Pick<
   mode: null,
   currentResumeId: null,
   documentDisplayName: null,
+  documentParentResumeId: null,
   docManager: null,
   docHandle: null,
   cleanupFns: [],

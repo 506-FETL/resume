@@ -46,6 +46,11 @@ export default function PreparationActions() {
       await useTrackerStore.getState().flushWorkflow(job.id)
       assertTrackerAccountScope(scope)
 
+      if (action === 'customize') {
+        await useTrackerStore.getState().loadJobDetail(job.id, 'jd_text')
+        assertTrackerAccountScope(scope)
+      }
+
       const latest = useTrackerStore.getState().selectedJob
 
       if (latest?.id !== job.id) return

@@ -4,6 +4,7 @@ import { createWorkflowDrafts } from './workflow-drafts'
 import { createFieldWrites } from './field-writes'
 import { createSubmissionActions } from './submission-actions'
 import { createWorkflowActions } from './workflow-actions'
+import { createJobDetails } from './job-details'
 import { createJobLifecycle } from './job-lifecycle'
 
 export type {
@@ -27,5 +28,6 @@ export function createTrackerPersistence(
     ...createSubmissionActions(core, drafts, writes),
     ...createWorkflowActions(core, drafts, writes),
     ...createJobLifecycle(core, drafts),
+    ...createJobDetails(core),
   }
 }

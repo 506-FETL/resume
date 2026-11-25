@@ -159,23 +159,6 @@ export async function listResumeShares(
   return (data ?? []).map(toRecord)
 }
 
-export async function listAllResumeShares(): Promise<ResumeShareRecord[]> {
-  const user = await getCurrentUser()
-
-  if (!user) throw new Error('用户未登录')
-
-  const { data, error } = await supabase
-    .from('resume_shares')
-    .select(SHARE_SELECT)
-    .eq('user_id', user.id)
-    .not('current_release_id', 'is', null)
-    .order('created_at', { ascending: false })
-
-  if (error) throw error
-
-  return (data ?? []).map(toRecord)
-}
-
 export async function listResumeShareReviewReleases(
   resumeId: string,
 ): Promise<ResumeShareReviewRelease[]> {

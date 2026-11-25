@@ -47,7 +47,8 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
     useState<FindingsGroup | null>(null)
 
   const actionButtonRef = useRef<HTMLButtonElement | null>(null)
-  const { currentAtsConfig, update } = useAtsStore()
+  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const update = useAtsStore((s) => s.update)
 
   const activeAtsConfig = useMemo(() => {
     if (currentAtsConfig?.resume_id === resumeContext.resumeId) {

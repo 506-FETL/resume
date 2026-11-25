@@ -35,14 +35,16 @@ export function ResumeManager() {
     resumes,
   } = useResumeManager()
 
-  const { summariesError, summariesLoading, reloadSummaries } = useAtsStore()
+  const summariesError = useAtsStore((s) => s.summariesError)
+  const summariesLoading = useAtsStore((s) => s.summariesLoading)
+  const reloadSummaries = useAtsStore((s) => s.reloadSummaries)
   const reduceMotion = useReducedMotion()
   const initialLoading = loading && resumes.length === 0
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
-        <Button variant='outline' size='sm' aria-busy={initialLoading}>
+        <Button variant='outline' size='sm' aria-busy={open && initialLoading}>
           <ButtonIcon className={cn(iconColorClass)} />
           <span className='truncate text-xs'>{selectedResumeName}</span>
           <ChevronDown className='shrink-0 opacity-50' />

@@ -86,21 +86,21 @@ export async function streamAssistantResponse(
   }
 
   try {
-    const runSources = await prepareRunSources(
-      frozenSources,
-      references,
-      conversationId,
-      controller,
-      ownsCurrentRun,
-    )
-
     const [context, prepared] = await Promise.all([
       buildUserContext(execution.targetResumeId),
-      prepareConversationContext(conversationId, controller.signal, {
-        resumeId: execution.targetResumeId,
-        sources: runSources,
-        onCompaction,
-      }),
+      prepareRunSources(
+        frozenSources,
+        references,
+        conversationId,
+        controller,
+        ownsCurrentRun,
+      ).then((sources) =>
+        prepareConversationContext(conversationId, controller.signal, {
+          resumeId: execution.targetResumeId,
+          sources,
+          onCompaction,
+        }),
+      ),
     ])
 
     useAssistantStore.setState({ runPhase: 'generating' })

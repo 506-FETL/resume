@@ -46,11 +46,32 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
       dialogError: null,
     })),
 
-  setSearchKeyword: (searchKeyword) => set({ searchKeyword }),
-  setResumeFilters: (resumeFilters) => set({ resumeFilters }),
-  setStatusFilter: (statusFilter) => set({ statusFilter }),
-  resetFilters: () =>
-    set({ searchKeyword: '', resumeFilters: [], statusFilter: 'all' }),
+  setSearchKeyword: (searchKeyword) => {
+    set({ searchKeyword })
+
+    if (!searchKeyword.trim()) get().setPageKeyword('')
+  },
+  setResumeFilters: (resumeFilters) => {
+    set({ resumeFilters, pageNumber: 1 })
+    get().reloadPage()
+  },
+  setStatusFilter: (statusFilter) => {
+    if (statusFilter === get().statusFilter) return
+
+    set({ statusFilter, pageNumber: 1 })
+    get().reloadPage()
+  },
+  resetFilters: () => {
+    set({
+      searchKeyword: '',
+      pageKeyword: '',
+      resumeFilters: [],
+      statusFilter: 'all',
+      pageNumber: 1,
+    })
+
+    get().reloadPage()
+  },
   openSettingsDialog: (settingsShareId) =>
     set({
       settingsShareId,

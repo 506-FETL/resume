@@ -85,10 +85,13 @@ export default function RecentResumeCard({ resume }: { resume: Resume }) {
           <p className='mt-1 text-xs text-muted-foreground'>
             {tone === 'variant' &&
               `${resume.isOffline ? '本地' : '云端'}保存 · `}
-            <time dateTime={updatedAt}>
-              {new Date(updatedAt).toLocaleDateString('zh-CN')}
-            </time>
-            {' 更新'}
+            {updatedAt ? (
+              <time dateTime={updatedAt}>
+                {new Date(updatedAt).toLocaleDateString('zh-CN')} 更新
+              </time>
+            ) : (
+              '更新时间未知'
+            )}
           </p>
         </div>
         <div className='mt-auto flex flex-wrap items-center gap-x-1 gap-y-1.5'>

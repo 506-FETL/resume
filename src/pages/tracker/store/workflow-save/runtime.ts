@@ -54,16 +54,41 @@ export function createPersistenceRuntime(
   const isLive = (id: string, runtime: Runtime) =>
     runtimes.get(id) === runtime && !deleted.has(id) && Boolean(find(id))
 
-  const merge = (id: string, patch: JobFieldsPatch) =>
+  const merge = (id: string, patch: JobFieldsPatch) => {
+    const current = find(id)
+    const stale: JobFieldsPatch = {}
+
+    // 窄写可能接在另一标签页的修改之后，新版本不能继承这次未确认的详情。
+    if (
+      patch.updated_at &&
+      current &&
+      patch.updated_at !== current.updated_at
+    ) {
+      if (!('contacts' in patch)) stale.contacts = undefined
+      if (!('jd_text' in patch)) {
+        stale.jd_text = undefined
+        stale.jd_updated_at = undefined
+
+        if (!('source' in patch)) stale.source = undefined
+      }
+
+      const runtime = runtimes.get(id)
+
+      if (runtime) runtime.baseline = { ...runtime.baseline, ...stale }
+    }
+
+    const next = { ...stale, ...patch }
+
     set((state) => ({
       jobs: state.jobs.map((job) =>
-        job.id === id ? { ...job, ...patch } : job,
+        job.id === id ? { ...job, ...next } : job,
       ),
       selectedJob:
         state.selectedJob?.id === id
-          ? { ...state.selectedJob, ...patch }
+          ? { ...state.selectedJob, ...next }
           : state.selectedJob,
     }))
+  }
 
   const saveState = (
     id: string,

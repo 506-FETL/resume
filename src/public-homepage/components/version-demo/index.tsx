@@ -1,4 +1,9 @@
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import {
+  Root as Tabs,
+  Content as TabsContent,
+  List as TabsList,
+  Trigger as TabsTrigger,
+} from '@radix-ui/react-tabs'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import {
   demoRoles,

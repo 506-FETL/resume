@@ -44,6 +44,7 @@ export async function updateCompany(
   id: string,
   updates: Partial<Omit<JobApplication, 'id' | 'created_at' | 'user_id'>>,
   assertUser?: CompanyRequestGuard,
+  current?: JobApplication,
 ): Promise<JobApplication> {
   const user = await getCurrentUser()
 
@@ -51,25 +52,35 @@ export async function updateCompany(
 
   if (!user) throw new Error('用户未登陆')
 
-  const { data, error } =
+  const fields = current
+    ? [
+        ...new Set([
+          ...Object.keys(updates),
+          'updated_at',
+          ...('jd_text' in updates ? ['jd_updated_at', 'source'] : []),
+          ...('stage_details' in updates ? ['status', 'activities'] : []),
+          ...('interview_sub_stages' in updates ? ['status'] : []),
+        ]),
+      ].join(',')
+    : '*'
+
+  const query =
     'status' in updates
-      ? await supabase.rpc('transition_tracker_process', {
+      ? supabase.rpc('transition_tracker_process', {
           p_job_id: id,
           p_patch: updates,
         })
-      : await supabase
+      : supabase
           .from('company')
           .update(updates)
           .eq('id', id)
           .eq('user_id', user.id)
-          .select()
-          .single()
 
-  if (error) {
-    throw trackerProcessError(error)
-  }
+  const { data, error } = await query.select(fields).single<JobApplication>()
 
-  return normalizeJobWorkflow(data)
+  if (error) throw trackerProcessError(error)
+
+  return normalizeJobWorkflow({ ...current, ...data })
 }
 
 // 归档/取消归档（复用 updateCompany 的落库与映射逻辑）
@@ -115,42 +126,65 @@ export async function reassignTrackerProcess(
   jobId: string,
   companyId: string,
   assertUser?: CompanyRequestGuard,
-): Promise<JobApplication> {
+) {
   const user = await getCurrentUser()
 
   assertUser?.(user?.id ?? null)
 
   if (!user) throw new Error('请先登录')
 
-  const { data, error } = await supabase.rpc('reassign_tracker_process', {
-    p_job_id: jobId,
-    p_company_id: companyId,
-  })
+  const { data, error } = await supabase
+    .rpc('reassign_tracker_process', {
+      p_job_id: jobId,
+      p_company_id: companyId,
+    })
+    .select('tracker_company_id,company,company_logo,updated_at')
+    .single<
+      Pick<
+        JobApplication,
+        'tracker_company_id' | 'company' | 'company_logo' | 'updated_at'
+      >
+    >()
 
   assertUser?.(user.id)
 
   if (error) throw trackerProcessError(error)
 
-  return normalizeJobWorkflow(data)
+  return data
 }
 
 export async function reopenTrackerProcess(
   input: ReopenProcessInput,
   assertUser?: CompanyRequestGuard,
-): Promise<JobApplication> {
+) {
   const user = await getCurrentUser()
 
   assertUser?.(user?.id ?? null)
 
   if (!user) throw new Error('请先登录')
 
-  const { data, error } = await supabase.rpc('reopen_tracker_process', {
-    p_job_id: input.jobId,
-    p_event_id: input.eventId,
-    p_target: input.target,
-    p_date: input.date,
-    p_reason: input.reason,
-  })
+  const { data, error } = await supabase
+    .rpc('reopen_tracker_process', {
+      p_job_id: input.jobId,
+      p_event_id: input.eventId,
+      p_target: input.target,
+      p_date: input.date,
+      p_reason: input.reason,
+    })
+    .select(
+      'status,stage_details,interview_sub_stages,activities,archived,updated_at',
+    )
+    .single<
+      Pick<
+        JobApplication,
+        | 'status'
+        | 'stage_details'
+        | 'interview_sub_stages'
+        | 'activities'
+        | 'archived'
+        | 'updated_at'
+      >
+    >()
 
   assertUser?.(user.id)
 

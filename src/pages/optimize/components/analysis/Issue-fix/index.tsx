@@ -49,7 +49,8 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
   const [isFixing, setIsFixing] = useState(false)
   const isMobile = useIsMobile()
   const reduceMotion = useReducedMotion()
-  const { update, currentAtsConfig } = useAtsStore()
+  const update = useAtsStore((s) => s.update)
+  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
   const triger = useRef<HTMLButtonElement | null>(null)
 
   const finding = currentAtsConfig?.findings?.[severity]?.find(

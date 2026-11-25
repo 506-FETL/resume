@@ -12,7 +12,6 @@ import { TRACKER_SEARCH_INPUT_ID } from '../../const'
 import { useTrackerFilterActions } from '../../hooks/use-tracker-filter-actions'
 import useTrackerStore from '../../store'
 import { selectTrackerListJobs } from '../../store/selectors'
-import { filterJobs } from '../../utils'
 import BatchActions from '../batch-actions'
 import { ViewToggle } from '../header/view-toggle'
 import { CompanyPicker } from '../drawer/company-picker'
@@ -21,14 +20,16 @@ import OverviewBar from '../overview-bar'
 import FilterMenu from './filter-menu'
 import SortMenu from './sort-menu'
 
-export default function TrackerToolbar() {
+export default function TrackerToolbar({
+  visibleCount,
+}: {
+  visibleCount: number
+}) {
   const {
     jobs,
     error,
     isInitialized,
     viewMode,
-    filterStatus,
-    metricFilter,
     searchKeyword,
     setSearchKeyword,
     showArchived,
@@ -47,8 +48,6 @@ export default function TrackerToolbar() {
       error: state.error,
       isInitialized: state.isInitialized,
       viewMode: state.viewMode,
-      filterStatus: state.filterStatus,
-      metricFilter: state.metricFilter,
       searchKeyword: state.searchKeyword,
       setSearchKeyword: state.setSearchKeyword,
       showArchived: state.showArchived,
@@ -69,17 +68,6 @@ export default function TrackerToolbar() {
   const reduce = useReducedMotion()
   const isMobile = useIsMobile()
   const effectiveViewMode = isMobile ? 'list' : viewMode
-
-  const count = filterJobs(
-    filterCompanyId
-      ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
-      : jobs,
-    filterStatus,
-    searchKeyword,
-    showArchived,
-    metricFilter,
-    focusedOnly,
-  ).length
 
   const archivedCount = jobs.filter((job) => job.archived).length
 
@@ -164,7 +152,7 @@ export default function TrackerToolbar() {
             ? '正在加载职位'
             : error && !isInitialized
               ? '职位数量暂不可用'
-              : `当前显示 ${count} 个职位`}
+              : `当前显示 ${visibleCount} 个职位`}
         </span>
         <div className='flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-3 md:gap-x-3'>
           <div className='flex min-w-0 basis-full items-center gap-2 md:max-w-lg md:flex-[1_1_18rem]'>
@@ -271,7 +259,7 @@ export default function TrackerToolbar() {
           {isMobile && actionTools}
         </div>
       </div>
-      <BatchActions />
+      <BatchActions selectableCount={visibleCount} />
     </div>
   )
 }

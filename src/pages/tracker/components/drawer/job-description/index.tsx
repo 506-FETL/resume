@@ -10,6 +10,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from '@/components/ui/dialog'
+import JobDetailContent from '../job-detail-content'
 import useTrackerStore from '../../../store'
 
 export default function JobDescription() {
@@ -39,13 +40,19 @@ export default function JobDescription() {
             <DialogDescription>
               {job?.jd_updated_at
                 ? `最近更新于 ${new Date(job.jd_updated_at).toLocaleString()}。投递记录保留各次投递时的副本。`
-                : '可在编辑职位中补充 JD 原文和来源。'}
+                : job?.jd_text === undefined
+                  ? '岗位原文和来源。'
+                  : '可在编辑职位中补充 JD 原文和来源。'}
             </DialogDescription>
           </DialogHeader>
           <div className='scrollbar-thin-subtle -mx-1 min-h-0 space-y-4 overflow-y-auto px-1'>
-            <p className='whitespace-pre-wrap break-words text-sm'>
-              {job?.jd_text || '尚未填写 JD 原文'}
-            </p>
+            <JobDetailContent field='jd_text'>
+              {(text) => (
+                <p className='whitespace-pre-wrap break-words text-sm'>
+                  {text || '尚未填写 JD 原文'}
+                </p>
+              )}
+            </JobDetailContent>
             {job?.source && (
               <p className='text-xs text-muted-foreground'>
                 来源：{job.source}

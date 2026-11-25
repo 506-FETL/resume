@@ -5,6 +5,7 @@ import type {
   CatalogQuery,
   TemplateSource,
 } from '@/lib/resume-template/source/types'
+import { cachedResourceBytes } from './resource-bytes'
 import { asTemplateError } from '@/lib/resume-template/definition-schema'
 import {
   MAX_CACHE_BYTES,
@@ -37,21 +38,31 @@ export function createCatalogActions(
   get: StoreApi<TemplateResources>['getState'],
 ): CatalogState {
   // 缓存每个筛选已加载的页；返回筛选时保留图片、数量和分页位置。
-  const snapshots = new Map<string, CatalogPage & { savedAt: number }>()
+  const snapshots = new Map<
+    string,
+    CatalogPage & { savedAt: number; byteLength: number }
+  >()
 
   function remember(key: string, page: CatalogPage, savedAt = Date.now()) {
-    snapshots.delete(key)
-    snapshots.set(key, { ...page, savedAt })
+    const { items, nextOffset } = page
+    // 空数组已含括号；目录追加或本地筛选时只需计算新增条目的 UTF-8 大小。
+    let byteLength = resourceBytes({ items: [], nextOffset, savedAt })
 
-    let bytes = [...snapshots.values()].reduce(
-      (total, value) => total + resourceBytes(value),
-      0,
-    )
+    byteLength += Math.max(0, items.length - 1)
+
+    for (const item of items) byteLength += cachedResourceBytes(item)
+
+    snapshots.delete(key)
+    snapshots.set(key, { items, nextOffset, savedAt, byteLength })
+
+    let bytes = 0
+
+    for (const entry of snapshots.values()) bytes += entry.byteLength
 
     for (const [candidate, value] of snapshots) {
       if (snapshots.size <= 16 && bytes <= MAX_CACHE_BYTES) break
 
-      bytes -= resourceBytes(value)
+      bytes -= value.byteLength
       snapshots.delete(candidate)
     }
   }
@@ -130,10 +141,11 @@ export function createCatalogActions(
 
       if (force) snapshots.clear()
 
-      const hit = !force && (cached(key) ?? localPage(normalized))
+      const snapshot = !force && cached(key)
+      const hit = snapshot || (!force && localPage(normalized))
 
       if (hit) {
-        remember(key, hit, hit.savedAt)
+        if (!snapshot) remember(key, hit, hit.savedAt)
 
         set({
           catalogQuery: normalized,

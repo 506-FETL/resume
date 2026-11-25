@@ -100,10 +100,6 @@
   opacity: 1;
 }
 
-.cover-dividers [data-slot='tabs-indicator'] {
-  display: none;
-}
-
 .cover-dividers button:focus-visible {
   outline: 3px solid #fff9de;
   outline-offset: 3px;

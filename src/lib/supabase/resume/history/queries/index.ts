@@ -15,6 +15,7 @@ export type { ResumeHistoryShareOption } from './resumes'
 
 export {
   getCurrentResumeVersion,
+  getFrozenVersionForRestore,
   getResumeHistoryVersionForShare,
   getResumeHistoryVersionSnapshot,
   getResumeVersionForShare,

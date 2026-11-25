@@ -10,6 +10,7 @@ export interface DocumentSlice {
   mode: EditorMode
   currentResumeId: string | null
   documentDisplayName: string | null
+  documentParentResumeId: string | null
   docManager: DocumentManager | null
   docHandle: DocHandle<AutomergeResumeDocument> | null
   cleanupFns: Array<() => void>

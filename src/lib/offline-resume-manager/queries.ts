@@ -1,7 +1,8 @@
 import { ResumeNotFoundError } from '@/lib/resume-id'
 import { readResumeListTemplateBinding } from '@/lib/resume-template/list-binding'
 import type { ResumeListItem } from '@/lib/schema'
-import type { OfflineResumeRecord } from './database'
+import type { IDBPObjectStore } from 'idb'
+import type { OfflineResumeRecord, ResumeDB } from './database'
 import { getDB } from './database'
 
 /**
@@ -34,56 +35,60 @@ export interface OfflineResumeLibraryIndex {
   variantCount: number
 }
 
-export async function getOfflineResumeLibraryIndex(
-  search = '',
-): Promise<OfflineResumeLibraryIndex> {
-  const db = await getDB()
-  const tx = db.transaction('resumes')
-  const all: string[] = []
-  const parents = new Set<string>()
-  const ready = new Set<string>()
-  const pending = new Set<string>()
-  const matching = search ? new Set<string>() : null
+type ResumeStore = IDBPObjectStore<ResumeDB, ['resumes'], 'resumes', 'readonly'>
 
-  let updatedCursor = await tx.store
-    .index('updated_at')
-    .openKeyCursor(null, 'prev')
+function includeUndatedResumeIds(
+  updated: string[],
+  all: string[],
+  limit?: number,
+) {
+  if (updated.length === all.length)
+    return limit === undefined ? updated : updated.slice(0, limit)
 
-  while (updatedCursor) {
-    all.push(updatedCursor.primaryKey)
-    updatedCursor = await updatedCursor.continue()
+  // 缺少更新时间的旧简历排在有效时间之后，按主键倒序补齐。
+  const indexed = new Set(updated)
+  const missing = all.reverse().filter((id) => !indexed.has(id))
+
+  return updated.concat(missing).slice(0, limit)
+}
+
+async function readOrderedResumeIds(store: ResumeStore, limit?: number) {
+  const updatedIndex = store.index('updated_at')
+
+  if (limit === undefined || !Number.isInteger(limit) || limit < 0) {
+    const [updated, all] = await Promise.all([
+      updatedIndex.getAllKeys(),
+      store.getAllKeys(),
+    ])
+
+    return includeUndatedResumeIds(updated.reverse(), all, limit)
   }
 
-  // 旧导入可能没有更新时间；只补齐缺失的键，正文仍在翻到该页时读取。
-  const known = new Set(all)
+  const ids: string[] = []
 
-  const missing = (await tx.store.getAllKeys())
-    .filter((id) => !known.has(id))
-    .sort()
-    .reverse()
+  if (limit === 0) return ids
 
-  all.push(...missing)
+  let cursor = await updatedIndex.openKeyCursor(null, 'prev')
 
-  let parentCursor = await tx.store.index('parent_resume_id').openKeyCursor()
+  while (cursor) {
+    ids.push(cursor.primaryKey)
 
-  while (parentCursor) {
-    parents.add(parentCursor.primaryKey)
-    parentCursor = await parentCursor.continue()
+    if (ids.length === limit) return ids
+
+    cursor = await cursor.continue()
   }
 
-  let statusCursor = await tx.store.index('derived_status').openKeyCursor()
+  return includeUndatedResumeIds(ids, await store.getAllKeys(), limit)
+}
 
-  while (statusCursor) {
-    if (statusCursor.key === 'ready') ready.add(statusCursor.primaryKey)
-    if (statusCursor.key === 'generating' || statusCursor.key === 'failed')
-      pending.add(statusCursor.primaryKey)
+async function findMatchingResumeIds(store: ResumeStore, search: string) {
+  if (!search) return null
 
-    statusCursor = await statusCursor.continue()
-  }
+  const matching = new Set<string>()
 
-  if (matching) {
-    for (const field of ['display_name', 'description'] as const) {
-      let cursor = await tx.store.index(field).openKeyCursor()
+  await Promise.all(
+    (['display_name', 'description'] as const).map(async (field) => {
+      let cursor = await store.index(field).openKeyCursor()
 
       while (cursor) {
         if (cursor.key.toLowerCase().includes(search))
@@ -91,11 +96,34 @@ export async function getOfflineResumeLibraryIndex(
 
         cursor = await cursor.continue()
       }
-    }
-  }
+    }),
+  )
+
+  return matching
+}
+
+export async function getOfflineResumeLibraryIndex(
+  search = '',
+): Promise<OfflineResumeLibraryIndex> {
+  const db = await getDB()
+  const tx = db.transaction('resumes')
+  const statusIndex = tx.store.index('derived_status')
+
+  const [all, parentIds, readyIds, generatingIds, failedIds, matching] =
+    await Promise.all([
+      readOrderedResumeIds(tx.store),
+      tx.store.index('parent_resume_id').getAllKeys(),
+      statusIndex.getAllKeys('ready'),
+      statusIndex.getAllKeys('generating'),
+      statusIndex.getAllKeys('failed'),
+      findMatchingResumeIds(tx.store, search),
+    ])
 
   await tx.done
 
+  const parents = new Set(parentIds)
+  const ready = new Set(readyIds)
+  const pending = new Set([...generatingIds, ...failedIds])
   const visible = matching ? all.filter((id) => matching.has(id)) : all
 
   return {
@@ -139,11 +167,13 @@ export async function getOfflineResumeSummariesByIds(
 }
 
 export async function getOfflineResumeSummaries(limit?: number) {
-  const index = await getOfflineResumeLibraryIndex()
+  const db = await getDB()
+  const tx = db.transaction('resumes')
+  const ids = await readOrderedResumeIds(tx.store, limit)
 
-  const summaries = await getOfflineResumeSummariesByIds(
-    limit === undefined ? index.all : index.all.slice(0, limit),
-  )
+  await tx.done
+
+  const summaries = await getOfflineResumeSummariesByIds(ids)
 
   return summaries.map((resume) => ({
     resume_id: resume.resume_id,

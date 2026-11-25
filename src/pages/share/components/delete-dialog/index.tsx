@@ -19,7 +19,7 @@ import { findShareById } from '../../utils'
 
 export default function DeleteDialog() {
   const {
-    allShares,
+    pageShares,
     shares,
     deleteDialogOpen,
     deleteShareId,
@@ -29,7 +29,7 @@ export default function DeleteDialog() {
   } = useShareStore()
 
   const dialogFocus = useShareDialogFocus()
-  const share = findShareById(allShares, shares, deleteShareId)
+  const share = findShareById(pageShares, shares, deleteShareId)
 
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,

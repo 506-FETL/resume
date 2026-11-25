@@ -172,10 +172,8 @@ registerTool({
               !Object.hasOwn(APPLICATION_STATUS_CONFIG, status))
           )
             throw new Error('无效的职位状态')
-          if (
-            !useTrackerStore.getState().jobs.some((item) => item.id === jobId)
-          )
-            await useTrackerStore.getState().reloadJobs()
+
+          await useTrackerStore.getState().ensureJobLoaded(jobId)
 
           assertTrackerAccountScope(scope)
 

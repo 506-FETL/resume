@@ -159,7 +159,7 @@ function TrackerContent() {
           aria-label='职位工作区'
           className='@container/tracker flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden bg-background md:border-t'
         >
-          <TrackerToolbar />
+          <TrackerToolbar visibleCount={visibleJobs.length} />
           <div className='flex min-h-7 shrink-0 items-center text-xs text-muted-foreground'>
             {isInitialized && (
               <>
@@ -213,10 +213,10 @@ function TrackerContent() {
             {state === 'loading' ? (
               <TrackerContentSkeleton viewMode={viewMode} />
             ) : state === 'board' ? (
-              <BoardView />
+              <BoardView jobs={visibleJobs} />
             ) : state === 'list' ? (
               <div className='flex min-h-0 flex-1 flex-col overflow-y-auto'>
-                <ListView />
+                <ListView jobs={visibleJobs} />
               </div>
             ) : (
               <TrackerPageState mode={state} onRetry={reload} />

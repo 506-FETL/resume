@@ -31,6 +31,12 @@ pnpm preview
 
 构建沿用 Vite 7 默认浏览器基线、自动分包和 Terser，保留 WASM 插件。公开分享与普通外壳不提前加载编辑工具栏；不要重新合并成包含编辑器的全站 vendor 包。Vercel 配置仅对带内容哈希的 `/assets/` 设置一年 immutable，HTML 与其他 public 文件继续 no-cache。部署到其他静态服务器时也需分别设置这两类规则；不要长期缓存分享接口返回的正文。
 
+### pnpm 安装时反复提示文件描述符警告
+
+在 Apple 芯片的 Mac 上，曾遇到本地编译的 Node.js 24.16.0 在工作线程中误报 `File descriptor … opened in unmanaged mode twice` 和 `closed but not opened in unmanaged mode`。同一工作线程连续开关文件 100 次，旧构建报了 199 次警告；换用同版本的官方 macOS arm64 二进制后，警告消失。
+
+遇到同样现象时，用 `node -p 'process.execPath'` 确认终端实际使用的 Node，再修复该运行时。用 nvm 新装某个版本时可用 `nvm install -b <版本号>` 只安装预编译包。修复后，在另一个使用该 Node 的目录运行 `pnpm install`，确认安装成功且没有上述警告。
+
 ## 数据库与核心函数
 
 准备 Supabase CLI 和目标项目。仓库已包含 [`supabase/config.toml`](../supabase/config.toml) 与[迁移](../supabase/migrations/)，无需重新初始化。CLI 用法参见官方[环境管理](https://supabase.com/docs/guides/deployment/managing-environments)和[函数部署](https://supabase.com/docs/guides/functions/deploy)文档。

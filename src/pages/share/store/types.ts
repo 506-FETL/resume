@@ -1,3 +1,4 @@
+import type { ShareManagementCounts } from '@/lib/supabase/resume/share/management'
 import type { StateCreator } from 'zustand'
 import type { ResumeSummary } from '../types'
 import type { ShareStatusFilter } from '../utils'
@@ -29,10 +30,19 @@ export interface VersionOptionsEntry {
 }
 
 export interface ShareDataSlice {
-  ownerUserId: string | null
   pageRequestId: number
+  pageNumber: number
+  pageQueryKey: string | null
+  pageKeyword: string
+  managementOpen: boolean
+  pageStats: ShareManagementCounts | null
+  countScope: string | null
+  statusCounts: ShareManagementCounts['counts'] | null
+  overview: ShareManagementCounts['overview'] | null
+  statsError: string | null
+  statsLoading: boolean
   shares: ResumeShareRecord[]
-  allShares: ResumeShareRecord[]
+  pageShares: ResumeShareRecord[]
   resumeMap: Record<string, ResumeSummary>
   pageLoading: boolean
   pageError: string | null
@@ -40,7 +50,6 @@ export interface ShareDataSlice {
   resumeOptionsLoading: boolean
   resumeOptionsError: string | null
   resumeOptionsLoaded: boolean
-  resumeOptionsRequestId: number
   dialogLoading: boolean
   dialogError: string | null
   dialogRequestId: number
@@ -48,6 +57,10 @@ export interface ShareDataSlice {
   versionOptionsByResumeId: Record<string, VersionOptionsEntry>
 
   bootstrapPage: () => Promise<void>
+  leaveManagement: () => void
+  invalidateManagement: (membershipChanged?: boolean) => void
+  setPageNumber: (page: number) => void
+  setPageKeyword: (keyword: string) => void
   reloadPage: () => Promise<void>
   reloadResumeOptions: () => Promise<void>
   loadDialogShares: (resumeId: string) => Promise<void>

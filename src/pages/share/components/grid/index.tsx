@@ -20,6 +20,7 @@ interface GridProps {
 
 export default function Grid({ shares }: GridProps) {
   const reduceMotion = useReducedMotion()
+  const groupCounts = useShareStore((state) => state.pageStats?.groups)
   const resumeMap = useShareStore((state) => state.resumeMap)
 
   const groups = useMemo(() => {
@@ -89,7 +90,7 @@ export default function Grid({ shares }: GridProps) {
                     </h2>
                     <p className='mt-1.5 text-xs leading-4 text-muted-foreground'>
                       <span className='font-medium tabular-nums'>
-                        {links.length}
+                        {groupCounts?.[resumeId] ?? '—'}
                       </span>{' '}
                       个分享链接
                     </p>

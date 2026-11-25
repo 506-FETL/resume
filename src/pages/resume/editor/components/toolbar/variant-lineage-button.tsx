@@ -18,6 +18,7 @@ import { useIsMobile } from '@/hooks/use-mobile'
 import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
 import useCurrentResumeStore from '@/store/resume/current'
+import useResumeStore from '@/store/resume/form'
 
 export function VariantLineageButton({
   reviewActive = false,
@@ -26,41 +27,27 @@ export function VariantLineageButton({
 }) {
   const isMobile = useIsMobile()
   const { resumeId } = useCurrentResumeStore()
-  const resumes = useResumeListStore((s) => s.resumes)
+
+  const parentId = useResumeStore((state) =>
+    state.currentResumeId === resumeId ? state.documentParentResumeId : null,
+  )
+
   const [popoverOpen, setPopoverOpen] = useState(false)
   const [treeOpen, setTreeOpen] = useState(false)
   const navigate = useNavigate()
   const triggerRef = useRef<HTMLButtonElement>(null)
   const { setCurrentResume } = useCurrentResumeStore()
 
-  const current = resumeId
-    ? (resumes.find((r) => r.resume_id === resumeId) ?? null)
-    : null
-
-  const parentId = current?.parent_resume_id ?? null
-
-  // 沿父链找根：当前列表里查找祖先
-  const findRoot = (id: string | null | undefined): string | null => {
-    if (!id) return null
-
-    const item = resumes.find((r) => r.resume_id === id)
-
-    if (!item) return id
-    if (!item.parent_resume_id) return item.resume_id
-
-    return findRoot(item.parent_resume_id)
-  }
-
-  const rootId = findRoot(resumeId)
-  const disabled = reviewActive || !resumeId || !parentId
+  const lineageId = !reviewActive && parentId ? resumeId : null
 
   const { tree, loading, error, refresh } = useVariantLineage(
-    disabled ? null : rootId,
+    lineageId,
     popoverOpen || treeOpen,
   )
 
   const handleOpen = (id: string) => {
-    const target = resumes.find((r) => r.resume_id === id)
+    const { libraryParents, resumes } = useResumeListStore.getState()
+    const target = libraryParents[id] ?? resumes.find((r) => r.resume_id === id)
 
     setCurrentResume(id, target?.type ?? 'default')
     navigate('/resume/editor')
@@ -75,7 +62,7 @@ export function VariantLineageButton({
             variant='outline'
             size={isMobile ? 'icon' : 'sm'}
             className={cn(isMobile && 'size-9')}
-            disabled={disabled}
+            disabled={!lineageId}
             aria-label='查看派生关系'
           >
             <GitBranch data-icon='inline-start' />
@@ -134,7 +121,7 @@ export function VariantLineageButton({
       <VariantLineageTreeDialog
         open={treeOpen}
         onOpenChange={setTreeOpen}
-        rootResumeId={rootId}
+        rootResumeId={lineageId}
         currentResumeId={resumeId ?? ''}
         onOpen={handleOpen}
       />

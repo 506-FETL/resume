@@ -15,37 +15,22 @@ import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_DOT_CLASSES, BOARD_COLUMNS } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
 import useTrackerStore, { getTrackerConflictAction } from '../../store'
-import { selectTrackerListJobs } from '../../store/selectors'
-import {
-  filterJobs,
-  getTrackerErrorMessage,
-  resolveTrackerMetricStatus,
-} from '../../utils'
+import { getTrackerErrorMessage, resolveTrackerMetricStatus } from '../../utils'
 import { BoardColumnDropArea } from './column-drop-area'
 import { JobOverlay } from './job-overlay'
 import { MoveConfirmation } from './move-confirmation'
 
-function BoardView() {
+function BoardView({ jobs }: { jobs: JobApplication[] }) {
   const {
-    jobs,
     filterStatus,
     metricFilter,
-    searchKeyword,
-    showArchived,
-    filterCompanyId,
-    focusedOnly,
     changeJobStatus,
     rejectedCollapsed,
     toggleRejectedCollapsed,
   } = useTrackerStore(
     useShallow((state) => ({
-      jobs: selectTrackerListJobs(state),
       filterStatus: state.filterStatus,
       metricFilter: state.metricFilter,
-      searchKeyword: state.searchKeyword,
-      showArchived: state.showArchived,
-      filterCompanyId: state.filterCompanyId,
-      focusedOnly: state.focusedOnly,
       changeJobStatus: state.changeJobStatus,
       rejectedCollapsed: state.rejectedCollapsed,
       toggleRejectedCollapsed: state.toggleRejectedCollapsed,
@@ -83,42 +68,19 @@ function BoardView() {
     newStatus: ApplicationStatus
   } | null>(null)
 
-  const scopedJobs = useMemo(
-    () =>
-      filterJobs(
-        filterCompanyId
-          ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
-          : jobs,
-        filterStatus,
-        searchKeyword,
-        showArchived,
-        metricFilter,
-        focusedOnly,
-      ),
-    [
-      jobs,
-      filterStatus,
-      metricFilter,
-      searchKeyword,
-      showArchived,
-      filterCompanyId,
-      focusedOnly,
-    ],
-  )
-
   const groupedJobs = useMemo(() => {
     const groups = Object.fromEntries(
       BOARD_COLUMNS.map((column) => [column.status, [] as JobApplication[]]),
     ) as Record<ApplicationStatus, JobApplication[]>
 
-    for (const job of scopedJobs) groups[job.status].push(job)
+    for (const job of jobs) groups[job.status].push(job)
 
     return groups
-  }, [scopedJobs])
+  }, [jobs])
 
   const metricStatus = useMemo(
-    () => resolveTrackerMetricStatus(scopedJobs, metricFilter),
-    [scopedJobs, metricFilter],
+    () => resolveTrackerMetricStatus(jobs, metricFilter),
+    [jobs, metricFilter],
   )
 
   const highlightedStatus = filterStatus ?? metricStatus

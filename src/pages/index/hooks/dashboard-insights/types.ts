@@ -1,7 +1,10 @@
 import type { ApplicationStatus } from '@/pages/tracker/types'
-import type { listAtsSummaries } from '@/lib/supabase/resume/ats'
+import type {
+  listDashboardAssessments,
+  listDashboardTrend,
+  listDashboardVersions,
+} from './queries'
 import type { listJobApplicationSummaries } from '@/lib/supabase/resume/company'
-import type { listResumeHistoryVersionSummaries } from '@/lib/supabase/resume/history/queries'
 
 // 求职漏斗核心指标（首页统计卡数据源）
 export interface DashboardFunnel {
@@ -37,11 +40,11 @@ export type JobSummaries = Awaited<
   ReturnType<typeof listJobApplicationSummaries>
 >
 
-export type AtsSummaries = Awaited<ReturnType<typeof listAtsSummaries>>
+export type AtsSummaries = Awaited<ReturnType<typeof listDashboardAssessments>>
 
-export type VersionSummaries = Awaited<
-  ReturnType<typeof listResumeHistoryVersionSummaries>
->
+export type TrendScores = Awaited<ReturnType<typeof listDashboardTrend>>
+
+export type VersionSummaries = Awaited<ReturnType<typeof listDashboardVersions>>
 
 export interface DashboardResource<T> {
   data: T
@@ -54,7 +57,9 @@ export interface DashboardResource<T> {
 export interface DashboardResources {
   jobs: DashboardResource<JobSummaries>
   ats: DashboardResource<AtsSummaries>
+  trend: DashboardResource<TrendScores>
   versions: DashboardResource<VersionSummaries>
+  weeklyEdits: DashboardResource<Record<string, number>>
 }
 
 // 首页「最近动态」时间线事件类型
@@ -114,12 +119,9 @@ export interface ActivityDay {
 }
 
 export interface DashboardExtras {
-  followUps: FollowUpJob[]
-  followUpTotal: number
   funnel: FunnelStage[]
   atsTrend: AtsTrendPoint[]
   activity: ActivityDay[]
-  followUpsLoading: boolean
   funnelLoading: boolean
   atsTrendLoading: boolean
   activityLoading: boolean

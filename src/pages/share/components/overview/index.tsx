@@ -1,24 +1,17 @@
 import { ShareOverviewSkeleton } from '@/components/page-skeletons/share'
 import useShareStore from '../../store'
-import { deriveShareStatus } from '../../utils'
 
 export default function Overview() {
-  const { allShares, pageLoading, pageLoaded } = useShareStore()
+  const overview = useShareStore((state) => state.overview)
+  const loading = useShareStore((state) => state.statsLoading)
 
   const metrics = [
-    { label: '个分享', value: allShares.length },
-    {
-      label: '个有效',
-      value: allShares.filter((share) => deriveShareStatus(share) === 'active')
-        .length,
-    },
-    {
-      label: '次访问',
-      value: allShares.reduce((sum, share) => sum + share.view_count, 0),
-    },
+    { label: '个分享', value: overview?.total },
+    { label: '个有效', value: overview?.active },
+    { label: '次访问', value: overview?.views },
   ]
 
-  if (pageLoading && !pageLoaded) return <ShareOverviewSkeleton />
+  if (loading && !overview) return <ShareOverviewSkeleton />
 
   return (
     <dl
@@ -38,7 +31,7 @@ export default function Overview() {
           <dd className='inline-flex items-center gap-1'>
             {index === 2 && <span>累计</span>}
             <span className='font-medium text-foreground tabular-nums'>
-              {pageLoaded ? value.toLocaleString() : '—'}
+              {value?.toLocaleString() ?? '—'}
             </span>
             <span>{label}</span>
           </dd>

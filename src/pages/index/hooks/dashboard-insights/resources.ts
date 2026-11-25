@@ -1,15 +1,20 @@
 import { requestDashboardResource } from './resource-request'
 import { useCallback, useEffect, useState } from 'react'
 import type { JobSummaries } from './types'
+import type { TrendScores } from './types'
 import type { AtsSummaries } from './types'
 import type { VersionSummaries } from './types'
 import type { DashboardResource } from './types'
 import type { DashboardResources } from './types'
 
 const listAtsSummaries = () =>
-  import('@/lib/supabase/resume/ats').then((module) =>
-    module.listAtsSummaries(),
-  )
+  import('./queries').then((module) => module.listDashboardAssessments())
+
+const listTrend = () =>
+  import('./queries').then((module) => module.listDashboardTrend())
+
+const loadWeeklyEdits = () =>
+  import('./queries').then((module) => module.loadDashboardWeeklyEdits())
 
 const listJobApplicationSummaries = () =>
   import('@/lib/supabase/resume/company/queries').then((module) =>
@@ -17,9 +22,7 @@ const listJobApplicationSummaries = () =>
   )
 
 const listResumeHistoryVersionSummaries = () =>
-  import('@/lib/supabase/resume/history/queries/versions').then((module) =>
-    module.listResumeHistoryVersionSummaries(),
-  )
+  import('./queries').then((module) => module.listDashboardVersions())
 
 export function useDashboardResource<T>(
   fetcher: () => Promise<T>,
@@ -102,6 +105,10 @@ export const EMPTY_JOBS: JobSummaries = []
 
 export const EMPTY_ATS: AtsSummaries = []
 
+const EMPTY_TREND: TrendScores = []
+
+const EMPTY_WEEKLY_EDITS: Record<string, number> = {}
+
 export const EMPTY_VERSIONS: VersionSummaries = []
 
 // 各资源独立请求、重试；账户切换时立即遮蔽旧数据并取消旧请求的写入。
@@ -126,6 +133,14 @@ export function useDashboardResources(
     accountId,
   )
 
+  const trend = useDashboardResource(
+    listTrend,
+    EMPTY_TREND,
+    ready,
+    enabled,
+    accountId,
+  )
+
   const versions = useDashboardResource(
     listResumeHistoryVersionSummaries,
     EMPTY_VERSIONS,
@@ -134,5 +149,13 @@ export function useDashboardResources(
     accountId,
   )
 
-  return { jobs, ats, versions }
+  const weeklyEdits = useDashboardResource(
+    loadWeeklyEdits,
+    EMPTY_WEEKLY_EDITS,
+    ready,
+    enabled,
+    accountId,
+  )
+
+  return { jobs, ats, trend, versions, weeklyEdits }
 }

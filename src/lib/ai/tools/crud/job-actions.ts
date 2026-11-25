@@ -47,10 +47,7 @@ registerTool({
         apply: async () => {
           assertTrackerAccountScope(scope)
 
-          if (
-            !useTrackerStore.getState().jobs.some((item) => item.id === jobId)
-          )
-            await useTrackerStore.getState().reloadJobs()
+          await useTrackerStore.getState().ensureJobLoaded(jobId)
 
           assertTrackerAccountScope(scope)
           await useTrackerStore.getState().deleteJob(jobId)

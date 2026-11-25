@@ -1,5 +1,5 @@
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { PageHeader } from '@/components/layout/page-layout'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
@@ -11,23 +11,25 @@ import { celebrate } from './utils'
 
 function Header() {
   const startAnalysis = useAtsStore((s) => s.startAnalysis)
-  const analysisState = useAtsStore((s) => s.analysisState)
+  const status = useAtsStore((s) => s.analysisState.status)
   const loadError = useAtsStore((s) => s.loadError)
   const analysisError = useAtsStore((s) => s.analysisError)
   const hasReport = useAtsStore((s) => s.currentAtsConfig !== null)
   const reloadCurrentReport = useAtsStore((s) => s.reloadCurrentReport)
   const loading = useAtsStore((s) => s.loading)
   const reduceMotion = useReducedMotion()
-  const { status, logs, reasoning, content } = analysisState
 
   const [isOpen, setIsOpen] = useState(false)
 
-  const hasAnalysis = useMemo(() => {
-    return (
-      status !== 'idle' &&
-      (reasoning || content || Object.keys(logs).length > 0)
-    )
-  }, [status, reasoning, content, logs])
+  const hasAnalysis = useAtsStore(
+    ({ analysisState }) =>
+      analysisState.status !== 'idle' &&
+      Boolean(
+        analysisState.reasoning ||
+        analysisState.content ||
+        Object.keys(analysisState.logs).length,
+      ),
+  )
 
   const isProcessing = status !== 'idle' && status !== 'complete'
 
@@ -65,7 +67,7 @@ function Header() {
           <>
             <ResumeManager />
             <AnalysisActions
-              hasAnalysis={Boolean(hasAnalysis)}
+              hasAnalysis={hasAnalysis}
               isProcessing={isProcessing}
               onViewAnalysis={handleViewAnalysis}
               onStartAnalysis={handleStartAnalysis}

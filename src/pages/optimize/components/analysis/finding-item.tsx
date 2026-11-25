@@ -26,7 +26,7 @@ export default function FindingItem({
   severity,
   featured = false,
 }: FindingItemProps) {
-  const { currentAtsConfig } = useAtsStore()
+  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
 
   const finding = currentAtsConfig?.findings?.[severity]?.find(
     (item) => item.id === id,

@@ -59,6 +59,7 @@ export function createFieldWrites(
         id,
         patch,
         createTrackerAccountGuard(getTrackerAccountScope()),
+        current,
       )
 
       if (!isLive(id, runtime)) throw new Error('该职位已删除或不可用')
@@ -71,6 +72,16 @@ export function createFieldWrites(
         if (runtime.versions[field] === versions[index])
           Object.assign(accepted, { [field]: saved[field] })
       })
+
+      if ('jd_text' in accepted) {
+        accepted.source = saved.source
+        accepted.jd_updated_at = saved.jd_updated_at
+        runtime.baseline = {
+          ...runtime.baseline,
+          jd_updated_at: saved.jd_updated_at,
+          source: saved.source,
+        }
+      }
 
       bump(runtime, 'updated_at')
       merge(id, accepted)
@@ -191,10 +202,10 @@ export function createFieldWrites(
     }
   }
 
-  const applyTransaction = (
+  const applyTransaction = <K extends keyof JobFieldsPatch>(
     id: string,
-    fields: (keyof JobFieldsPatch)[],
-    save: () => Promise<JobApplication>,
+    fields: K[],
+    save: () => Promise<Pick<JobApplication, K>>,
   ) =>
     enqueue(id, async (runtime) => {
       requestFlush(runtime)

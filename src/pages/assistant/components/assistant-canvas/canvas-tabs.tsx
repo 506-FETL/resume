@@ -15,7 +15,8 @@ import { cn } from '@/lib/utils'
 import useAssistantStore from '../../store'
 
 export function CanvasTabs({ model }: { model: CanvasModel }) {
-  const { canvasTabPinned, setCanvasTabPinned } = useAssistantStore()
+  const canvasTabPinned = useAssistantStore((s) => s.canvasTabPinned)
+  const setCanvasTabPinned = useAssistantStore((s) => s.setCanvasTabPinned)
   const reduceMotion = useReducedMotion()
 
   return (

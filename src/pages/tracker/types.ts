@@ -99,7 +99,7 @@ export interface JobApplication {
   next_action: string | null
   next_action_date: string | null
   activities: TrackerActivity[]
-  contacts: TrackerContact[]
+  contacts?: TrackerContact[]
 }
 
 export type DrawerTab = 'follow-up' | 'interview' | 'documents'

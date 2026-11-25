@@ -1,8 +1,7 @@
 import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { getResumeSchemaDoc } from '@/lib/ai/schema-doc'
-import { listAccessibleResumes } from '@/lib/resume-access'
-import { listAssistantJobOverviews } from '@/lib/supabase/resume'
 import { getCurrentUser } from '@/lib/supabase/user'
+import { readJobOverview, readResumeOverview } from './account-overview'
 
 export interface UserContext {
   instructions: string
@@ -12,10 +11,12 @@ export interface UserContext {
 export async function buildUserContext(
   resumeId = resolveActiveResumeId(),
 ): Promise<UserContext> {
+  const profileRequest = getCurrentUser()
+
   const [profile, resumes, jobs] = await Promise.allSettled([
-    getCurrentUser(),
-    listAccessibleResumes(),
-    listAssistantJobOverviews(),
+    profileRequest,
+    profileRequest.then((user) => readResumeOverview(user?.id ?? null)),
+    profileRequest.then((user) => readJobOverview(user?.id ?? null)),
   ])
 
   return {
@@ -38,30 +39,8 @@ export async function buildUserContext(
           : null,
       activeResumeId: resumeId,
       resumes:
-        resumes.status === 'fulfilled'
-          ? {
-              total: resumes.value.length,
-              items: resumes.value.slice(0, 10).map((item) => ({
-                id: item.resume_id,
-                name: item.display_name,
-                storage: item.storage,
-                type: item.type,
-              })),
-            }
-          : { unavailable: true },
-      jobs:
-        jobs.status === 'fulfilled'
-          ? {
-              total: jobs.value.length,
-              statuses: jobs.value.reduce<Record<string, number>>(
-                (counts, item) => ({
-                  ...counts,
-                  [item.status]: (counts[item.status] ?? 0) + 1,
-                }),
-                {},
-              ),
-            }
-          : { unavailable: true },
+        resumes.status === 'fulfilled' ? resumes.value : { unavailable: true },
+      jobs: jobs.status === 'fulfilled' ? jobs.value : { unavailable: true },
     },
   }
 }

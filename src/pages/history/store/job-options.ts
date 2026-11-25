@@ -3,12 +3,15 @@ import type { HistoryStoreState } from './types'
 import type { JobOptionSummary } from '@/lib/supabase/resume/company'
 import { listJobOptions } from '@/lib/supabase/resume/company'
 
+interface JobOptionsResource {
+  items: JobOptionSummary[]
+  loading: boolean
+  error: string | null
+}
+
 export interface HistoryJobOptionsSlice {
-  jobOptions: JobOptionSummary[]
-  jobOptionsLoading: boolean
-  jobOptionsError: string | null
-  jobOptionsGeneration: number
-  loadJobOptions: () => Promise<void>
+  jobOptions: Record<string, JobOptionsResource | undefined>
+  loadJobOptions: (companyId?: string) => Promise<void>
   resetJobOptions: () => void
 }
 
@@ -16,56 +19,51 @@ export function createHistoryJobOptionsSlice(
   set: StoreApi<HistoryStoreState>['setState'],
   get: StoreApi<HistoryStoreState>['getState'],
 ): HistoryJobOptionsSlice {
-  let loaded = false
-  let pending: Promise<void> | null = null
+  const pending = new Map<string, Promise<void>>()
+  let generation = 0
 
   return {
-    jobOptions: [],
-    jobOptionsLoading: true,
-    jobOptionsError: null,
-    jobOptionsGeneration: 0,
-
+    jobOptions: {},
     resetJobOptions() {
-      loaded = false
-      pending = null
-
-      set((state) => ({
-        jobOptions: [],
-        jobOptionsLoading: true,
-        jobOptionsError: null,
-        jobOptionsGeneration: state.jobOptionsGeneration + 1,
-      }))
+      generation += 1
+      pending.clear()
+      set({ jobOptions: {} })
     },
+    loadJobOptions(companyId) {
+      const key = companyId ?? 'all'
+      const active = pending.get(key) ?? pending.get('all')
+      const previous = get().jobOptions[key]
 
-    loadJobOptions() {
-      if (pending) return pending
-      if (loaded) return Promise.resolve()
+      if (active) return active
+      if (previous && !previous.error) return Promise.resolve()
 
-      const generation = get().jobOptionsGeneration
-      const current = () => generation === get().jobOptionsGeneration
+      const scope = generation
 
-      set({ jobOptionsLoading: true, jobOptionsError: null })
+      const write = (resource: JobOptionsResource) => {
+        if (scope === generation)
+          set((state) => ({
+            jobOptions: { ...state.jobOptions, [key]: resource },
+          }))
+      }
 
-      const request = listJobOptions()
-        .then((jobOptions) => {
-          if (!current()) return
+      write({ items: [], loading: true, error: null })
 
-          loaded = true
-          set({ jobOptions })
-        })
-        .catch((error: unknown) => {
-          if (current())
-            set({
-              jobOptionsError:
-                error instanceof Error ? error.message : '岗位列表加载失败',
-            })
-        })
+      const request = listJobOptions(companyId)
+        .then(
+          (items) => write({ items, loading: false, error: null }),
+          (error: unknown) =>
+            write({
+              items: [],
+              loading: false,
+              error:
+                error instanceof Error ? error.message : '岗位信息加载失败',
+            }),
+        )
         .finally(() => {
-          if (current()) set({ jobOptionsLoading: false })
-          if (pending === request) pending = null
+          if (pending.get(key) === request) pending.delete(key)
         })
 
-      pending = request
+      pending.set(key, request)
 
       return request
     },

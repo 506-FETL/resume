@@ -11,10 +11,31 @@ import type {
 } from '../types'
 import {
   VERSION_LIST_SELECTOR,
-  VERSION_SELECTOR,
   VERSION_SHARE_RELEASE_SELECTOR,
   VERSION_SUMMARY_SELECTOR,
 } from './selectors'
+
+export async function getFrozenVersionForRestore(
+  resumeId: string,
+  versionId: number,
+) {
+  const user = await getCurrentUser()
+
+  if (!user) throw new Error('用户未登录')
+
+  const { data, error } = await supabase
+    .from('resume_config_versions')
+    .select('version_no,version_name,milestone_name,tags')
+    .eq('id', versionId)
+    .eq('resume_id', resumeId)
+    .eq('user_id', user.id)
+    .eq('status', 'frozen')
+    .maybeSingle()
+
+  if (error) throw error
+
+  return data
+}
 
 export async function listResumeHistoryVersions(resumeId: string) {
   const user = await getCurrentUser()
@@ -46,51 +67,22 @@ export async function listResumeVersions(
 
   if (!user) throw new Error('用户未登陆')
 
-  const [versions, shares] = await Promise.all([
-    collectPages(async (from, to) => {
-      const { data, error } = await supabase
-        .from('resume_config_versions')
-        .select(VERSION_LIST_SELECTOR)
-        .eq('resume_id', resumeId)
-        .eq('user_id', user.id)
-        .order('status', { ascending: true })
-        .order('version_no', { ascending: false })
-        .range(from, to)
+  return collectPages(async (from, to) => {
+    const { data, error } = await supabase
+      .from('resume_config_versions')
+      .select(
+        'id,status,version_no,version_name,milestone_name,projection_reference_date',
+      )
+      .eq('resume_id', resumeId)
+      .eq('user_id', user.id)
+      .order('status', { ascending: true })
+      .order('version_no', { ascending: false })
+      .range(from, to)
 
-      if (error) throw error
+    if (error) throw error
 
-      return (data ?? []) as ResumeHistoryVersionListRow[]
-    }),
-    collectPages(async (from, to) => {
-      const { data, error } = await supabase
-        .from('resume_shares')
-        .select('version_id')
-        .eq('resume_id', resumeId)
-        .eq('user_id', user.id)
-        .is('archived_at', null)
-        .range(from, to)
-
-      if (error) throw error
-
-      return (data ?? []) as Array<{ version_id: number | null }>
-    }),
-  ])
-
-  const sharedCounts = new Map<number, number>()
-
-  for (const share of shares) {
-    if (share.version_id == null) continue
-
-    sharedCounts.set(
-      share.version_id,
-      (sharedCounts.get(share.version_id) ?? 0) + 1,
-    )
-  }
-
-  return versions.map((version) => ({
-    ...version,
-    shared_link_count: sharedCounts.get(version.id) ?? 0,
-  }))
+    return (data ?? []) as ResumeVersionListItem[]
+  })
 }
 
 export async function getCurrentResumeVersion(resumeId: string) {
@@ -100,7 +92,7 @@ export async function getCurrentResumeVersion(resumeId: string) {
 
   const { data, error } = await supabase
     .from('resume_config_versions')
-    .select(VERSION_SELECTOR)
+    .select('id,snapshot,document_revision,projection_reference_date')
     .eq('resume_id', resumeId)
     .eq('user_id', user.id)
     .eq('status', 'active')
@@ -108,7 +100,10 @@ export async function getCurrentResumeVersion(resumeId: string) {
 
   if (error) throw error
 
-  return data as ResumeHistoryVersionRow
+  return data as Pick<
+    ResumeHistoryVersionRow,
+    'id' | 'snapshot' | 'document_revision' | 'projection_reference_date'
+  >
 }
 
 export async function getResumeHistoryVersionForShare(

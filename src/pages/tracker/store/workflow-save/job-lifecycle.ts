@@ -4,6 +4,7 @@ import type { WorkflowSaveState, WorkflowField } from './types'
 import type { JobApplication } from '../../types'
 import { deleteCompany, getCompanies } from '@/lib/supabase/resume'
 import {
+  assertTrackerAccountScope,
   createTrackerAccountGuard,
   getTrackerAccountScope,
   isTrackerAccountScopeCurrent,
@@ -21,7 +22,6 @@ export function createJobLifecycle(
     runtimes,
     deleted,
     generations,
-    find,
     runtimeFor,
     clearTimer,
     enqueue,
@@ -39,6 +39,19 @@ export function createJobLifecycle(
       deleted.clear()
       generations.clear()
       reloadPromise = null
+    },
+    ensureJobLoaded: async (id: string) => {
+      if (core.find(id)) return
+
+      const scope = getTrackerAccountScope()
+      const [job] = await getCompanies(createTrackerAccountGuard(scope), id)
+
+      assertTrackerAccountScope(scope)
+
+      if (core.find(id)) return
+      if (!job || deleted.has(id)) throw new Error('该职位已删除或不可用')
+
+      set((state) => ({ jobs: [job, ...state.jobs] }))
     },
     deleteJob: (id: string) => {
       const runtime = runtimeFor(id)
@@ -110,13 +123,15 @@ export function createJobLifecycle(
 
           if (!isTrackerAccountScopeCurrent(scope)) return
 
+          const currentJobs = new Map(get().jobs.map((job) => [job.id, job]))
+
           const jobs = loaded
             .filter(
               (job) => job.user_id === scope.userId && !deleted.has(job.id),
             )
             .map((row) => {
               const runtime = runtimes.get(row.id)
-              const current = find(row.id)
+              const current = currentJobs.get(row.id)
 
               if (
                 current &&
@@ -124,10 +139,22 @@ export function createJobLifecycle(
                   (generationSnapshot.get(row.id) ?? 0)
               )
                 return current
+              if (current?.updated_at === row.updated_at) {
+                for (const field of [
+                  'contacts',
+                  'jd_text',
+                  'jd_updated_at',
+                  'source',
+                ] as const) {
+                  if (current[field] !== undefined)
+                    Object.assign(row, { [field]: current[field] })
+                }
+              }
               if (!runtime || !current) return row
 
               const before = snapshot.get(row.id)
               const merged = { ...row }
+              const baseline = { ...runtime.baseline }
 
               for (const field of Object.keys(
                 current,
@@ -141,12 +168,10 @@ export function createJobLifecycle(
                   (before && runtime !== before.runtime)
                 )
                   Object.assign(merged, { [field]: current[field] })
-                else
-                  runtime.baseline = {
-                    ...runtime.baseline,
-                    [field]: row[field],
-                  }
+                else Object.assign(baseline, { [field]: row[field] })
               }
+
+              runtime.baseline = baseline
 
               return merged
             })

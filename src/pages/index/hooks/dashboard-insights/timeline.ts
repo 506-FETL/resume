@@ -1,4 +1,3 @@
-import type { Resume } from '../../types'
 import type { ApplicationStatus } from '@/pages/tracker/types'
 import { useMemo } from 'react'
 import { formatRelativeTime } from '@/utils/date'
@@ -20,7 +19,7 @@ export const APPLY_STATUS_VERB: Partial<Record<ApplicationStatus, string>> = {
 
 // 聚合简历版本历史 + 岗位投递，产出按时间倒序的近期事件时间线（首页「最近动态」数据源）
 export function useDashboardTimeline(
-  resumes: Resume[],
+  cloudCount: number,
   resumesLoading: boolean,
   resources: DashboardResources,
 ): DashboardTimeline {
@@ -30,24 +29,13 @@ export function useDashboardTimeline(
   const { data: jobSummaries, loading: jobsLoading } = resources.jobs
 
   return useMemo(() => {
-    const hasCloudResume = resumes.some((resume) => !resume.isOffline)
-
-    if (resumesLoading || jobsLoading || (hasCloudResume && versionsLoading))
+    if (jobsLoading || ((resumesLoading || cloudCount > 0) && versionsLoading))
       return { events: [], loading: true }
 
-    const nameMap = new Map<string, string>()
-
-    for (const resume of resumes)
-      nameMap.set(resume.resume_id, resume.display_name || '未命名简历')
-
-    const events: TimelineEvent[] = []
+    const events: Omit<TimelineEvent, 'time'>[] = []
 
     for (const version of versionSummaries) {
-      const resumeName = nameMap.get(version.resume_id)
-
-      // 只展示当前存在的简历，避免出现已删除简历的孤儿事件
-      if (!resumeName) continue
-
+      const resumeName = version.resume.display_name || '未命名简历'
       const isAi = version.source_type === 'ai_optimize'
 
       events.push({
@@ -56,13 +44,13 @@ export function useDashboardTimeline(
         title: isAi
           ? `AI 助手更新了《${resumeName}》`
           : `编辑了《${resumeName}》`,
-        time: formatRelativeTime(version.created_at),
         timestamp: new Date(version.created_at).getTime(),
         to: '/resume',
       })
     }
 
-    for (const job of jobSummaries) {
+    // 两个来源都按时间倒序，各取前五足以确定合并后的最近五条。
+    for (const job of jobSummaries.slice(0, 5)) {
       const verb = APPLY_STATUS_VERB[job.status] ?? '更新了'
 
       const target =
@@ -72,7 +60,6 @@ export function useDashboardTimeline(
         id: `job-${job.id}`,
         type: 'apply',
         title: `${verb} ${target}`,
-        time: formatRelativeTime(job.updated_at),
         timestamp: new Date(job.updated_at).getTime(),
         to: '/tracker',
       })
@@ -80,11 +67,17 @@ export function useDashboardTimeline(
 
     events.sort((a, b) => b.timestamp - a.timestamp)
 
-    return { events: events.slice(0, 5), loading: false }
+    return {
+      events: events.slice(0, 5).map((event) => ({
+        ...event,
+        time: formatRelativeTime(new Date(event.timestamp)),
+      })),
+      loading: false,
+    }
   }, [
     jobSummaries,
     jobsLoading,
-    resumes,
+    cloudCount,
     resumesLoading,
     versionSummaries,
     versionsLoading,

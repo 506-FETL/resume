@@ -4,17 +4,10 @@ import { Button } from '@/components/ui/button'
 
 interface HeaderProps {
   createDisabled?: boolean
-  focus?: string
-  isGettingStarted?: boolean
   onCreate: MouseEventHandler<HTMLButtonElement>
 }
 
-function Header({
-  focus,
-  onCreate,
-  isGettingStarted,
-  createDisabled,
-}: HeaderProps) {
+function Header({ onCreate, createDisabled }: HeaderProps) {
   return (
     <PageHeader
       title='首页'

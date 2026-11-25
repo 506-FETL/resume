@@ -39,6 +39,7 @@ export async function loadOfflineDocument(
     syncError: null,
     mode: 'offline',
     documentDisplayName: offlineResume.display_name,
+    documentParentResumeId: offlineResume.parent_resume_id ?? null,
     isInitialized: true,
     lastSyncTime: offlineResume.updated_at
       ? dayjs(offlineResume.updated_at).valueOf()

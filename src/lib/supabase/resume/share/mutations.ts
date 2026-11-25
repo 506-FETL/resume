@@ -133,16 +133,17 @@ export async function createResumeShareRelease(
 }
 
 /** 撤销 / 启用 */
-export async function setResumeShareActive(
-  shareId: string,
-  isActive: boolean,
-): Promise<void> {
-  const { error } = await supabase
+export async function setResumeShareActive(shareId: string, isActive: boolean) {
+  const { data, error } = await supabase
     .from('resume_shares')
     .update({ is_active: isActive })
     .eq('id', shareId)
+    .select('is_active')
+    .single()
 
   if (error) throw error
+
+  return data.is_active
 }
 
 export async function updateResumeShareSettings(

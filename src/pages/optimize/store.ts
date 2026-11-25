@@ -83,6 +83,7 @@ const useAtsStore = create<AtsStore>()((set, get) => {
 
     if (
       !force &&
+      source &&
       cached?.resumeId === resumeId &&
       cached.resumeType === resumeType &&
       (cached.atsConfig?.id ?? null) === (atsConfig?.id ?? null) &&
@@ -313,7 +314,7 @@ const useAtsStore = create<AtsStore>()((set, get) => {
   return {
     loading: true,
     loadError: null,
-    summariesLoading: true,
+    summariesLoading: false,
     summariesError: null,
     analysisError: null,
     currentAtsConfig: null,
@@ -327,7 +328,7 @@ const useAtsStore = create<AtsStore>()((set, get) => {
     updateLog,
 
     ...reportActions,
-    ...createAtsResumeOptions(set),
+    ...createAtsResumeOptions(set, get),
     startAnalysis,
 
     advancedToolActiveTool: null,
@@ -376,7 +377,7 @@ useUserStore.subscribe((state, previous) => {
 subscribeResumeReadChanges((resumeId) => {
   const state = useAtsStore.getState()
 
-  state.invalidateResumeOptions()
+  state.invalidateResumeOptions(resumeId)
 
   if (
     !resumeId ||

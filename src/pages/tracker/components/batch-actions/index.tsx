@@ -35,12 +35,14 @@ import {
   isTrackerAccountScopeError,
 } from '../../lib/account-scope'
 import useTrackerStore from '../../store'
-import { selectTrackerListJobs } from '../../store/selectors'
-import { filterJobs, getTrackerErrorMessage } from '../../utils'
+import { getTrackerErrorMessage } from '../../utils'
 
-export default function BatchActions() {
+export default function BatchActions({
+  selectableCount,
+}: {
+  selectableCount: number
+}) {
   const {
-    jobs,
     isSelectMode,
     selectedIds,
     selectAll,
@@ -48,15 +50,8 @@ export default function BatchActions() {
     deleteJob,
     changeJobStatus,
     saveJobFields,
-    filterStatus,
-    metricFilter,
-    searchKeyword,
-    showArchived,
-    focusedOnly,
-    filterCompanyId,
   } = useTrackerStore(
     useShallow((state) => ({
-      jobs: selectTrackerListJobs(state),
       isSelectMode: state.isSelectMode,
       selectedIds: state.selectedIds,
       selectAll: state.selectAll,
@@ -64,12 +59,6 @@ export default function BatchActions() {
       deleteJob: state.deleteJob,
       changeJobStatus: state.changeJobStatus,
       saveJobFields: state.saveJobFields,
-      filterStatus: state.filterStatus,
-      metricFilter: state.metricFilter,
-      searchKeyword: state.searchKeyword,
-      showArchived: state.showArchived,
-      focusedOnly: state.focusedOnly,
-      filterCompanyId: state.filterCompanyId,
     })),
   )
 
@@ -83,17 +72,6 @@ export default function BatchActions() {
   const [batchStatusOpen, setBatchStatusOpen] = useState(false)
   const [confirmationCount, setConfirmationCount] = useState(0)
   const [pendingBatchDelete, setPendingBatchDelete] = useState(false)
-
-  const selectableCount = filterJobs(
-    filterCompanyId
-      ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
-      : jobs,
-    filterStatus,
-    searchKeyword,
-    showArchived,
-    metricFilter,
-    focusedOnly,
-  ).length
 
   const selectedCount = selectedIds.size
 

@@ -1,53 +1,25 @@
-import type { User } from '@supabase/supabase-js'
-import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
-import { toast } from 'sonner'
+import { Navigate } from 'react-router-dom'
 import { PageHeader, PageLayout } from '@/components/layout/page-layout'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { QuotaCard } from '@/components/quota/quota-card'
 import { ProfilePageSkeleton } from '@/components/page-skeletons/profile'
-import { getCurrentUser } from '@/lib/supabase/user'
-import { getErrorMessage } from '@/utils'
+import useUserStore from '@/store/user'
 import { AccountSettingsCard } from './components/account-settings-card'
 import { PreferencesCard } from './components/preferences-card'
 import { ProfileInfoCard } from './components/profile-info-card'
 
 export default function ProfilePage() {
-  const [user, setUser] = useState<User | null>(null)
-  const [loading, setLoading] = useState(true)
-  const navigate = useNavigate()
+  const user = useUserStore((state) => state.currentUser)
+  const authStatus = useUserStore((state) => state.authStatus)
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        setLoading(true)
-
-        const currentUser = await getCurrentUser()
-
-        if (!currentUser) {
-          navigate('/login')
-
-          return
-        }
-
-        setUser(currentUser)
-      } catch (error: unknown) {
-        toast.error(`用户信息加载失败：${getErrorMessage(error)}`)
-        navigate('/login')
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    fetchUser()
-  }, [navigate])
+  if (authStatus === 'anonymous') return <Navigate to='/login' replace />
 
   return (
-    <AnimatedContent animationKey={!user || loading ? 'loading' : 'ready'}>
-      {!user || loading ? (
+    <AnimatedContent animationKey={!user ? 'loading' : 'ready'}>
+      {!user ? (
         <ProfilePageSkeleton />
       ) : (
-        <PageLayout width='narrow'>
+        <PageLayout key={user.id} width='narrow'>
           <PageHeader
             title='个人信息'
             description='管理个人资料、账户安全与使用偏好。'

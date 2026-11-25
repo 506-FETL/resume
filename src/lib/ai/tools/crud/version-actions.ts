@@ -1,3 +1,4 @@
+import { getResumeById } from '@/lib/supabase/resume/get-by-id'
 import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { isOfflineResumeId } from '@/lib/offline-resume-manager'
 import {
@@ -6,13 +7,10 @@ import {
   deleteResumeHistoryVersion,
   getResumeHistoryResume,
   getResumeHistoryVersionSnapshot,
-  listResumeHistoryVersions,
+  getFrozenVersionForRestore,
   restoreResumeHistoryVersion,
 } from '@/lib/supabase/resume'
-import {
-  buildResumeSnapshot,
-  normalizeHistoryVersionListItem,
-} from '@/pages/history/utils'
+import { buildResumeSnapshot, normalizeTags } from '@/pages/history/utils'
 import { requestConfirm } from '../../agent/confirm-bridge'
 import { registerTool } from '../../agent/tool-registry'
 
@@ -111,12 +109,11 @@ registerTool({
 
     if (!Number.isFinite(versionId)) return { error: 'versionId 必须是数字' }
 
-    const versions = await listResumeHistoryVersions(resumeId).catch(() => [])
-    const rawTarget = versions.find((v) => v.id === versionId)
+    const rawTarget = await getFrozenVersionForRestore(resumeId, versionId)
 
     if (!rawTarget) return { error: '未在当前简历下找到该版本' }
 
-    const target = normalizeHistoryVersionListItem(rawTarget)
+    const target = { ...rawTarget, tags: normalizeTags(rawTarget.tags) }
 
     const strategy = args.backup === false ? 'without_backup' : 'with_backup'
 
@@ -130,20 +127,18 @@ registerTool({
           summary: `恢复到 V${target.version_no}${strategy === 'with_backup' ? '（恢复前自动备份当前内容）' : '（不备份，直接覆盖）'}`,
         },
         apply: async () => {
-          const record = await getResumeHistoryResume(resumeId)
-          const currentSnapshot = buildResumeSnapshot(record)
+          const [baseline, savedSnapshot] = await Promise.all([
+            readRestoreBaseline(resumeId, strategy),
+            getResumeHistoryVersionSnapshot(versionId),
+          ])
 
-          const targetSnapshot = buildResumeSnapshot(
-            await getResumeHistoryVersionSnapshot(versionId),
-          )
+          const targetSnapshot = buildResumeSnapshot(savedSnapshot)
 
           await restoreResumeHistoryVersion({
             resumeId,
             targetVersion: target,
             targetSnapshot,
-            currentSnapshot,
-            currentUpdatedAt: record.updated_at,
-            strategy,
+            ...baseline,
           })
 
           return { ok: true, resumeId, restoredFrom: target.version_no }
@@ -195,3 +190,25 @@ registerTool({
     )
   },
 })
+
+async function readRestoreBaseline(
+  resumeId: string,
+  strategy: 'with_backup' | 'without_backup',
+) {
+  if (strategy === 'without_backup') {
+    const current = await getResumeById<{ updated_at: string | null }>(
+      resumeId,
+      'updated_at',
+    )
+
+    return { strategy, currentUpdatedAt: current.updated_at }
+  }
+
+  const current = await getResumeHistoryResume(resumeId)
+
+  return {
+    strategy,
+    currentUpdatedAt: current.updated_at,
+    currentSnapshot: buildResumeSnapshot(current),
+  }
+}

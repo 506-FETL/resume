@@ -6,8 +6,10 @@ import type {
 import { useEffect, useRef, useState } from 'react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION } from '@/lib/motion'
-import { listResumeHistoryVersions } from '@/lib/supabase/resume/history/queries'
-import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history/types'
+import {
+  listResumeHistoryShareOptions,
+  type ResumeHistoryShareOption,
+} from '@/lib/supabase/resume/history/queries/resumes'
 import {
   listJobSubmissions,
   correctJobSubmissionMaterial,
@@ -49,23 +51,28 @@ export function useSubmissionForm({
     state.jobs.find((row) => row.id === jobId),
   )
 
-  const {
-    data: resumes,
-    error: resumeError,
-    retry,
-  } = useTrackerResumeOptions(true)
-
   const [kind, setKind] = useState<SubmissionMaterialKind>(
     correcting ? 'platform' : 'pending',
   )
 
+  const {
+    data: resumes,
+    error: resumeError,
+    retry,
+  } = useTrackerResumeOptions(kind === 'platform')
+
   const [resumeId, setResumeId] = useState(job?.resume_id ?? '')
   const [versionId, setVersionId] = useState('')
 
-  const [versions, setVersions] = useState<
-    ResumeHistoryVersionListItem[] | null
-  >(null)
+  const [versions, setVersions] = useState<ResumeHistoryShareOption[] | null>(
+    null,
+  )
 
+  const versionRequestsRef = useRef(
+    new Map<string, ReturnType<typeof listResumeHistoryShareOptions>>(),
+  )
+
+  const [versionAttempt, setVersionAttempt] = useState(0)
   const [versionsError, setVersionsError] = useState<string | null>(null)
   const [file, setFile] = useState<File>()
   const [date, setDate] = useState(new Date().toLocaleDateString('sv-SE'))
@@ -108,20 +115,35 @@ export function useSubmissionForm({
     setVersions(null)
     setVersionsError(null)
 
-    if (kind === 'platform' && resumeId)
-      listResumeHistoryVersions(resumeId)
-        .then((rows) => {
-          if (active && isTrackerAccountScopeCurrent(scope)) setVersions(rows)
+    if (kind === 'platform' && resumeId) {
+      const cache = versionRequestsRef.current
+      let request = cache.get(resumeId)
+
+      if (!request) {
+        request = listResumeHistoryShareOptions(resumeId).catch((cause) => {
+          cache.delete(resumeId)
+
+          throw cause
         })
-        .catch((cause) => {
+
+        cache.set(resumeId, request)
+      }
+
+      request.then(
+        (rows) => {
+          if (active && isTrackerAccountScopeCurrent(scope)) setVersions(rows)
+        },
+        (cause) => {
           if (active && isTrackerAccountScopeCurrent(scope))
             setVersionsError(getTrackerErrorMessage(cause))
-        })
+        },
+      )
+    }
 
     return () => {
       active = false
     }
-  }, [kind, resumeId, scope])
+  }, [kind, resumeId, scope, versionAttempt])
 
   const save = async () => {
     if (!job || busy) return
@@ -237,6 +259,7 @@ export function useSubmissionForm({
     setVersionId,
     versions,
     versionsError,
+    retryVersions: () => setVersionAttempt((attempt) => attempt + 1),
     file,
     setFile,
     date,

@@ -108,30 +108,13 @@ async function loadReadState(admin: AdminClient, access: ResolvedAccess) {
 }
 
 export async function loadThreadCounts(admin: AdminClient, scopeId: string) {
-  const { data, error } = await admin
-    .from('resume_comment_threads')
-    .select('anchor_status,resolved_at')
-    .eq('scope_id', scopeId)
-    .is('deleted_at', null)
+  const { data, error } = await admin.rpc('get_resume_comment_thread_counts', {
+    p_scope_id: scopeId,
+  })
 
   if (error) throw error
 
-  return countThreadRows(data ?? [])
-}
-
-function countThreadRows(
-  threads: Array<{ anchor_status: string; resolved_at: string | null }>,
-) {
-  return threads.reduce(
-    (counts, thread) => {
-      if (thread.anchor_status === 'detached') counts.detached += 1
-      else if (thread.resolved_at) counts.resolved += 1
-      else counts.unresolved += 1
-
-      return counts
-    },
-    { unresolved: 0, resolved: 0, detached: 0 },
-  )
+  return data as { unresolved: number; resolved: number; detached: number }
 }
 
 // 旧 bootstrap/recovery 快速回滚仍需保留此读取器。

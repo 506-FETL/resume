@@ -100,6 +100,7 @@ export function createDocumentSlice(
         cleanupFns: [],
         currentResumeId: resumeId,
         documentDisplayName: null,
+        documentParentResumeId: null,
         mode: isOfflineResumeId(resumeId) ? 'offline' : 'online',
         isInitialized: false,
         cloudAppearanceStatus:
@@ -289,6 +290,7 @@ export function createDocumentSlice(
           ...mapSnapshotToState(snapshot),
           docManager: manager,
           documentDisplayName: cloudAppearanceResult?.displayName ?? null,
+          documentParentResumeId: cloudAppearanceResult?.parentResumeId ?? null,
           docHandle: handle,
           cleanupFns: [offChange],
           isSyncing: false,
@@ -363,6 +365,7 @@ export function createDocumentSlice(
         mode: null,
         currentResumeId: null,
         documentDisplayName: null,
+        documentParentResumeId: null,
         isInitialized: false,
         cloudAppearanceStatus: 'not_applicable',
         docHasPersistedAppearance: false,

@@ -1,5 +1,5 @@
 import { Cloud, FileCheck, FileText, HardDrive } from 'lucide-react'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import useUserStore from '@/store/user'
 import useAtsStore from '../../store'
 
@@ -24,23 +24,27 @@ interface UseResumeManagerReturn {
   selectedResumeId: string | null
   onlineResumes: ResumeConfig[]
   offlineResumes: ResumeConfig[]
-  currentResume: ResumeConfig | undefined
   ButtonIcon: any
   iconColorClass: string
   handleSelect: (resume: ResumeConfig) => void
 }
 
 export function useResumeManager(): UseResumeManagerReturn {
-  const { atsConfigs, currentAtsConfig, selectedResumeId, setSelectedResume } =
-    useAtsStore()
+  const atsConfigs = useAtsStore((s) => s.atsConfigs)
+  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const selectedResumeId = useAtsStore((s) => s.selectedResumeId)
+  const selectedType = useAtsStore((s) => s.selectedResumeType)
+  const selectedOption = useAtsStore((s) => s.selectedResumeOption)
+  const loadSelected = useAtsStore((s) => s.loadSelectedResumeOption)
+  const reloadSummaries = useAtsStore((s) => s.reloadSummaries)
+  const setSelectedResume = useAtsStore((s) => s.setSelectedResume)
 
-  const {
-    resumeOptions: storedResumes,
-    resumeOptionsLoading: listLoading,
-    resumeOptionsRevision,
-    resumeOptionsError: listError,
-    loadResumeOptions: loadResumes,
-  } = useAtsStore()
+  const storedResumes = useAtsStore((s) => s.resumeOptions)
+  const listLoading = useAtsStore((s) => s.resumeOptionsLoading)
+  const resumeOptionsRevision = useAtsStore((s) => s.resumeOptionsRevision)
+  const selectedRevision = useAtsStore((s) => s.selectedResumeRevision)
+  const listError = useAtsStore((s) => s.resumeOptionsError)
+  const loadResumes = useAtsStore((s) => s.loadResumeOptions)
 
   const userId = useUserStore((state) => state.currentUser?.id ?? null)
   const authStatus = useUserStore((state) => state.authStatus)
@@ -49,19 +53,50 @@ export function useResumeManager(): UseResumeManagerReturn {
   const loadError = accountMatches ? listError : null
   const [open, setOpen] = useState(false)
 
-  useEffect(() => {
-    if (authStatus === 'unknown') return
+  const scoresOwnerRef = useRef<string | null>(null)
 
-    loadResumes()
-  }, [authStatus, userId, loadResumes, resumeOptionsRevision])
+  useEffect(() => {
+    scoresOwnerRef.current = null
+  }, [userId])
+
+  useEffect(() => {
+    if (!open || !accountMatches) return
+
+    loadResumes(userId, scoresOwnerRef.current !== userId)
+
+    if (userId && scoresOwnerRef.current !== userId) {
+      scoresOwnerRef.current = userId
+      reloadSummaries()
+    }
+  }, [
+    open,
+    accountMatches,
+    userId,
+    loadResumes,
+    reloadSummaries,
+    resumeOptionsRevision,
+  ])
+
+  useEffect(() => {
+    if (accountMatches && selectedResumeId && selectedType)
+      loadSelected(selectedResumeId, selectedType === 'offline')
+  }, [
+    accountMatches,
+    selectedResumeId,
+    selectedType,
+    loadSelected,
+    selectedRevision,
+  ])
 
   const resumes = useMemo<ResumeConfig[]>(() => {
     if (!accountMatches) return []
 
+    const latestByResume = new Map(
+      atsConfigs?.map((report) => [report.resume_id, report]),
+    )
+
     return storedResumes.map((resume) => {
-      const resumeAts = atsConfigs?.find(
-        (ats) => ats.resume_id === resume.resume_id,
-      )
+      const resumeAts = latestByResume.get(resume.resume_id)
 
       return {
         id: resume.resume_id,
@@ -74,24 +109,6 @@ export function useResumeManager(): UseResumeManagerReturn {
       }
     })
   }, [accountMatches, storedResumes, atsConfigs])
-
-  useEffect(() => {
-    if (currentAtsConfig && !selectedResumeId && resumes.length > 0) {
-      const found = resumes.find(
-        (r) => r.resume_id === currentAtsConfig.resume_id,
-      )
-
-      if (found)
-        setSelectedResume(
-          found.resume_id,
-          found.isOffline ? 'offline' : 'online',
-        )
-    }
-  }, [currentAtsConfig, resumes, selectedResumeId, setSelectedResume])
-
-  const selectedResumeName =
-    resumes.find((r) => r.resume_id === selectedResumeId)?.display_name ||
-    '选择简历'
 
   const handleSelect = useCallback(
     (resume: ResumeConfig) => {
@@ -108,38 +125,43 @@ export function useResumeManager(): UseResumeManagerReturn {
   const onlineResumes = resumes.filter((r) => !r.isOffline)
   const offlineResumes = resumes.filter((r) => r.isOffline)
 
-  const currentResume = useMemo(
-    () => resumes.find((r) => r.resume_id === selectedResumeId),
-    [resumes, selectedResumeId],
-  )
+  const scored =
+    currentAtsConfig !== null && currentAtsConfig.resume_id === selectedResumeId
 
-  const ButtonIcon = useMemo(() => {
-    if (!currentResume) return FileText
-    if (currentResume.isOffline)
-      return currentResume.isScored ? FileCheck : HardDrive
+  const ButtonIcon = !selectedResumeId
+    ? FileText
+    : scored
+      ? FileCheck
+      : selectedType === 'offline'
+        ? HardDrive
+        : Cloud
 
-    return currentResume.isScored ? FileCheck : Cloud
-  }, [currentResume])
+  const iconColorClass = !selectedResumeId
+    ? 'text-muted-foreground'
+    : scored
+      ? 'text-green-600'
+      : selectedType === 'offline'
+        ? 'text-amber-600'
+        : 'text-blue-600'
 
-  const iconColorClass = useMemo(() => {
-    if (!currentResume) return 'text-muted-foreground'
-    if (currentResume.isScored) return 'text-green-600'
-
-    return currentResume.isOffline ? 'text-amber-600' : 'text-blue-600'
-  }, [currentResume])
+  const selectedName =
+    selectedOption?.resume_id === selectedResumeId
+      ? selectedOption?.display_name || '未命名简历'
+      : selectedResumeId
+        ? '已选择简历'
+        : '选择简历'
 
   return {
     resumes,
     loading,
     loadError,
-    retry: loadResumes,
+    retry: () => loadResumes(userId),
     open,
     setOpen,
-    selectedResumeName,
+    selectedResumeName: selectedName,
     selectedResumeId,
     onlineResumes,
     offlineResumes,
-    currentResume,
     ButtonIcon,
     iconColorClass,
     handleSelect,

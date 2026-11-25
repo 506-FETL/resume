@@ -1,33 +1,42 @@
-import { useEffect } from 'react'
+import { useEffect, useMemo } from 'react'
 import useHistoryStore from '../store'
 
-export interface JobOption {
-  id: string
-  label: string // 「公司 · 职位」
-}
+export function useJobSummaries(companyId?: string | null) {
+  const resource = useHistoryStore((state) => {
+    if (companyId === null) return undefined
 
-export function useJobSummaries() {
-  const jobs = useHistoryStore((state) => state.jobOptions)
-  const loading = useHistoryStore((state) => state.jobOptionsLoading)
-  const error = useHistoryStore((state) => state.jobOptionsError)
-  const generation = useHistoryStore((state) => state.jobOptionsGeneration)
+    const all = state.jobOptions.all
+
+    if (all && !all.loading && !all.error) return all
+
+    return (
+      state.jobOptions[companyId ?? 'all'] ?? (all?.loading ? all : undefined)
+    )
+  })
+
   const load = useHistoryStore((state) => state.loadJobOptions)
 
   useEffect(() => {
-    load()
-  }, [load, generation])
+    if (companyId !== null && !resource) load(companyId)
+  }, [companyId, resource, load])
 
-  const options: JobOption[] = jobs.map((job) => ({
-    id: job.id,
-    label:
-      [job.company, job.position].filter(Boolean).join(' · ') || '未命名岗位',
-  }))
+  const options = useMemo(() => {
+    const jobs = resource?.items ?? []
+    const rows = companyId ? jobs.filter((job) => job.id === companyId) : jobs
 
-  const getLabel = (companyId: string | null | undefined): string | null => {
-    if (!companyId) return null
+    return rows.map((job) => ({
+      id: job.id,
+      label:
+        [job.company, job.position].filter(Boolean).join(' · ') || '未命名岗位',
+    }))
+  }, [resource?.items, companyId])
 
-    return options.find((option) => option.id === companyId)?.label ?? null
+  return {
+    options,
+    loading: companyId !== null && (!resource || resource.loading),
+    error: resource?.error ?? null,
+    retry: () => {
+      if (companyId !== null) return load(companyId)
+    },
   }
-
-  return { options, getLabel, loading, error, retry: load }
 }

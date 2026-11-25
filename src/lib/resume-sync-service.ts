@@ -9,10 +9,8 @@
 
 import type { ResumeType } from '@/lib/schema'
 import { toast } from 'sonner'
-import {
-  getAllOfflineResumes,
-  migrateOfflineResumesToCloud,
-} from './offline-resume-manager'
+import { getDB } from './offline-resume-manager/database'
+import { migrateOfflineResumesToCloud } from './offline-resume-manager/transfer'
 import { uploadOfflineResumeToCloud } from './supabase/resume/form'
 import { getCurrentUser } from './supabase/user'
 
@@ -21,9 +19,9 @@ import { getCurrentUser } from './supabase/user'
  */
 export async function hasOfflineResumesToSync() {
   try {
-    const offlineResumes = await getAllOfflineResumes()
+    const db = await getDB()
 
-    return offlineResumes.length > 0
+    return (await db.count('resumes')) > 0
   } catch {
     toast.error('检查本地简历失败，请稍后重试')
 

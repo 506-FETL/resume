@@ -1,11 +1,10 @@
-import type { Resume, ResumeStats } from './types'
+import type { Resume } from './types'
 import { create } from 'zustand'
-import { getOfflineResumeSummaries } from '@/lib/offline-resume-manager/queries'
-import { normalizeResumeType } from '@/lib/schema/resume/resume-type'
+import { getDashboardOfflineResumes } from '@/lib/offline-resume-manager/dashboard'
 import useUserStore from '@/store/user'
-import { diffDates } from '@/utils/date'
 
 interface ResumeResourceState {
+  total: number
   loading: boolean
   error: string | null
   hasLoaded: boolean
@@ -27,8 +26,8 @@ interface IndexStore {
 let loadRequestId = 0
 
 const useIndexStore = create<IndexStore>()((set, get) => ({
-  cloud: { loading: true, error: null, hasLoaded: false },
-  local: { loading: true, error: null, hasLoaded: false },
+  cloud: { total: 0, loading: true, error: null, hasLoaded: false },
+  local: { total: 0, loading: true, error: null, hasLoaded: false },
   resumes: [],
   loading: true,
   accountId: null,
@@ -56,7 +55,6 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
 
       if (requestId !== loadRequestId) return
 
-      let onlineResumes: Resume[] = []
       const isOnline = Boolean(user)
 
       // 认证状态一旦确定就立即发布，让不依赖简历列表的首页模块先开始加载。
@@ -68,8 +66,8 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
               resumes: [],
               initialized: false,
               loading: true,
-              cloud: { loading: true, error: null, hasLoaded: false },
-              local: { loading: true, error: null, hasLoaded: false },
+              cloud: { total: 0, loading: true, error: null, hasLoaded: false },
+              local: { total: 0, loading: true, error: null, hasLoaded: false },
             }
           : {}),
       }))
@@ -77,25 +75,19 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
       const outcomes = await Promise.allSettled([
         (async () => {
           try {
-            const rawOnlineResumes = user
+            const { items, total } = user
               ? await import('@/lib/supabase/resume/summaries').then((module) =>
-                  module.getResumeSummaries(),
+                  module.getDashboardCloudResumes(user.id),
                 )
-              : []
-
-            onlineResumes = rawOnlineResumes.map((r) => ({
-              ...r,
-              type: normalizeResumeType(r.type),
-              isOffline: false,
-            }))
+              : { items: [], total: 0 }
 
             if (requestId === loadRequestId)
               set((state) => ({
                 resumes: [
-                  ...onlineResumes,
+                  ...items,
                   ...state.resumes.filter((r) => r.isOffline),
                 ],
-                cloud: { loading: false, error: null, hasLoaded: true },
+                cloud: { total, loading: false, error: null, hasLoaded: true },
               }))
           } catch (error) {
             if (requestId === loadRequestId)
@@ -112,22 +104,15 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
         })(),
         (async () => {
           try {
-            const localResumes = await getOfflineResumeSummaries()
-
-            const offlineResumes: Resume[] = localResumes.map((r) => ({
-              ...r,
-              type: normalizeResumeType(r.type),
-              updated_at: r.updated_at ?? r.created_at,
-              isOffline: true,
-            }))
+            const { items, total } = await getDashboardOfflineResumes()
 
             if (requestId === loadRequestId)
               set((state) => ({
                 resumes: [
                   ...state.resumes.filter((r) => !r.isOffline),
-                  ...offlineResumes,
+                  ...items,
                 ],
-                local: { loading: false, error: null, hasLoaded: true },
+                local: { total, loading: false, error: null, hasLoaded: true },
               }))
           } catch (error) {
             if (requestId === loadRequestId)
@@ -170,26 +155,3 @@ const useIndexStore = create<IndexStore>()((set, get) => ({
 }))
 
 export default useIndexStore
-
-export function selectStats(state: { resumes: Resume[] }): ResumeStats {
-  const { resumes } = state
-  const total = resumes.length
-  const online = resumes.filter((r) => !r.isOffline).length
-  const offline = resumes.filter((r) => r.isOffline).length
-
-  const sevenDaysAgo = new Date()
-
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7)
-
-  const recentCount = resumes.filter(
-    (r) => new Date(r.created_at) > sevenDaysAgo,
-  ).length
-
-  const sortedByDate = [...resumes].sort((a, b) =>
-    diffDates(b.updated_at, a.updated_at),
-  )
-
-  const latestResume = sortedByDate[0]
-
-  return { total, online, offline, recentCount, latestResume }
-}

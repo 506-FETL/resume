@@ -10,79 +10,63 @@ export const MAX_VARIANT_TREE_DEPTH = 5
 /**
  * 构建以 currentResumeId 所属树为基准的 lineage：
  * - 先沿 parent 链向上找到真正的 root（visited 防环，无步数上限）
- * - 再从 root 向下 BFS 构建子树（深度上限 MAX_VARIANT_TREE_DEPTH）
+ * - 再从 root 沿父键索引读取子树（深度上限 MAX_VARIANT_TREE_DEPTH）
  */
 export async function fetchOfflineVariantTree(
   currentResumeId: string,
 ): Promise<VariantLineage> {
   const db = await getDB()
-  const all = await db.getAll('resumes')
-  const byId = new Map(all.map((r) => [r.resume_id, r]))
+  const tx = db.transaction('resumes')
+  const ancestors = new Set<string>()
+  let id = currentResumeId
+  let root: OfflineResumeRecord
 
-  const visited = new Set<string>()
-  let walker: string | null = currentResumeId
-  let rootId = currentResumeId
+  while (true) {
+    const record = await tx.store.get(id)
 
-  while (walker && !visited.has(walker)) {
-    visited.add(walker)
-    rootId = walker
+    if (!record) throw new Error('简历节点不存在')
 
-    const node = byId.get(walker)
+    ancestors.add(id)
+    root = record
 
-    walker = node?.parent_resume_id ?? null
+    if (!record.parent_resume_id || ancestors.has(record.parent_resume_id))
+      break
+
+    id = record.parent_resume_id
   }
 
-  const childrenByParent = new Map<string, OfflineResumeRecord[]>()
+  const childrenByParent = tx.store.index('parent_resume_id')
+  const seen = new Set<string>([root.resume_id])
 
-  for (const record of all) {
-    const parentId = record.parent_resume_id ?? null
-
-    if (!parentId) {
-      continue
-    }
-
-    const list = childrenByParent.get(parentId)
-
-    if (list) {
-      list.push(record)
-    } else {
-      childrenByParent.set(parentId, [record])
-    }
-  }
-
-  const seen = new Set<string>([rootId])
-
-  function build(id: string, lvl: number): VariantTreeNode {
-    const r = byId.get(id)
-
-    if (!r) {
-      throw new Error('简历节点不存在')
-    }
-
+  async function build(
+    record: OfflineResumeRecord,
+    depth: number,
+  ): Promise<VariantTreeNode> {
     const childRecords =
-      lvl >= MAX_VARIANT_TREE_DEPTH ? [] : (childrenByParent.get(id) ?? [])
+      depth < MAX_VARIANT_TREE_DEPTH
+        ? await childrenByParent.getAll(record.resume_id)
+        : []
 
-    const children: VariantTreeNode[] = []
+    const children = childRecords.filter((child) => !seen.has(child.resume_id))
 
-    for (const c of childRecords) {
-      if (seen.has(c.resume_id)) {
-        continue
-      }
-
-      seen.add(c.resume_id)
-      children.push(build(c.resume_id, lvl + 1))
-    }
+    for (const child of children) seen.add(child.resume_id)
 
     return {
-      resumeId: r.resume_id,
-      displayName: r.display_name,
-      derivedStatus: r.derived_status ?? null,
-      generatedAt: r.derived_metadata?.generatedAt ?? null,
-      jdSnippet: r.linked_jd_text?.slice(0, 80) ?? null,
-      matchRate: r.derived_metadata?.matchRate ?? null,
-      children,
+      resumeId: record.resume_id,
+      displayName: record.display_name,
+      derivedStatus: record.derived_status ?? null,
+      generatedAt: record.derived_metadata?.generatedAt ?? null,
+      jdSnippet: record.linked_jd_text?.slice(0, 80) ?? null,
+      matchRate: record.derived_metadata?.matchRate ?? null,
+      children: await Promise.all(
+        children.map((child) => build(child, depth + 1)),
+      ),
     }
   }
 
-  return { root: build(rootId, 0), currentId: currentResumeId }
+  const tree = await build(root, 0)
+
+  await tx.done
+
+  return { root: tree, currentId: currentResumeId }
 }

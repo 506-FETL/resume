@@ -24,8 +24,9 @@ import { getAdvancedToolResumeSummary } from './shared/resume'
 import { ToolCard } from './shared/tool-card'
 
 function AdvancedTools() {
-  const { currentAtsConfig, selectedResumeId, selectedResumeType } =
-    useAtsStore()
+  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const selectedResumeId = useAtsStore((s) => s.selectedResumeId)
+  const selectedResumeType = useAtsStore((s) => s.selectedResumeType)
 
   const isMobile = useIsMobile()
 
@@ -40,13 +41,10 @@ function AdvancedTools() {
   const requestIdRef = useRef(0)
   const contextSource = useAtsStore((state) => state.advancedToolContextSource)
 
-  const optionsLoading = useAtsStore((state) => state.resumeOptionsLoading)
-
-  const sourceUpdatedAt = useAtsStore(
-    (state) =>
-      state.resumeOptions.find(
-        (resume) => resume.resume_id === selectedResumeId,
-      )?.updated_at ?? '',
+  const sourceUpdatedAt = useAtsStore((state) =>
+    state.selectedResumeOption?.resume_id === selectedResumeId
+      ? (state.selectedResumeOption?.updated_at ?? '')
+      : '',
   )
 
   const hasSelectedResume = Boolean(selectedResumeId && selectedResumeType)
@@ -80,7 +78,7 @@ function AdvancedTools() {
     }
 
     return (
-      !optionsLoading &&
+      Boolean(sourceUpdatedAt) &&
       contextSource === sourceUpdatedAt &&
       resumeContext.resumeId === selectedResumeId &&
       resumeContext.resumeType === selectedResumeType &&
@@ -93,7 +91,6 @@ function AdvancedTools() {
     selectedResumeType,
     contextSource,
     sourceUpdatedAt,
-    optionsLoading,
   ])
 
   function loadContext(force = false) {
@@ -260,7 +257,7 @@ function AdvancedTools() {
           {TOOL_DEFINITIONS.map((tool) => (
             <ToolCard
               key={tool.key}
-              disabled={!hasSelectedResume || optionsLoading}
+              disabled={!hasSelectedResume}
               onClick={() => handleOpenTool(tool.key)}
               tool={tool}
             />

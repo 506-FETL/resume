@@ -12,18 +12,25 @@ export function createResourceLoader({
   cache: TemplateResourceCache
   now?: () => number
 }) {
-  const memory = new Map<string, CachedResource>()
+  const memory = new Map<string, { record: CachedResource; bytes: number }>()
   const pending = new Map<string, { id: number; promise: Promise<unknown> }>()
   const retained = new Map<string, number>()
   const writes = new Map<string, Promise<void>>()
   let sequence = 0
 
   function remember(record: CachedResource) {
+    const previous = memory.get(record.key)
+
+    const entry =
+      previous?.record === record
+        ? previous
+        : { record, bytes: resourceBytes(record.value) }
+
     memory.delete(record.key)
-    memory.set(record.key, record)
+    memory.set(record.key, entry)
 
     let bytes = [...memory.values()].reduce(
-      (total, entry) => total + resourceBytes(entry.value),
+      (total, entry) => total + entry.bytes,
       0,
     )
 
@@ -32,7 +39,7 @@ export function createResourceLoader({
       if (retained.has(key)) continue
 
       memory.delete(key)
-      bytes -= resourceBytes(entry.value)
+      bytes -= entry.bytes
     }
 
     // 消费者持有正在使用的数据；拒绝缓存无法容纳的新资源。
@@ -53,7 +60,7 @@ export function createResourceLoader({
       const id = ++sequence
 
       const job = (async () => {
-        const saved = memory.get(key) ?? (await cache.get(key))
+        const saved = memory.get(key)?.record ?? (await cache.get(key))
         let fallback: T | undefined
 
         if (saved) {

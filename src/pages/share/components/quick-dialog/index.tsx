@@ -1,3 +1,4 @@
+import useUserStore from '@/store/user'
 import { useJobContextStore } from '@/lib/job-context'
 import type { SnapshotProvider } from '../../types'
 import type {
@@ -31,8 +32,9 @@ interface QuickDialogProps {
 }
 
 function QuickDialog({ getSnapshot }: QuickDialogProps) {
+  const ownerUserId = useUserStore((state) => state.currentUser?.id ?? null)
+
   const {
-    ownerUserId,
     openForResumeId,
     openForResumeName,
     shares,

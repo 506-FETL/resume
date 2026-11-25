@@ -23,6 +23,26 @@ interface AnalysisDialogProps {
 }
 
 export function AnalysisDialog({ open, onOpenChange }: AnalysisDialogProps) {
+  return (
+    <ResponsiveDialog
+      open={open}
+      onOpenChange={onOpenChange}
+      contentClassName='h-[min(85dvh,760px)] gap-0 sm:max-w-2xl'
+    >
+      <ResponsiveDialogContent className='min-h-0 flex-col overflow-hidden p-0'>
+        <ResponsiveDialogHeader className='px-6 pt-6 pb-2 shrink-0 border-b'>
+          <ResponsiveDialogTitle>ATS 分析过程</ResponsiveDialogTitle>
+          <ResponsiveDialogDescription>
+            分析结果仅供参考，请核对后再应用修改。
+          </ResponsiveDialogDescription>
+        </ResponsiveDialogHeader>
+        <AnalysisProgress />
+      </ResponsiveDialogContent>
+    </ResponsiveDialog>
+  )
+}
+
+function AnalysisProgress() {
   const analysisState = useAtsStore((s) => s.analysisState)
   const selectedResumeType = useAtsStore((s) => s.selectedResumeType)
   const { status, logs, reasoning, content } = analysisState
@@ -38,96 +58,79 @@ export function AnalysisDialog({ open, onOpenChange }: AnalysisDialogProps) {
   }, [analysisState, selectedResumeType])
 
   return (
-    <ResponsiveDialog
-      open={open}
-      onOpenChange={onOpenChange}
-      contentClassName='h-[min(85dvh,760px)] gap-0 sm:max-w-2xl'
-    >
-      <ResponsiveDialogContent className='min-h-0 flex-col overflow-hidden p-0'>
-        <ResponsiveDialogHeader className='px-6 pt-6 pb-2 shrink-0 border-b'>
-          <ResponsiveDialogTitle>ATS 分析过程</ResponsiveDialogTitle>
-          <ResponsiveDialogDescription>
-            分析结果仅供参考，请核对后再应用修改。
-          </ResponsiveDialogDescription>
-        </ResponsiveDialogHeader>
-        <ChainOfThought
-          open
-          className='min-h-0 w-full flex-1 overflow-y-auto p-6'
-        >
-          <ChainOfThoughtContent>
-            {visibleSteps.map((stepConfig) => {
-              const stepStatus = getStepStatus(
-                stepConfig,
-                status,
-                logs,
-                reasoning,
-                content,
-              )
+    <ChainOfThought open className='min-h-0 w-full flex-1 overflow-y-auto p-6'>
+      <ChainOfThoughtContent>
+        {visibleSteps.map((stepConfig) => {
+          const stepStatus = getStepStatus(
+            stepConfig,
+            status,
+            logs,
+            reasoning,
+            content,
+          )
 
-              if (stepStatus === 'pending') {
-                return null
-              }
+          if (stepStatus === 'pending') {
+            return null
+          }
 
-              const stepContent = getStepContent(stepConfig, analysisState)
-              const isActive = stepStatus === 'active'
+          const stepContent = getStepContent(stepConfig, analysisState)
+          const isActive = stepStatus === 'active'
 
-              const renderStepContent = () => {
-                if (!stepContent) return null
+          const renderStepContent = () => {
+            if (!stepContent) return null
 
-                if (stepConfig.id === 'thinking') {
-                  return (
-                    <AutoScrollContainer
-                      className='max-h-75 bg-muted p-3 rounded-md mt-2 overflow-x-auto'
-                      dependency={stepContent}
-                      enabled={isActive}
-                    >
-                      <div className='markdown-content text-xs text-muted-foreground [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2 [&>li]:mb-1 [&>h1]:text-lg [&>h1]:font-bold [&>h1]:mb-2 [&>h2]:text-base [&>h2]:font-semibold [&>h2]:mb-2 [&>h3]:text-sm [&>h3]:font-medium [&>h3]:mb-1 [&>code]:bg-background [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-xs [&>pre]:bg-background [&>pre]:p-2 [&>pre]:rounded [&>pre]:overflow-x-auto [&>pre]:mb-2 [&>blockquote]:border-l-2 [&>blockquote]:border-muted-foreground/30 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:mb-2 [&>strong]:font-semibold [&>em]:italic'>
-                        <Markdown>{stepContent}</Markdown>
-                      </div>
-                    </AutoScrollContainer>
-                  )
-                }
-
-                if (stepConfig.id === 'result') {
-                  return (
-                    <AutoScrollContainer
-                      className='max-h-75 bg-muted p-3 rounded-md mt-2'
-                      dependency={stepContent}
-                      enabled={isActive}
-                    >
-                      <pre className='whitespace-pre-wrap font-mono text-xs text-muted-foreground'>
-                        {stepContent}
-                      </pre>
-                    </AutoScrollContainer>
-                  )
-                }
-
-                return (
-                  <AutoScrollContainer
-                    className='max-h-75 bg-muted p-3 rounded-md mt-2'
-                    dependency={stepContent}
-                    enabled={isActive}
-                  >
-                    <div className='whitespace-pre-wrap font-mono text-xs text-muted-foreground'>
-                      {stepContent}
-                    </div>
-                  </AutoScrollContainer>
-                )
-              }
-
+            if (stepConfig.id === 'thinking') {
               return (
-                <ChainOfThoughtStep
-                  key={stepConfig.id}
-                  icon={stepConfig.icon}
-                  label={stepConfig.label}
-                  status={stepStatus}
-                  description={renderStepContent()}
-                />
+                <AutoScrollContainer
+                  className='max-h-75 bg-muted p-3 rounded-md mt-2 overflow-x-auto'
+                  dependency={stepContent}
+                  enabled={isActive}
+                >
+                  <div className='markdown-content text-xs text-muted-foreground [&>p]:mb-2 [&>p:last-child]:mb-0 [&>ul]:list-disc [&>ul]:pl-4 [&>ul]:mb-2 [&>ol]:list-decimal [&>ol]:pl-4 [&>ol]:mb-2 [&>li]:mb-1 [&>h1]:text-lg [&>h1]:font-bold [&>h1]:mb-2 [&>h2]:text-base [&>h2]:font-semibold [&>h2]:mb-2 [&>h3]:text-sm [&>h3]:font-medium [&>h3]:mb-1 [&>code]:bg-background [&>code]:px-1 [&>code]:py-0.5 [&>code]:rounded [&>code]:text-xs [&>pre]:bg-background [&>pre]:p-2 [&>pre]:rounded [&>pre]:overflow-x-auto [&>pre]:mb-2 [&>blockquote]:border-l-2 [&>blockquote]:border-muted-foreground/30 [&>blockquote]:pl-3 [&>blockquote]:italic [&>blockquote]:mb-2 [&>strong]:font-semibold [&>em]:italic'>
+                    <Markdown>{stepContent}</Markdown>
+                  </div>
+                </AutoScrollContainer>
               )
-            })}
-          </ChainOfThoughtContent>
-        </ChainOfThought>
-      </ResponsiveDialogContent>
-    </ResponsiveDialog>
+            }
+
+            if (stepConfig.id === 'result') {
+              return (
+                <AutoScrollContainer
+                  className='max-h-75 bg-muted p-3 rounded-md mt-2'
+                  dependency={stepContent}
+                  enabled={isActive}
+                >
+                  <pre className='whitespace-pre-wrap font-mono text-xs text-muted-foreground'>
+                    {stepContent}
+                  </pre>
+                </AutoScrollContainer>
+              )
+            }
+
+            return (
+              <AutoScrollContainer
+                className='max-h-75 bg-muted p-3 rounded-md mt-2'
+                dependency={stepContent}
+                enabled={isActive}
+              >
+                <div className='whitespace-pre-wrap font-mono text-xs text-muted-foreground'>
+                  {stepContent}
+                </div>
+              </AutoScrollContainer>
+            )
+          }
+
+          return (
+            <ChainOfThoughtStep
+              key={stepConfig.id}
+              icon={stepConfig.icon}
+              label={stepConfig.label}
+              status={stepStatus}
+              description={renderStepContent()}
+            />
+          )
+        })}
+      </ChainOfThoughtContent>
+    </ChainOfThought>
   )
 }

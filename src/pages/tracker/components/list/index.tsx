@@ -6,68 +6,26 @@ import { PresenceDiv } from '@/components/motion/presence-item'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
 import useTrackerStore from '../../store'
-import { selectTrackerListJobs } from '../../store/selectors'
-import { filterJobs, sortJobs } from '../../utils'
+import type { JobApplication } from '../../types'
+import { sortJobs } from '../../utils'
 import { JobCard } from './job-card'
 import { CompanyGroupTitle, JobTable } from './job-table'
 
-function ListView() {
+function ListView({ jobs }: { jobs: JobApplication[] }) {
   const reduceMotion = useReducedMotion()
   const isMobile = useIsMobile()
 
-  const {
-    jobs,
-    filterStatus,
-    metricFilter,
-    searchKeyword,
-    showArchived,
-    sortBy,
-    sortDir,
-    filterCompanyId,
-    focusedOnly,
-    groupByCompany,
-  } = useTrackerStore(
+  const { sortBy, sortDir, groupByCompany } = useTrackerStore(
     useShallow((state) => ({
-      jobs: selectTrackerListJobs(state),
-      filterStatus: state.filterStatus,
-      metricFilter: state.metricFilter,
-      searchKeyword: state.searchKeyword,
-      showArchived: state.showArchived,
       sortBy: state.sortBy,
       sortDir: state.sortDir,
-      filterCompanyId: state.filterCompanyId,
-      focusedOnly: state.focusedOnly,
       groupByCompany: state.groupByCompany,
     })),
   )
 
   const filteredJobs = useMemo(
-    () =>
-      sortJobs(
-        filterJobs(
-          filterCompanyId
-            ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
-            : jobs,
-          filterStatus,
-          searchKeyword,
-          showArchived,
-          metricFilter,
-          focusedOnly,
-        ),
-        sortBy,
-        sortDir,
-      ),
-    [
-      jobs,
-      filterStatus,
-      metricFilter,
-      searchKeyword,
-      showArchived,
-      sortBy,
-      sortDir,
-      filterCompanyId,
-      focusedOnly,
-    ],
+    () => sortJobs(jobs, sortBy, sortDir),
+    [jobs, sortBy, sortDir],
   )
 
   const displayJobs = useMemo(() => {

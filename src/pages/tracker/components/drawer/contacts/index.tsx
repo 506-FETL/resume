@@ -1,5 +1,5 @@
 import { contactEqual } from './utils'
-import type { JobApplication, TrackerContact } from '../../../types'
+import type { TrackerContact } from '../../../types'
 import { Plus, Trash2, UserRound } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -25,14 +25,15 @@ import useTrackerStore from '../../../store'
 import { getTrackerErrorMessage } from '../../../utils'
 
 interface ContactsProps {
-  job: JobApplication
+  jobId: string
+  storedContacts: TrackerContact[]
 }
 
-export default function Contacts({ job }: ContactsProps) {
+export default function Contacts({ jobId, storedContacts }: ContactsProps) {
   const reduceMotion = useReducedMotion()
   const saveJobFields = useTrackerStore((state) => state.saveJobFields)
-  const [contacts, setContacts] = useState<TrackerContact[]>(job.contacts)
-  const [baseline, setBaseline] = useState<TrackerContact[]>(job.contacts)
+  const [contacts, setContacts] = useState<TrackerContact[]>(storedContacts)
+  const [baseline, setBaseline] = useState<TrackerContact[]>(storedContacts)
   const [savingId, setSavingId] = useState<string | null>(null)
 
   const [pendingDelete, setPendingDelete] = useState<TrackerContact | null>(
@@ -45,14 +46,14 @@ export default function Contacts({ job }: ContactsProps) {
   const deletingConfirmedRef = useRef(false)
   const contactsRef = useRef(contacts)
   const baselineRef = useRef(baseline)
-  const jobContactsRef = useRef(job.contacts)
-  const jobIdRef = useRef(job.id)
+  const jobContactsRef = useRef(storedContacts)
+  const jobIdRef = useRef(jobId)
   const requestGenerationRef = useRef(0)
 
   contactsRef.current = contacts
   baselineRef.current = baseline
-  jobContactsRef.current = job.contacts
-  jobIdRef.current = job.id
+  jobContactsRef.current = storedContacts
+  jobIdRef.current = jobId
 
   // 切换职位时重置本组件状态（同职位的完整行回写不覆盖已接纳的联系人基线）。
   useEffect(() => {
@@ -61,7 +62,7 @@ export default function Contacts({ job }: ContactsProps) {
     setBaseline(jobContactsRef.current)
     setSavingId(null)
     setDeleteOpen(false)
-  }, [job.id])
+  }, [jobId])
 
   const saving = savingId !== null
 
@@ -72,7 +73,7 @@ export default function Contacts({ job }: ContactsProps) {
     dbNext: TrackerContact[],
     options: { successText: string; isDelete?: boolean },
   ) => {
-    const requestJobId = job.id
+    const requestJobId = jobId
     const requestGeneration = requestGenerationRef.current + 1
 
     requestGenerationRef.current = requestGeneration
@@ -86,25 +87,33 @@ export default function Contacts({ job }: ContactsProps) {
     try {
       const edited = dbNext.find((contact) => contact.id === rowId)
 
-      const savedJob = await saveJobFields(job.id, (current) => ({
-        contacts: options.isDelete
-          ? current.contacts.filter((contact) => contact.id !== rowId)
-          : current.contacts.some((contact) => contact.id === rowId)
-            ? current.contacts.map((contact) =>
-                contact.id === rowId && edited ? edited : contact,
-              )
-            : edited
-              ? [...current.contacts, edited]
-              : current.contacts,
-      }))
+      const savedJob = await saveJobFields(jobId, (current) => {
+        const rows = current.contacts
 
-      if (isCurrentRequest()) {
-        setBaseline(savedJob.contacts)
+        if (!rows) throw new Error('联系人已更新，请重新加载后保存')
+
+        return {
+          contacts: options.isDelete
+            ? rows.filter((contact) => contact.id !== rowId)
+            : rows.some((contact) => contact.id === rowId)
+              ? rows.map((contact) =>
+                  contact.id === rowId && edited ? edited : contact,
+                )
+              : edited
+                ? [...rows, edited]
+                : rows,
+        }
+      })
+
+      const savedContacts = savedJob.contacts
+
+      if (isCurrentRequest() && savedContacts) {
+        setBaseline(savedContacts)
 
         setContacts((prev) => {
           if (options.isDelete) return prev.filter((c) => c.id !== rowId)
 
-          const savedRow = savedJob.contacts.find((c) => c.id === rowId)
+          const savedRow = savedContacts.find((c) => c.id === rowId)
 
           return prev.map((c) => (c.id === rowId ? (savedRow ?? c) : c))
         })

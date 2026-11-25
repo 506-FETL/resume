@@ -1,11 +1,7 @@
 import { getResumeOptions } from '@/lib/supabase/resume/form'
 import { listResumeHistoryShareOptions } from '@/lib/supabase/resume/history/queries'
-import {
-  listAllResumeShares,
-  listResumeShares,
-} from '@/lib/supabase/resume/share'
-import { getCurrentUser } from '@/lib/supabase/user'
-import type { ShareDataSlice, ShareSlice, ShareStoreState } from '../types'
+import { listResumeShares } from '@/lib/supabase/resume/share'
+import type { ShareDataSlice, ShareSlice } from '../types'
 import {
   dialogShareRequests,
   shareReadGeneration,
@@ -15,61 +11,28 @@ import {
 export const createShareReaders: ShareSlice<
   Pick<
     ShareDataSlice,
-    | 'bootstrapPage'
-    | 'reloadPage'
-    | 'reloadResumeOptions'
-    | 'loadDialogShares'
-    | 'loadVersionOptions'
+    'reloadResumeOptions' | 'loadDialogShares' | 'loadVersionOptions'
   >
 > = (set, get) => {
-  const readPageResource = async (kind: 'shares' | 'resumes') => {
-    const shares = kind === 'shares'
-    const requestKey = shares ? 'pageRequestId' : 'resumeOptionsRequestId'
-    const requestId = get()[requestKey] + 1
-    const generation = shareReadGeneration
-    const previousShareIds = new Set(get().allShares.map((share) => share.id))
+  let optionsRequest: { generation: number; task: Promise<void> } | null = null
 
-    const current = () =>
-      generation === shareReadGeneration && get()[requestKey] === requestId
+  return {
+    reloadResumeOptions: async () => {
+      const generation = shareReadGeneration
 
-    set({
-      [requestKey]: requestId,
-      ...(shares
-        ? { pageLoading: true, pageError: null }
-        : { resumeOptionsLoading: true, resumeOptionsError: null }),
-    })
+      if (optionsRequest?.generation === generation) return optionsRequest.task
 
-    try {
-      const user = await getCurrentUser()
+      set({ resumeOptionsLoading: true, resumeOptionsError: null })
 
-      if (!current()) return
-      if (!user) throw new Error('用户未登录')
+      const task = (async () => {
+        try {
+          const resumes = await getResumeOptions()
 
-      if (get().ownerUserId && get().ownerUserId !== user.id) {
-        set({
-          shares: [],
-          allShares: [],
-          resumeMap: {},
-          pageLoaded: false,
-          resumeOptionsLoaded: false,
-          openForResumeId: null,
-          openForResumeName: null,
-          searchKeyword: '',
-          resumeFilters: [],
-          statusFilter: 'all',
-          versionOptionsByResumeId: {},
-        })
-      }
+          if (generation !== shareReadGeneration) return
 
-      set({ ownerUserId: user.id })
-
-      const result:
-        | Pick<ShareStoreState, 'allShares' | 'pageLoaded'>
-        | Pick<ShareStoreState, 'resumeMap' | 'resumeOptionsLoaded'> = shares
-        ? { allShares: await listAllResumeShares(), pageLoaded: true }
-        : {
+          set({
             resumeMap: Object.fromEntries(
-              (await getResumeOptions()).map((resume) => [
+              resumes.map((resume) => [
                 resume.resume_id,
                 {
                   resumeId: resume.resume_id,
@@ -79,76 +42,27 @@ export const createShareReaders: ShareSlice<
               ]),
             ),
             resumeOptionsLoaded: true,
-          }
+          })
+        } catch (error) {
+          if (generation === shareReadGeneration)
+            set({
+              resumeOptionsError:
+                error instanceof Error ? error.message : '简历列表加载失败',
+            })
+        } finally {
+          if (generation === shareReadGeneration)
+            set({ resumeOptionsLoading: false })
+        }
+      })()
 
-      const currentUser = await getCurrentUser()
+      optionsRequest = { generation, task }
 
-      if (!current()) return
-      if (!currentUser || currentUser.id !== user.id)
-        throw new Error('登录状态已变更，请重新加载')
-
-      if ('allShares' in result) {
-        set((state) => {
-          // 简历选项先返回时即可创建，列表的旧响应不能抹掉刚创建的链接。
-          const created = state.allShares.filter(
-            (share) => !previousShareIds.has(share.id),
-          )
-
-          const createdIds = new Set(created.map((share) => share.id))
-
-          return {
-            ...result,
-            allShares: [
-              ...created,
-              ...result.allShares.filter((share) => !createdIds.has(share.id)),
-            ],
-          }
-        })
-      } else {
-        set(result)
+      try {
+        await task
+      } finally {
+        if (optionsRequest?.task === task) optionsRequest = null
       }
-    } catch (error) {
-      if (!current()) return
-
-      const currentUser = await getCurrentUser()
-
-      if (!current()) return
-
-      const keepData = currentUser && currentUser.id === get().ownerUserId
-
-      const message =
-        error instanceof Error
-          ? error.message
-          : shares
-            ? '加载分享链接失败'
-            : '简历列表加载失败'
-
-      set(
-        shares
-          ? {
-              pageError: message,
-              ...(!keepData && { allShares: [], pageLoaded: false }),
-            }
-          : {
-              resumeOptionsError: message,
-              ...(!keepData && { resumeMap: {}, resumeOptionsLoaded: false }),
-            },
-      )
-    } finally {
-      if (current())
-        set(shares ? { pageLoading: false } : { resumeOptionsLoading: false })
-    }
-  }
-
-  return {
-    bootstrapPage: async () => {
-      await Promise.all([
-        readPageResource('shares'),
-        readPageResource('resumes'),
-      ])
     },
-    reloadPage: async () => readPageResource('shares'),
-    reloadResumeOptions: async () => readPageResource('resumes'),
     loadDialogShares: async (resumeId) => {
       const requestId = get().dialogRequestId
 

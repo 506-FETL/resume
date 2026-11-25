@@ -2,7 +2,7 @@ import type { ShareStatusFilter } from '../../utils'
 import { Check, ChevronDown, FileUser, Search, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import {
@@ -26,14 +26,15 @@ import { cn } from '@/lib/utils'
 import { SHARE_SEARCH_INPUT_ID, SHARE_STATUS_FILTERS } from '../../const'
 import { useShareFilterActions } from '../../hooks/use-share-filter-actions'
 import useShareStore from '../../store'
-import { deriveShareStatus, filterShares } from '../../utils'
+import { useDebouncedValue } from '@/hooks/use-debounce'
 
 export default function Toolbar() {
   const {
-    allShares,
-    pageLoading,
-    pageError,
-    pageLoaded,
+    statusCounts,
+    statsError,
+    statsLoading,
+    reloadPage,
+    setPageKeyword,
     resumeMap,
     resumeOptionsLoaded,
     resumeOptionsLoading,
@@ -68,21 +69,35 @@ export default function Toolbar() {
             ?.displayName ?? '已选 1 项')
         : `已选 ${resumeFilters.length} 份简历`
 
-  const filteredShares = useMemo(
-    () =>
-      filterShares(allShares, {
-        keyword: searchKeyword,
-        resumeIds: resumeFilters,
-        status: 'all',
-      }),
-    [allShares, searchKeyword, resumeFilters],
-  )
+  const [composing, setComposing] = useState(false)
+  const settledKeyword = useDebouncedValue(searchKeyword, 200)
+
+  useEffect(() => {
+    if (!composing && settledKeyword === searchKeyword)
+      setPageKeyword(settledKeyword)
+  }, [composing, settledKeyword, searchKeyword, setPageKeyword])
 
   const hasFilter =
     Boolean(searchKeyword) || resumeFilters.length > 0 || statusFilter !== 'all'
 
   return (
     <div className='min-w-0 space-y-4 [@media(max-height:500px)]:space-y-2'>
+      {statsError && (
+        <div
+          role='alert'
+          className='flex items-center gap-2 text-sm text-muted-foreground'
+        >
+          分享统计暂时不可用
+          <Button
+            variant='outline'
+            size='sm'
+            disabled={statsLoading}
+            onClick={() => reloadPage()}
+          >
+            重试统计
+          </Button>
+        </div>
+      )}
       <Tabs
         value={statusFilter}
         onValueChange={(value) => setStatusFilter(value as ShareStatusFilter)}
@@ -94,13 +109,6 @@ export default function Toolbar() {
             className='h-10! min-w-full justify-between gap-1 p-0 sm:justify-start sm:gap-6'
           >
             {SHARE_STATUS_FILTERS.map(({ value, label }) => {
-              const count =
-                value === 'all'
-                  ? filteredShares.length
-                  : filteredShares.filter(
-                      (share) => deriveShareStatus(share) === value,
-                    ).length
-
               return (
                 <TabsTrigger
                   key={value}
@@ -109,7 +117,7 @@ export default function Toolbar() {
                 >
                   {label}
                   <span className='rounded-sm px-0.5 text-xs leading-4 tabular-nums text-muted-foreground sm:bg-muted sm:px-1.5 sm:py-0.5'>
-                    {!pageLoaded && (pageLoading || pageError) ? '—' : count}
+                    {statusCounts?.[value] ?? '—'}
                   </span>
                   {statusFilter === value && (
                     <motion.span
@@ -135,6 +143,8 @@ export default function Toolbar() {
             id={SHARE_SEARCH_INPUT_ID}
             aria-label='搜索分享链接'
             value={searchKeyword}
+            onCompositionStart={() => setComposing(true)}
+            onCompositionEnd={() => setComposing(false)}
             onChange={(event) => setSearchKeyword(event.target.value)}
             placeholder='搜索分享名称…'
             className='h-9 rounded-md pl-9 pr-8 shadow-none'

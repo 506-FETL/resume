@@ -7,6 +7,7 @@ import ArchiveDialog from './components/archive-dialog'
 import Content from './components/content'
 import DeleteDialog from './components/delete-dialog'
 import Header from './components/header'
+import SharePagination from './components/pagination'
 import SettingsDialog from './components/settings-dialog'
 import Toolbar from './components/toolbar'
 import VersionDialog from './components/version-dialog'
@@ -43,6 +44,7 @@ export default function Management() {
             <Toolbar />
           </div>
           <div
+            id='share-management-results'
             role='region'
             aria-label='分享链接列表'
             tabIndex={0}
@@ -50,6 +52,7 @@ export default function Management() {
           >
             <Content />
           </div>
+          <SharePagination />
         </section>
         <ArchiveDialog />
         <SettingsDialog />

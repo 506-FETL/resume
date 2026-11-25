@@ -63,6 +63,7 @@ export function createWorkflowDrafts(core: PersistenceRuntime) {
           id,
           patch,
           createTrackerAccountGuard(getTrackerAccountScope()),
+          job,
         )
 
         if (!isLive(id, runtime)) return

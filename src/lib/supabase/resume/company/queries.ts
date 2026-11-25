@@ -4,7 +4,6 @@ import type {
   JobApplication,
   StageDetail,
   TrackerActivity,
-  TrackerContact,
 } from '@/pages/tracker/types'
 import { normalizeJobWorkflow } from '@/pages/tracker/workflow'
 import supabase from '../../client'
@@ -15,7 +14,6 @@ import { trackerProcessError } from '../tracker-companies'
 export interface JobApplicationSummary {
   focused_at: string | null
   id: string
-  resume_id: string | null
   status: ApplicationStatus
   updated_at: string
   company: string
@@ -23,7 +21,10 @@ export interface JobApplicationSummary {
   archived: boolean
   next_action_date: string | null
   next_action: string | null
-  interview_sub_stages: InterviewSubStage[]
+  interview_sub_stages: Pick<
+    InterviewSubStage,
+    'id' | 'label' | 'status' | 'start_date' | 'order' | 'is_history'
+  >[]
 }
 
 // 获取用户所有公司/职位
@@ -31,6 +32,7 @@ export type CompanyRequestGuard = (userId: string | null) => void
 
 export async function getCompanies(
   assertUser?: CompanyRequestGuard,
+  jobId?: string,
 ): Promise<JobApplication[]> {
   const user = await getCurrentUser()
 
@@ -38,24 +40,34 @@ export async function getCompanies(
 
   if (!user) throw new Error('用户未登陆')
 
-  const { data, error } = await supabase
-    .from('company')
-    .select('*,job_submissions(is_primary)')
-    .eq('user_id', user.id)
-    .order('created_at', { ascending: false })
+  const data = await collectPages(async (from, to) => {
+    assertUser?.(user.id)
 
-  if (error) {
-    throw trackerProcessError(error)
-  }
+    const query = supabase
+      .from('company')
+      .select(
+        'id,user_id,created_at,updated_at,company,company_logo,tracker_company_id,recruitment_batch,referred_from_job_id,position,location,salary,job_url,resume_id,status,stage_details,interview_sub_stages,archived,next_action,next_action_date,activities,focused_at,job_submissions(is_primary)',
+      )
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+      .order('id', { ascending: false })
 
-  return (data ?? []).map(({ job_submissions, ...row }) =>
+    const { data, error } = await (jobId
+      ? query.eq('id', jobId).limit(1)
+      : query.range(from, to))
+
+    if (error) throw trackerProcessError(error)
+
+    return data ?? []
+  })
+
+  return data.map(({ job_submissions, ...row }) =>
     normalizeJobWorkflow({
       ...row,
       stage_details: row.stage_details as StageDetail[],
       interview_sub_stages: (row.interview_sub_stages ??
         []) as InterviewSubStage[],
       activities: row.activities as TrackerActivity[],
-      contacts: row.contacts as TrackerContact[],
       has_submission: job_submissions.some(
         (record: { is_primary: boolean }) => record.is_primary,
       ),
@@ -66,6 +78,38 @@ export async function getCompanies(
         ),
     }),
   )
+}
+
+export type JobDetailField = 'contacts' | 'jd_text'
+
+type JobDetails = Pick<
+  JobApplication,
+  JobDetailField | 'jd_updated_at' | 'source'
+>
+
+export async function getCompanyDetailField(
+  id: string,
+  field: JobDetailField,
+  assertUser: CompanyRequestGuard,
+): Promise<JobDetails> {
+  const user = await getCurrentUser()
+
+  assertUser(user?.id ?? null)
+
+  if (!user) throw new Error('用户未登陆')
+
+  const { data, error } = await supabase
+    .from('company')
+    .select(field === 'contacts' ? 'contacts' : 'jd_text,jd_updated_at,source')
+    .eq('user_id', user.id)
+    .eq('id', id)
+    .single<JobDetails>()
+
+  assertUser(user.id)
+
+  if (error) throw trackerProcessError(error)
+
+  return data
 }
 
 export type AssistantJobSummary = Pick<
@@ -240,16 +284,22 @@ export type JobOptionSummary = Pick<
   'id' | 'company' | 'position'
 >
 
-export async function listJobOptions(): Promise<JobOptionSummary[]> {
+export async function listJobOptions(
+  companyId?: string,
+): Promise<JobOptionSummary[]> {
   const user = await getCurrentUser()
 
   if (!user) throw new Error('用户未登陆')
 
-  return collectPages(async (from, to) => {
-    const { data, error } = await supabase
+  const fetchPage = async (from: number, to: number) => {
+    let query = supabase
       .from('company')
       .select('id,company,position')
       .eq('user_id', user.id)
+
+    if (companyId) query = query.eq('id', companyId)
+
+    const { data, error } = await query
       .order('updated_at', { ascending: false })
       .order('id', { ascending: false })
       .range(from, to)
@@ -257,7 +307,9 @@ export async function listJobOptions(): Promise<JobOptionSummary[]> {
     if (error) throw trackerProcessError(error)
 
     return data ?? []
-  })
+  }
+
+  return companyId ? fetchPage(0, 0) : collectPages(fetchPage)
 }
 
 export async function listJobApplicationSummaries(): Promise<
@@ -269,23 +321,24 @@ export async function listJobApplicationSummaries(): Promise<
     throw new Error('用户未登陆')
   }
 
-  const { data, error } = await supabase
-    .from('company')
-    .select(
-      'id,resume_id,status,updated_at,company,position,archived,focused_at,next_action_date,next_action,interview_sub_stages',
-    )
-    .eq('user_id', user.id)
-    .order('updated_at', { ascending: false })
+  return collectPages(async (from, to) => {
+    const { data, error } = await supabase
+      .from('dashboard_job_summaries')
+      .select(
+        'id,status,updated_at,company,position,archived,focused_at,next_action_date,next_action,interview_sub_stages',
+      )
+      .eq('user_id', user.id)
+      .order('updated_at', { ascending: false })
+      .order('id', { ascending: false })
+      .range(from, to)
 
-  if (error) {
-    throw trackerProcessError(error)
-  }
+    if (error) throw trackerProcessError(error)
 
-  return (data ?? []).map((item) => ({
-    ...item,
-    archived: item.archived ?? false,
-    next_action_date: item.next_action_date ?? null,
-    next_action: item.next_action ?? null,
-    interview_sub_stages: item.interview_sub_stages ?? [],
-  })) as JobApplicationSummary[]
+    return data.map((item) => ({
+      ...item,
+      archived: item.archived ?? false,
+      next_action_date: item.next_action_date ?? null,
+      next_action: item.next_action ?? null,
+    })) as JobApplicationSummary[]
+  }, 500)
 }

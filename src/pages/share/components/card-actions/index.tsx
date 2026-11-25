@@ -27,17 +27,19 @@ import CopyLinkButton from '../copy-link-button'
 
 export default function CardActions({ share }: { share: ResumeShareRecord }) {
   const {
-    pendingShareIds,
     openSettingsDialog,
     openArchiveDialog,
     openDeleteDialog,
     openVersionDialog,
     setActive,
-  } = useShareStore()
+  } = useShareStore.getState()
 
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const actionAfterCloseRef = useRef<(() => void) | null>(null)
-  const busy = pendingShareIds.includes(share.id)
+
+  const busy = useShareStore((state) =>
+    state.pendingShareIds.includes(share.id),
+  )
 
   const operationInDialog = useShareStore((state) =>
     hasShareOperationDialog(state, share.id),

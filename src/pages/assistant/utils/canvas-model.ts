@@ -1,6 +1,6 @@
 import type { ToolCanvasMeta } from './tool-canvas-meta'
 import type { CanvasChange, CanvasModel } from '../types'
-import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
+import type { AiMessagePart } from '@/lib/ai/types'
 import { getSkillToolLabel } from '@/lib/ai/skills/presentation'
 import { fieldDiffStat } from '../components/diff/compute-field-diff'
 import { TOOL_CANVAS_META } from './tool-canvas-meta'
@@ -67,19 +67,10 @@ function resolveChangeResumeId(
   return undefined
 }
 
-export function deriveCanvasModel(
-  messages: AiMessage[],
-  streamingParts: AiMessagePart[] = [],
-  scopeResumeId: string | null = null,
-): CanvasModel {
-  const allParts: AiMessagePart[] = [
-    ...messages.flatMap((m) => m.parts),
-    ...streamingParts,
-  ]
-
+export function deriveCanvasChanges(parts: AiMessagePart[]): CanvasChange[] {
   const changes: CanvasChange[] = []
 
-  for (const part of allParts) {
+  for (const part of parts) {
     if (part.type !== 'tool-call') continue
 
     const meta = TOOL_CANVAS_META[part.toolName] ?? {
@@ -142,6 +133,13 @@ export function deriveCanvasModel(
     })
   }
 
+  return changes
+}
+
+export function buildCanvasModel(
+  changes: CanvasChange[],
+  scopeResumeId: string | null,
+): CanvasModel {
   // 按「当前画布正在预览的简历」隔离：看板（全局进度）与读操作恒保留；
   // 简历 / 历史版本类仅保留属于该简历的改动。scopeResumeId 或 change.resumeId
   // 缺失时保留，避免未解析出目标时误伤（含历史遗留结果）。

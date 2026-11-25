@@ -15,7 +15,9 @@ interface OverviewSummaryCardProps {
 export default function OverviewSummaryCard({
   loading,
 }: OverviewSummaryCardProps) {
-  const { currentAtsConfig, loadError, analysisError } = useAtsStore()
+  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const loadError = useAtsStore((s) => s.loadError)
+  const analysisError = useAtsStore((s) => s.analysisError)
   const { meta, readabilityIndex, summary } = currentAtsConfig ?? {}
   const assessment = meta?.rubricVersion === '2.0' ? meta.assessment : undefined
 

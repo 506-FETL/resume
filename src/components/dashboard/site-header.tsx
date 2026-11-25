@@ -1,7 +1,7 @@
 import { StarIcon } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { Link, useLocation } from 'react-router-dom'
 import { Fragment } from 'react/jsx-runtime'
 import {
@@ -35,6 +35,12 @@ export function SiteHeader() {
   const crumbs = useBreadcrumbs()
   const location = useLocation()
   const isResumeEditor = location.pathname.startsWith('/resume/editor')
+  const [hasShownStars, setHasShownStars] = useState(!isResumeEditor)
+
+  // 首次离开编辑页才读取星数，之后保留组件以复用结果和已完成的计数动效。
+  useEffect(() => {
+    if (!isResumeEditor) setHasShownStars(true)
+  }, [isResumeEditor])
 
   return (
     <div
@@ -120,9 +126,11 @@ export function SiteHeader() {
           isResumeEditor && '[&>div:first-child]:hidden',
         )}
       >
-        <GithubStars>
-          <GithubRepositoryLink />
-        </GithubStars>
+        {hasShownStars && (
+          <GithubStars>
+            <GithubRepositoryLink />
+          </GithubStars>
+        )}
         <AnimatedThemeToggler />
       </div>
     </div>

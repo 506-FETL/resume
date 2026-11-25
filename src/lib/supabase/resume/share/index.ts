@@ -8,7 +8,6 @@ export {
 
 export {
   getResumeShareReleaseForReview,
-  listAllResumeShares,
   listResumeShareReviewReleases,
   listResumeShares,
 } from './records'

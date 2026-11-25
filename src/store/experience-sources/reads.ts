@@ -76,9 +76,21 @@ export const createReadsSlice: ExperienceSlice<'load' | 'read' | 'original'> = (
         set((current) => {
           const staleReads = { ...current.staleReads }
 
-          delete staleReads[key]
+          const versionKey = versionId
+            ? key
+            : JSON.stringify(
+                blockIds
+                  ? [sourceId, result.version.id, blockIds]
+                  : [sourceId, result.version.id, offset],
+              )
 
-          return { reads: { ...current.reads, [key]: result }, staleReads }
+          delete staleReads[key]
+          delete staleReads[versionKey]
+
+          return {
+            reads: { ...current.reads, [key]: result, [versionKey]: result },
+            staleReads,
+          }
         })
 
         return result

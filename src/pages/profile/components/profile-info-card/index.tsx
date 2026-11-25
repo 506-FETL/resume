@@ -1,9 +1,7 @@
 import type { User } from '@supabase/supabase-js'
 import { Calendar as CalendarIcon, Shield } from 'lucide-react'
-import { useEffect, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import supabase from '@/lib/supabase/client'
 import { ProfileAvatar } from '../profile-avatar'
 import { ReadonlyField } from '../readonly-field'
 import { EmailRow } from './email-row'
@@ -23,23 +21,7 @@ function formatRegistrationDate(dateString?: string) {
   })
 }
 
-export function ProfileInfoCard({ user: initialUser }: ProfileInfoCardProps) {
-  const [user, setUser] = useState(initialUser)
-
-  useEffect(() => {
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'USER_UPDATED' && session?.user) {
-        setUser(session.user)
-      }
-    })
-
-    return () => {
-      subscription.unsubscribe()
-    }
-  }, [])
-
+export function ProfileInfoCard({ user }: ProfileInfoCardProps) {
   const fullName = user.user_metadata.full_name || ''
   const email = user.email || ''
 

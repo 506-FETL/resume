@@ -2,6 +2,7 @@ import type { LucideIcon } from 'lucide-react'
 import type { DashboardResources } from '../../insights'
 import type { JobPriorityItem } from '../../job-priorities'
 import { ArrowRight, BellRing, Flag, MessagesSquare } from 'lucide-react'
+import { useMemo } from 'react'
 import { Link } from 'react-router-dom'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
@@ -15,8 +16,9 @@ export default function JobPriorities({
 }: {
   resources: DashboardResources
 }) {
-  const { interviews, followUps, focused } = buildJobPriorities(
-    resources.jobs.data,
+  const { interviews, followUps, focused } = useMemo(
+    () => buildJobPriorities(resources.jobs.data),
+    [resources.jobs.data],
   )
 
   return (

@@ -1,32 +1,23 @@
-import type { Resume } from '../../types'
 import { useMemo } from 'react'
 import { jobContextUrl } from '@/lib/job-context-url'
-import { countPendingAtsFindings } from '@/lib/ats/status'
 import { isJobPendingFollowUp } from '@/pages/tracker/utils/follow-up'
 import type { DashboardAction } from './types'
 import type { DashboardInsights } from './types'
-import type { AtsSummaries } from './types'
 import type { DashboardResources } from './types'
-import { compareAtsSummaryChronologically } from './extras'
 
 // 聚合 job / ats 概览，供统计卡与今日待办共用。
 export function useDashboardInsights(
-  resumes: Resume[],
+  cloudCount: number,
   resumesLoading: boolean,
   resources: DashboardResources,
 ): DashboardInsights {
-  const onlineResumes = useMemo(
-    () => resumes.filter((resume) => !resume.isOffline),
-    [resumes],
-  )
-
   const { data: jobSummaries, loading: jobsResourceLoading } = resources.jobs
   const { data: atsSummaries, loading: atsResourceLoading } = resources.ats
 
   return useMemo(() => {
-    const hasCloudResume = onlineResumes.length > 0
+    const hasCloudResume = cloudCount > 0
     const jobsLoading = jobsResourceLoading
-    const atsLoading = resumesLoading || (hasCloudResume && atsResourceLoading)
+    const atsLoading = atsResourceLoading
 
     // 求职漏斗：越过 saved 即视为已投递；面试/Offer 仅统计未归档的在办岗位
     const applied = jobSummaries.filter((job) => job.status !== 'saved').length
@@ -45,24 +36,8 @@ export function useDashboardInsights(
       (job) => !job.archived && job.status === 'saved',
     ).length
 
-    // 每份简历取最近一次 ATS 检测
-    const atsMap = new Map<string, AtsSummaries[number]>()
-
-    for (const summary of atsSummaries) {
-      const existing = atsMap.get(summary.resume_id)
-
-      if (!existing || compareAtsSummaryChronologically(summary, existing) > 0)
-        atsMap.set(summary.resume_id, summary)
-    }
-
-    const onlineIds = new Set(onlineResumes.map((resume) => resume.resume_id))
-
-    const latestAtsList = [...atsMap.entries()]
-      .filter(([resumeId]) => onlineIds.has(resumeId))
-      .map(([, summary]) => summary)
-
-    const scored = latestAtsList
-      .map((summary) => summary.summary?.overall_score)
+    const scored = atsSummaries
+      .map((report) => report.overall_score)
       .filter((score): score is number => typeof score === 'number')
 
     const avgAtsScore =
@@ -72,14 +47,12 @@ export function useDashboardInsights(
           )
         : null
 
-    const atsTodoTotal = latestAtsList.reduce(
-      (sum, summary) => sum + countPendingAtsFindings(summary.findings),
+    const atsTodoTotal = atsSummaries.reduce(
+      (sum, summary) => sum + summary.pending_count,
       0,
     )
 
-    const resumesWithoutAts = onlineResumes.filter(
-      (resume) => !atsMap.has(resume.resume_id),
-    ).length
+    const resumesWithoutAts = cloudCount - atsSummaries.length
 
     const actions: DashboardAction[] = []
 
@@ -132,7 +105,7 @@ export function useDashboardInsights(
         interview,
         offer,
         avgAtsScore,
-        atsResumeCount: latestAtsList.length,
+        atsResumeCount: atsSummaries.length,
       },
       actions: hasCloudResume ? actions : [],
       hasCloudResume,
@@ -146,7 +119,7 @@ export function useDashboardInsights(
     atsSummaries,
     jobSummaries,
     jobsResourceLoading,
-    onlineResumes,
+    cloudCount,
     resumesLoading,
   ])
 }

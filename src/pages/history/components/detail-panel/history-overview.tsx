@@ -17,13 +17,16 @@ export default function HistoryVersionOverview({
   state,
 }: HistoryVersionOverviewProps) {
   const { selectedVersion: version, editing } = state
-  const { getLabel, loading, error, retry } = useJobSummaries()
+
+  const { options, loading, error, retry } = useJobSummaries(
+    editing ? null : (version?.company_id ?? null),
+  )
 
   if (!version) {
     return null
   }
 
-  const jobLabel = getLabel(version.company_id)
+  const jobLabel = options[0]?.label
 
   const jobValue = !version.company_id ? (
     '未关联岗位'

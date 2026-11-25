@@ -35,7 +35,7 @@ export default function SettingsDialog() {
   const reduceMotion = useReducedMotion()
 
   const {
-    allShares,
+    pageShares,
     shares,
     settingsDialogOpen,
     settingsShareId,
@@ -44,7 +44,7 @@ export default function SettingsDialog() {
     updateSettings,
   } = useShareStore()
 
-  const share = findShareById(allShares, shares, settingsShareId)
+  const share = findShareById(pageShares, shares, settingsShareId)
 
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,

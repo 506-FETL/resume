@@ -1,6 +1,6 @@
 import type { MouseEvent } from 'react'
 import type { Resume } from './types'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AnimatedContent from '@/components/motion/animated-content'
 import { PageLayout } from '@/components/layout/page-layout'
@@ -53,12 +53,28 @@ export default function DashboardPage() {
     authStatus !== 'unknown' && accountId === (user?.id ?? null)
 
   const resumes = accountMatches ? rawResumes : EMPTY_RESUMES
+
+  const recentResumes = useMemo(
+    () =>
+      [...resumes]
+        .sort(
+          (a, b) =>
+            (Date.parse(b.updated_at || b.created_at) || 0) -
+            (Date.parse(a.updated_at || a.created_at) || 0),
+        )
+        .slice(0, 2),
+    [resumes],
+  )
+
   const storeLoading = useIndexStore((s) => s.loading)
   const storeError = useIndexStore((s) => s.error)
   const resumeError = accountMatches ? storeError : null
   const isOnline = Boolean(user)
   const cloudState = useIndexStore((s) => s.cloud)
   const localState = useIndexStore((s) => s.local)
+
+  const cloudCount = accountMatches ? cloudState.total : 0
+  const resumeCount = cloudCount + (accountMatches ? localState.total : 0)
 
   const resumesLoading =
     !accountMatches || storeLoading || cloudState.loading || localState.loading
@@ -78,13 +94,23 @@ export default function DashboardPage() {
   )
 
   // 云端派生模块只等待云端列表，本地失败或慢请求不会阻塞其可用数据。
-  const insights = useDashboardInsights(resumes, cloudPending, resources)
-  const extras = useDashboardExtras(resumes, cloudPending, resources)
-  const timeline = useDashboardTimeline(resumes, cloudPending, resources)
+  const insights = useDashboardInsights(cloudCount, cloudPending, resources)
+
+  const extras = useDashboardExtras(
+    cloudCount,
+    cloudPending || cloudUnavailable,
+    resources,
+  )
+
+  const timeline = useDashboardTimeline(
+    cloudCount,
+    cloudPending || cloudUnavailable,
+    resources,
+  )
 
   const mode = useDashboardMode({
     accountMatches,
-    resumeCount: resumes.length,
+    resumeCount,
     resumesConfirmedEmpty:
       cloudState.hasLoaded &&
       localState.hasLoaded &&
@@ -121,11 +147,7 @@ export default function DashboardPage() {
     <PageLayout>
       <div className='flex min-w-0 flex-col gap-8'>
         <div>
-          <Header
-            onCreate={openCreate}
-            isGettingStarted={isGettingStarted}
-            createDisabled={mode === 'pending'}
-          />
+          <Header onCreate={openCreate} createDisabled={mode === 'pending'} />
         </div>
 
         <AnimatedContent key={user?.id ?? 'guest'} animationKey={mode}>
@@ -181,23 +203,12 @@ export default function DashboardPage() {
                         </p>
                       ) : (
                         <div className='grid gap-3 md:grid-cols-2'>
-                          {[...resumes]
-                            .sort(
-                              (a, b) =>
-                                new Date(
-                                  b.updated_at || b.created_at,
-                                ).getTime() -
-                                new Date(
-                                  a.updated_at || a.created_at,
-                                ).getTime(),
-                            )
-                            .slice(0, 2)
-                            .map((resume) => (
-                              <RecentResumeCard
-                                key={`${accountId ?? 'guest'}:${resume.isOffline ? 'local' : 'cloud'}:${resume.resume_id}:${resume.updated_at}`}
-                                resume={resume}
-                              />
-                            ))}
+                          {recentResumes.map((resume) => (
+                            <RecentResumeCard
+                              key={`${accountId ?? 'guest'}:${resume.isOffline ? 'local' : 'cloud'}:${resume.resume_id}:${resume.updated_at}`}
+                              resume={resume}
+                            />
+                          ))}
                         </div>
                       )}
                     </AnimatedContent>
@@ -239,7 +250,9 @@ export default function DashboardPage() {
                                 {
                                   jobs: '岗位',
                                   ats: 'ATS 检测',
+                                  trend: 'ATS 分数趋势',
                                   versions: '版本动态',
+                                  weeklyEdits: '本周编辑次数',
                                 }[key] ?? key
                               }
                               hasLoaded={resource.hasLoaded}
@@ -273,12 +286,9 @@ export default function DashboardPage() {
                           jobsUnavailable={Boolean(
                             resources.jobs.error && !resources.jobs.hasLoaded,
                           )}
-                          atsUnavailable={
-                            cloudUnavailable ||
-                            Boolean(
-                              resources.ats.error && !resources.ats.hasLoaded,
-                            )
-                          }
+                          atsUnavailable={Boolean(
+                            resources.ats.error && !resources.ats.hasLoaded,
+                          )}
                         />
                       </div>
                     </div>
@@ -289,17 +299,16 @@ export default function DashboardPage() {
                           loading={extras.funnelLoading}
                         />
                       )}
-                      {!cloudUnavailable &&
-                        (!resources.ats.error || resources.ats.hasLoaded) && (
-                          <AtsTrendCard
-                            trend={extras.atsTrend}
-                            loading={extras.atsTrendLoading}
-                          />
-                        )}
-                      {!cloudUnavailable &&
-                        (!resources.jobs.error || resources.jobs.hasLoaded) &&
-                        (!resources.versions.error ||
-                          resources.versions.hasLoaded) && (
+                      {(!resources.trend.error ||
+                        resources.trend.hasLoaded) && (
+                        <AtsTrendCard
+                          trend={extras.atsTrend}
+                          loading={extras.atsTrendLoading}
+                        />
+                      )}
+                      {(!resources.jobs.error || resources.jobs.hasLoaded) &&
+                        (!resources.weeklyEdits.error ||
+                          resources.weeklyEdits.hasLoaded) && (
                           <ActivityCard
                             activity={extras.activity}
                             loading={extras.activityLoading}
@@ -308,21 +317,17 @@ export default function DashboardPage() {
                     </div>
                     <div className='min-w-0'>
                       <Entry
-                        unavailable={
-                          cloudUnavailable ||
-                          Boolean(
-                            (resources.jobs.error &&
-                              !resources.jobs.hasLoaded) ||
-                            (resources.versions.error &&
-                              !resources.versions.hasLoaded),
-                          )
-                        }
+                        unavailable={Boolean(
+                          (resources.jobs.error && !resources.jobs.hasLoaded) ||
+                          (resources.versions.error &&
+                            !resources.versions.hasLoaded),
+                        )}
                         onCreate={openCreate}
                         events={timeline.events}
                         timelineLoading={timeline.loading}
                         resumeCount={
                           cloudHasLoaded && localState.hasLoaded
-                            ? resumes.length
+                            ? resumeCount
                             : undefined
                         }
                       />

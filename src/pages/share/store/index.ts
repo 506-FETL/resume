@@ -1,6 +1,7 @@
 import type { ShareStoreState } from './types'
 import useUserStore from '@/store/user'
 import { create } from 'zustand'
+import { clearManagementCache } from './data/management'
 import { clearShareReadRequests, createShareDataSlice } from './data'
 import { createShareUiSlice } from './ui'
 
@@ -18,13 +19,22 @@ useUserStore.subscribe((state) => {
 
   accountId = nextAccountId
   clearShareReadRequests()
+  clearManagementCache()
 
   useShareStore.setState((current) => ({
-    ownerUserId: null,
+    pageNumber: 1,
+    pageQueryKey: null,
+    pageKeyword: '',
+    pageStats: null,
+    countScope: null,
+    statusCounts: null,
+    overview: null,
+    statsLoading: true,
+    statsError: null,
     pageRequestId: current.pageRequestId + 1,
     dialogRequestId: current.dialogRequestId + 1,
     shares: [],
-    allShares: [],
+    pageShares: [],
     pendingShareIds: [],
     resumeMap: {},
     searchKeyword: '',
@@ -37,9 +47,16 @@ useUserStore.subscribe((state) => {
     resumeOptionsLoading: true,
     resumeOptionsError: null,
     resumeOptionsLoaded: false,
-    resumeOptionsRequestId: current.resumeOptionsRequestId + 1,
     dialogLoading: false,
     dialogError: null,
+    settingsDialogOpen: false,
+    settingsShareId: null,
+    archiveDialogOpen: false,
+    archiveShareId: null,
+    deleteDialogOpen: false,
+    deleteShareId: null,
+    versionDialogOpen: false,
+    versionShareId: null,
     openForResumeId: null,
     openForResumeName: null,
   }))

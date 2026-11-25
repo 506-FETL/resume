@@ -19,6 +19,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Textarea } from '@/components/ui/textarea'
 import { EXPERIENCE_MAX_BYTES } from '@/lib/experience-sources/const'
 
+import type { ExperienceSourceReference } from '@/lib/experience-sources/types'
 import { ExperienceSourceError } from '@/lib/experience-sources/types'
 import { persistExperienceUpload } from '@/lib/experience-sources/upload'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
@@ -131,13 +132,11 @@ function UploadDialogContent({
 
       useExperienceSourcesStore.getState().invalidate(result.source.id)
 
-      onCompleteRef.current?.([
-        {
-          sourceId: result.source.id,
-          versionId: result.versionId,
-          name: result.source.name,
-        },
-      ])
+      return {
+        sourceId: result.source.id,
+        versionId: result.versionId,
+        name: result.source.name,
+      }
     } catch (cause) {
       update({
         status:
@@ -207,13 +206,30 @@ function UploadDialogContent({
     setSaving(true)
 
     try {
-      for (const job of selected) {
-        await run(job)
+      const queue = selected.entries()
+      const completed: (ExperienceSourceReference | undefined)[] = []
 
-        if (useExperienceSourcesStore.getState().generation !== generation)
-          return
+      async function processFiles() {
+        for (const [index, job] of queue) {
+          if (useExperienceSourcesStore.getState().generation !== generation)
+            return
+
+          completed[index] = await run(job)
+        }
       }
 
+      // 文件读取与上传最多同时处理两份，保留列表和最终引用的选择顺序。
+      await Promise.all(
+        Array.from({ length: Math.min(2, selected.length) }, processFiles),
+      )
+
+      if (useExperienceSourcesStore.getState().generation !== generation) return
+
+      const references = completed.filter(
+        (reference) => reference !== undefined,
+      )
+
+      if (references.length) onCompleteRef.current?.(references)
       if (selected.every((job) => job.status === 'ready')) onOpenChange(false)
     } finally {
       savingRef.current = false

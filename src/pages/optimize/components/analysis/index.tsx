@@ -10,7 +10,10 @@ import FindingItem from './finding-item'
 const severityOrder: Severity[] = ['high', 'medium', 'low']
 
 export default function IssueAnalysis() {
-  const { currentAtsConfig, loading, loadError, analysisError } = useAtsStore()
+  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const loading = useAtsStore((s) => s.loading)
+  const loadError = useAtsStore((s) => s.loadError)
+  const analysisError = useAtsStore((s) => s.analysisError)
   const initialLoading = loading && !currentAtsConfig
   const findings = currentAtsConfig?.findings
 

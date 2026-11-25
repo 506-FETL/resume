@@ -3,7 +3,8 @@ import useAtsStore from '../../store'
 import OverviewSummaryCard from './overview-summary-card'
 
 export default function OptimizeDashboard() {
-  const { currentAtsConfig, loading } = useAtsStore()
+  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const loading = useAtsStore((s) => s.loading)
 
   return (
     <div className='min-w-0'>

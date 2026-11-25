@@ -13,3 +13,18 @@ export function getDashboardMode(input: DashboardModeInput): DashboardMode {
 
   return confirmedEmpty ? 'onboarding' : 'workspace'
 }
+
+export function dashboardDayStarts(now = new Date()) {
+  const monday = new Date(now)
+
+  monday.setHours(0, 0, 0, 0)
+  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7))
+
+  return Array.from({ length: 8 }, (_, index) => {
+    const day = new Date(monday)
+
+    day.setDate(monday.getDate() + index)
+
+    return day
+  })
+}
