@@ -32,7 +32,7 @@ const root = createRoot(document.getElementById('root')!)
 
 async function loadPage() {
   if (isPublicHome) {
-    const { default: PublicHomepage } = await import('./public-homepage')
+    const { default: PublicHomepage } = await import('./home')
 
     return <PublicHomepage />
   }

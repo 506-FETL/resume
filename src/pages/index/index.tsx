@@ -46,81 +46,64 @@ export default function DashboardPage() {
   }
 
   const loadData = useIndexStore((s) => s.loadData)
-  const rawResumes = useIndexStore((s) => s.resumes)
+  const retrySource = useIndexStore((s) => s.retrySource)
   const accountId = useIndexStore((s) => s.accountId)
+  const cloudState = useIndexStore((s) => s.cloud)
+  const localState = useIndexStore((s) => s.local)
 
   const accountMatches =
     authStatus !== 'unknown' && accountId === (user?.id ?? null)
 
-  const resumes = accountMatches ? rawResumes : EMPTY_RESUMES
+  const recentResumes = useMemo(() => {
+    if (!accountMatches) return EMPTY_RESUMES
 
-  const recentResumes = useMemo(
-    () =>
-      [...resumes]
-        .sort(
-          (a, b) =>
-            (Date.parse(b.updated_at || b.created_at) || 0) -
-            (Date.parse(a.updated_at || a.created_at) || 0),
-        )
-        .slice(0, 2),
-    [resumes],
-  )
+    return [...cloudState.items, ...localState.items]
+      .sort(
+        (a, b) =>
+          (Date.parse(b.updated_at || b.created_at) || 0) -
+          (Date.parse(a.updated_at || a.created_at) || 0),
+      )
+      .slice(0, 2)
+  }, [accountMatches, cloudState.items, localState.items])
 
-  const storeLoading = useIndexStore((s) => s.loading)
-  const storeError = useIndexStore((s) => s.error)
-  const resumeError = accountMatches ? storeError : null
   const isOnline = Boolean(user)
-  const cloudState = useIndexStore((s) => s.cloud)
-  const localState = useIndexStore((s) => s.local)
-
-  const cloudCount = accountMatches ? cloudState.total : 0
-  const resumeCount = cloudCount + (accountMatches ? localState.total : 0)
-
-  const resumesLoading =
-    !accountMatches || storeLoading || cloudState.loading || localState.loading
-
   const cloudHasLoaded = accountMatches && cloudState.hasLoaded
+  const resumeCount = accountMatches ? cloudState.total + localState.total : 0
+  const resumeError = accountMatches && (cloudState.error || localState.error)
 
   const cloudUnavailable =
     accountMatches && Boolean(cloudState.error) && !cloudHasLoaded
 
-  const cloudPending =
-    !accountMatches || (cloudState.loading && !cloudHasLoaded)
+  const resumesLoading =
+    !accountMatches ||
+    (cloudState.loading && !cloudState.hasLoaded) ||
+    (localState.loading && !localState.hasLoaded)
 
   const resources = useDashboardResources(
-    !resumesLoading || isOnline,
+    authStatus !== 'unknown',
     isOnline,
     user?.id,
   )
 
-  // 云端派生模块只等待云端列表，本地失败或慢请求不会阻塞其可用数据。
-  const insights = useDashboardInsights(cloudCount, cloudPending, resources)
-
-  const extras = useDashboardExtras(
-    cloudCount,
-    cloudPending || cloudUnavailable,
+  const insights = useDashboardInsights(
+    cloudHasLoaded ? cloudState.total : undefined,
     resources,
   )
 
-  const timeline = useDashboardTimeline(
-    cloudCount,
-    cloudPending || cloudUnavailable,
-    resources,
-  )
+  const extras = useDashboardExtras(resources)
+  const timeline = useDashboardTimeline(resources)
 
   const mode = useDashboardMode({
     accountMatches,
     resumeCount,
     resumesConfirmedEmpty:
+      accountMatches &&
       cloudState.hasLoaded &&
       localState.hasLoaded &&
       !cloudState.loading &&
       !localState.loading &&
-      !resumesLoading &&
-      !resumeError &&
-      !cloudState.error &&
-      !localState.error,
-    jobsCount: resources.jobs.data.length,
+      !resumeError,
+    jobsCount: resources.jobs.data.total,
     jobsConfirmedEmpty:
       resources.jobs.hasLoaded &&
       !resources.jobs.loading &&
@@ -131,7 +114,7 @@ export default function DashboardPage() {
 
   const showRecentResumes =
     !isGettingStarted ||
-    resumes.length > 0 ||
+    recentResumes.length > 0 ||
     resumesLoading ||
     Boolean(resumeError)
 
@@ -140,7 +123,7 @@ export default function DashboardPage() {
 
     loadData()
 
-    return () => useIndexStore.getState().cancelLoad()
+    return useIndexStore.getState().leavePage
   }, [loadData, user?.id, authStatus])
 
   return (
@@ -160,7 +143,7 @@ export default function DashboardPage() {
                 {isGettingStarted && (
                   <GettingStarted
                     isAuthenticated={isOnline}
-                    hasResume={resumes.length > 0}
+                    hasResume={recentResumes.length > 0}
                     onCreate={openCreate}
                   />
                 )}
@@ -186,16 +169,16 @@ export default function DashboardPage() {
                     </div>
                     <AnimatedContent
                       animationKey={
-                        resumes.length
+                        recentResumes.length
                           ? 'resumes'
                           : resumesLoading
                             ? 'loading'
                             : 'empty'
                       }
                     >
-                      {resumesLoading && resumes.length === 0 ? (
+                      {resumesLoading && recentResumes.length === 0 ? (
                         <RecentResumesSkeleton />
-                      ) : resumes.length === 0 ? (
+                      ) : recentResumes.length === 0 ? (
                         <p className='rounded-lg border p-4 text-sm text-muted-foreground'>
                           {resumeError
                             ? '暂时无法加载简历'
@@ -216,21 +199,14 @@ export default function DashboardPage() {
                       <ResourceError
                         label='云端简历'
                         hasLoaded={cloudState.hasLoaded}
-                        retry={loadData}
+                        retry={() => retrySource('cloud')}
                       />
                     )}
                     {accountMatches && localState.error && (
                       <ResourceError
                         label='本地简历'
                         hasLoaded={localState.hasLoaded}
-                        retry={loadData}
-                      />
-                    )}
-                    {resumeError && !cloudState.error && !localState.error && (
-                      <ResourceError
-                        label='简历'
-                        hasLoaded={resumes.length > 0}
-                        retry={loadData}
+                        retry={() => retrySource('local')}
                       />
                     )}
                   </section>
@@ -293,27 +269,26 @@ export default function DashboardPage() {
                       </div>
                     </div>
                     <div className='grid min-w-0 items-start gap-6 lg:grid-cols-3'>
-                      {(!resources.jobs.error || resources.jobs.hasLoaded) && (
-                        <FunnelCard
-                          funnel={extras.funnel}
-                          loading={extras.funnelLoading}
-                        />
-                      )}
-                      {(!resources.trend.error ||
-                        resources.trend.hasLoaded) && (
-                        <AtsTrendCard
-                          trend={extras.atsTrend}
-                          loading={extras.atsTrendLoading}
-                        />
-                      )}
-                      {(!resources.jobs.error || resources.jobs.hasLoaded) &&
-                        (!resources.weeklyEdits.error ||
-                          resources.weeklyEdits.hasLoaded) && (
-                          <ActivityCard
-                            activity={extras.activity}
-                            loading={extras.activityLoading}
-                          />
+                      <FunnelCard
+                        funnel={extras.funnel}
+                        loading={extras.funnelLoading}
+                        unavailable={Boolean(
+                          resources.jobs.error && !resources.jobs.hasLoaded,
                         )}
+                      />
+                      <AtsTrendCard
+                        trend={extras.atsTrend}
+                        loading={extras.atsTrendLoading}
+                        unavailable={Boolean(
+                          resources.trend.error && !resources.trend.hasLoaded,
+                        )}
+                      />
+                      <ActivityCard
+                        activity={extras.activity}
+                        loading={extras.activityLoading}
+                        edits={resources.weeklyEdits}
+                        jobs={resources.jobs}
+                      />
                     </div>
                     <div className='min-w-0'>
                       <Entry
@@ -345,7 +320,6 @@ export default function DashboardPage() {
         open={createOpen}
         onOpenChange={setCreateOpen}
         online={isOnline}
-        onCreated={loadData}
       />
     </PageLayout>
   )

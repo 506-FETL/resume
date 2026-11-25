@@ -44,9 +44,17 @@ function StatisticalCard({
               title='已投递'
               placeholder={jobsUnavailable ? '—' : undefined}
               value={funnel.applied}
-              description={funnel.applied > 0 ? '累计投递的岗位数' : '添加岗位'}
+              description={
+                jobsUnavailable
+                  ? '投递数据暂不可用'
+                  : funnel.applied > 0
+                    ? '累计投递的岗位数'
+                    : '添加岗位'
+              }
               onGuideClick={
-                funnel.applied === 0 ? () => navigate('/tracker') : undefined
+                !jobsUnavailable && funnel.applied === 0
+                  ? () => navigate('/tracker')
+                  : undefined
               }
               icon={<Send className='size-4 text-blue-500' />}
               iconBg='bg-blue-500/8'
@@ -109,9 +117,11 @@ function StatisticalCard({
               description={
                 atsUnavailable
                   ? '检测数据暂不可用'
-                  : funnel.atsResumeCount > 0
-                    ? `${funnel.atsResumeCount} 份简历检测均分`
-                    : '开始 ATS 检测'
+                  : funnel.scoredResumeCount > 0
+                    ? `${funnel.scoredResumeCount} 份简历检测均分`
+                    : funnel.atsResumeCount > 0
+                      ? '已有检测，暂无有效分数'
+                      : '开始 ATS 检测'
               }
               onGuideClick={
                 !atsUnavailable && funnel.atsResumeCount === 0

@@ -17,7 +17,7 @@ export function ChartEmpty({
   icon: ReactNode
   title: string
   description: string
-  children: ReactNode
+  children?: ReactNode
 }) {
   return (
     <Empty className='min-h-[140px] gap-3 px-3 py-2'>
@@ -28,7 +28,7 @@ export function ChartEmpty({
         <EmptyTitle className='text-sm'>{title}</EmptyTitle>
         <EmptyDescription className='text-xs'>{description}</EmptyDescription>
       </EmptyHeader>
-      <EmptyContent>{children}</EmptyContent>
+      {children && <EmptyContent>{children}</EmptyContent>}
     </Empty>
   )
 }

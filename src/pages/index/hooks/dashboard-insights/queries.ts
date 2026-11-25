@@ -1,18 +1,15 @@
-import type { AtsReportSummary } from '@/lib/supabase/resume/ats'
 import {
   PERSISTED_VALUE_TYPES,
   SUGGESTION_KINDS,
 } from '@/lib/ats/result/values'
 import type { ResumeHistoryVersionSummaryRecord } from '@/lib/supabase/resume/history/types'
 import supabase from '@/lib/supabase/client'
-import { collectPages } from '@/lib/supabase/pagination'
-import { getCurrentUser } from '@/lib/supabase/user'
 import { dashboardDayStarts } from '../../utils'
 
-type LatestAssessment = Pick<
-  AtsReportSummary,
-  'resume_id' | 'overall_score'
-> & {
+type AtsSummaryRow = {
+  assessed_count: number
+  scored_count: number
+  score_sum: number | null
   pending_count: number
 }
 
@@ -23,77 +20,40 @@ type ActivityVersion = Pick<
   'resume_id' | 'version_no' | 'created_at' | 'source_type'
 > & { resume: { display_name: string | null } }
 
-async function currentOwner() {
-  const user = await getCurrentUser()
+export async function getDashboardAtsSummary(owner: string) {
+  const { data, error } = await supabase
+    .rpc('get_dashboard_ats_summary', {
+      p_owner_id: owner,
+      p_suggestion_kinds: [...SUGGESTION_KINDS],
+      p_value_types: [...PERSISTED_VALUE_TYPES],
+    })
+    .single<AtsSummaryRow>()
 
-  if (!user) throw new Error('用户未登录')
+  if (error) throw error
 
-  return user.id
-}
-
-export async function listDashboardAssessments() {
-  const owner = await currentOwner()
-
-  return collectPages(async (from, to) => {
-    const { data, error } = await supabase.rpc(
-      'get_dashboard_ats_assessments',
-      {
-        p_owner_id: owner,
-        p_offset: from,
-        p_limit: to - from + 1,
-        p_suggestion_kinds: [...SUGGESTION_KINDS],
-        p_value_types: [...PERSISTED_VALUE_TYPES],
-      },
-    )
-
-    if (error) throw error
-
-    return data as LatestAssessment[]
-  }, 500)
-}
-
-export async function listDashboardTrend() {
-  const owner = await currentOwner()
-  const scores: TrendScore[] = []
-
-  for (let offset = 0; scores.length < 8; ) {
-    const pageSize = offset === 0 ? 8 : 200
-
-    const { data, error } = await supabase
-      .from('ats')
-      .select(
-        'created_at,overall_score:summary->overall_score,resume_config!ats_resume_id_fkey!inner()',
-      )
-      .eq('user_id', owner)
-      .eq('resume_config.user_id', owner)
-      .not('summary->>overall_score', 'is', null)
-      .order('created_at', { ascending: false })
-      .order('id', { ascending: false })
-      .range(offset, offset + pageSize - 1)
-
-    if (error) throw error
-
-    for (const row of data) {
-      if (typeof row.overall_score === 'number')
-        scores.push({
-          created_at: row.created_at,
-          overall_score: row.overall_score,
-        })
-
-      if (scores.length === 8) break
-    }
-
-    if (data.length < pageSize) break
-
-    offset += data.length
+  return {
+    atsResumeCount: data.assessed_count,
+    scoredResumeCount: data.scored_count,
+    avgAtsScore:
+      data.score_sum === null
+        ? null
+        : Math.round(data.score_sum / data.scored_count),
+    atsTodoTotal: data.pending_count,
   }
-
-  return scores.reverse()
 }
 
-export async function listDashboardVersions() {
-  const owner = await currentOwner()
+export async function listDashboardTrend(owner: string) {
+  const { data, error } = await supabase.rpc('get_dashboard_ats_trend', {
+    p_owner_id: owner,
+  })
 
+  if (error) throw error
+  if (!Array.isArray(data)) throw new Error('ATS 评分趋势读取失败')
+
+  return data as TrendScore[]
+}
+
+export async function listDashboardVersions(owner: string) {
   const { data, error } = await supabase
     .from('resume_config_versions')
     .select(
@@ -111,8 +71,7 @@ export async function listDashboardVersions() {
   return data
 }
 
-export async function loadDashboardWeeklyEdits() {
-  const owner = await currentOwner()
+export async function loadDashboardWeeklyEdits(owner: string) {
   const starts = dashboardDayStarts().map((date) => date.toISOString())
 
   const { data, error } = await supabase.rpc('get_dashboard_version_edits', {

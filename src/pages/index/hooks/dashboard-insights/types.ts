@@ -1,10 +1,10 @@
 import type { ApplicationStatus } from '@/pages/tracker/types'
 import type {
-  listDashboardAssessments,
+  getDashboardAtsSummary,
   listDashboardTrend,
   listDashboardVersions,
 } from './queries'
-import type { listJobApplicationSummaries } from '@/lib/supabase/resume/company'
+import type { DashboardJobs } from './jobs'
 
 // 求职漏斗核心指标（首页统计卡数据源）
 export interface DashboardFunnel {
@@ -13,6 +13,7 @@ export interface DashboardFunnel {
   offer: number
   avgAtsScore: number | null
   atsResumeCount: number
+  scoredResumeCount: number
 }
 
 export type DashboardActionTone = 'urgent' | 'warning' | 'info' | 'muted'
@@ -36,11 +37,7 @@ export interface DashboardInsights {
   atsLoading: boolean
 }
 
-export type JobSummaries = Awaited<
-  ReturnType<typeof listJobApplicationSummaries>
->
-
-export type AtsSummaries = Awaited<ReturnType<typeof listDashboardAssessments>>
+export type AtsSummary = Awaited<ReturnType<typeof getDashboardAtsSummary>>
 
 export type TrendScores = Awaited<ReturnType<typeof listDashboardTrend>>
 
@@ -55,8 +52,8 @@ export interface DashboardResource<T> {
 }
 
 export interface DashboardResources {
-  jobs: DashboardResource<JobSummaries>
-  ats: DashboardResource<AtsSummaries>
+  jobs: DashboardResource<DashboardJobs>
+  ats: DashboardResource<AtsSummary>
   trend: DashboardResource<TrendScores>
   versions: DashboardResource<VersionSummaries>
   weeklyEdits: DashboardResource<Record<string, number>>
@@ -113,8 +110,8 @@ export interface AtsTrendPoint {
 export interface ActivityDay {
   label: string
   date: string
-  edits: number
-  applies: number
+  edits: number | null
+  applies: number | null
   total: number
 }
 

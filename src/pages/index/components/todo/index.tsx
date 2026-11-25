@@ -4,10 +4,8 @@ import {
   AlertCircle,
   ArrowRight,
   CircleCheckBig,
-  FilePlus2,
   FileSearch,
   ListChecks,
-  LogIn,
   Send,
 } from 'lucide-react'
 import { Link } from 'react-router-dom'
@@ -80,42 +78,10 @@ export function TodoCard({
       <CardContent className='px-5 pt-0'>
         <AnimatedContent
           animationKey={
-            unavailable
-              ? 'unavailable'
-              : loading
-                ? 'loading'
-                : !isAuthenticated
-                  ? 'guest'
-                  : !hasCloudResume
-                    ? 'no-resume'
-                    : actions.length === 0
-                      ? 'empty'
-                      : 'ready'
+            actions.length ? 'ready' : unavailable ? 'error' : 'loading'
           }
         >
-          {unavailable ? (
-            <EmptyState
-              icon={AlertCircle}
-              title='— 待办数据暂不可用'
-              hint='请重试失败的数据源。'
-            />
-          ) : loading ? (
-            <TodoSkeleton />
-          ) : !isAuthenticated ? (
-            <EmptyState icon={LogIn} title='登录后查看今日待办' />
-          ) : !hasCloudResume ? (
-            <EmptyState
-              icon={FilePlus2}
-              title='还没有云端简历'
-              hint='创建简历或将本地简历同步到云端后，可查看待办。'
-            />
-          ) : actions.length === 0 ? (
-            <EmptyState
-              icon={CircleCheckBig}
-              title='待办已完成'
-              tone='positive'
-            />
-          ) : (
+          {actions.length > 0 ? (
             <div className='flex flex-col gap-1'>
               {actions.map((action) => {
                 const tone = TONE_STYLES[action.tone]
@@ -160,39 +126,22 @@ export function TodoCard({
                   </Button>
                 )
               })}
+              {(unavailable || loading) && (
+                <p role='status' className='mt-2 text-xs text-muted-foreground'>
+                  {unavailable ? '部分待办暂不可用' : '其余待办正在加载'}
+                </p>
+              )}
             </div>
+          ) : unavailable ? (
+            <p className='flex items-center gap-2 text-sm text-muted-foreground'>
+              <AlertCircle className='size-4' aria-hidden />
+              部分待办未能加载
+            </p>
+          ) : (
+            <TodoSkeleton />
           )}
         </AnimatedContent>
       </CardContent>
     </Card>
-  )
-}
-
-function EmptyState({
-  icon: Icon,
-  title,
-  hint,
-  tone = 'muted',
-}: {
-  icon: LucideIcon
-  title: string
-  hint?: string
-  tone?: 'muted' | 'positive'
-}) {
-  return (
-    <div className='flex flex-wrap items-center gap-2 text-left'>
-      <div
-        className={cn(
-          'flex size-7 items-center justify-center rounded-full',
-          tone === 'positive'
-            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-            : 'bg-muted text-muted-foreground',
-        )}
-      >
-        <Icon className='size-5' />
-      </div>
-      <p className='text-sm font-medium'>{title}</p>
-      {hint && <p className='max-w-xs text-xs text-muted-foreground'>{hint}</p>}
-    </div>
   )
 }

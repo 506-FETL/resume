@@ -1,79 +1,50 @@
 import { useMemo } from 'react'
 import { jobContextUrl } from '@/lib/job-context-url'
-import { isJobPendingFollowUp } from '@/pages/tracker/utils/follow-up'
 import type { DashboardAction } from './types'
 import type { DashboardInsights } from './types'
 import type { DashboardResources } from './types'
 
 // 聚合 job / ats 概览，供统计卡与今日待办共用。
 export function useDashboardInsights(
-  cloudCount: number,
-  resumesLoading: boolean,
+  cloudCount: number | undefined,
   resources: DashboardResources,
 ): DashboardInsights {
-  const { data: jobSummaries, loading: jobsResourceLoading } = resources.jobs
-  const { data: atsSummaries, loading: atsResourceLoading } = resources.ats
+  const {
+    data: jobs,
+    hasLoaded: jobsReady,
+    loading: jobsLoading,
+  } = resources.jobs
+
+  const { data: ats, hasLoaded: atsReady, loading: atsLoading } = resources.ats
 
   return useMemo(() => {
-    const hasCloudResume = cloudCount > 0
-    const jobsLoading = jobsResourceLoading
-    const atsLoading = atsResourceLoading
+    const hasCloudResume = cloudCount !== undefined && cloudCount > 0
 
-    // 求职漏斗：越过 saved 即视为已投递；面试/Offer 仅统计未归档的在办岗位
-    const applied = jobSummaries.filter((job) => job.status !== 'saved').length
+    const resumesWithoutAts =
+      atsReady && hasCloudResume
+        ? Math.max(0, cloudCount - ats.atsResumeCount)
+        : 0
 
-    const interview = jobSummaries.filter(
-      (job) => !job.archived && job.status === 'interview',
-    ).length
-
-    const offer = jobSummaries.filter(
-      (job) => !job.archived && job.status === 'offer',
-    ).length
-
-    const pending = jobSummaries.filter(isJobPendingFollowUp).length
-
-    const savedToApply = jobSummaries.filter(
-      (job) => !job.archived && job.status === 'saved',
-    ).length
-
-    const scored = atsSummaries
-      .map((report) => report.overall_score)
-      .filter((score): score is number => typeof score === 'number')
-
-    const avgAtsScore =
-      scored.length > 0
-        ? Math.round(
-            scored.reduce((sum, score) => sum + score, 0) / scored.length,
-          )
-        : null
-
-    const atsTodoTotal = atsSummaries.reduce(
-      (sum, summary) => sum + summary.pending_count,
-      0,
-    )
-
-    const resumesWithoutAts = cloudCount - atsSummaries.length
+    const savedToApply = jobs.stages.saved ?? 0
 
     const actions: DashboardAction[] = []
 
-    if (pending > 0) {
+    if (jobs.firstPendingId && jobs.pending > 0) {
       actions.push({
         id: 'pending',
-        count: pending,
+        count: jobs.pending,
         label: '个岗位待跟进',
         hint: '有岗位到期或长时间未推进',
         tone: 'urgent',
-        to: jobContextUrl(
-          '/tracker',
-          jobSummaries.find(isJobPendingFollowUp)!.id,
-          { tab: 'follow-up' },
-        ),
+        to: jobContextUrl('/tracker', jobs.firstPendingId, {
+          tab: 'follow-up',
+        }),
       })
     }
-    if (atsTodoTotal > 0) {
+    if (ats.atsTodoTotal > 0) {
       actions.push({
         id: 'ats-todo',
-        count: atsTodoTotal,
+        count: ats.atsTodoTotal,
         label: '项简历优化待完成',
         hint: 'ATS 检测给出的改进建议',
         tone: 'warning',
@@ -101,25 +72,21 @@ export function useDashboardInsights(
 
     return {
       funnel: {
-        applied,
-        interview,
-        offer,
-        avgAtsScore,
-        atsResumeCount: atsSummaries.length,
+        applied: jobs.applied,
+        interview: jobs.stages.interview ?? 0,
+        offer: jobs.stages.offer ?? 0,
+        avgAtsScore: ats.avgAtsScore,
+        atsResumeCount: ats.atsResumeCount,
+        scoredResumeCount: ats.scoredResumeCount,
       },
-      actions: hasCloudResume ? actions : [],
+      actions,
       hasCloudResume,
       loading:
-        resumesLoading || (hasCloudResume && (jobsLoading || atsLoading)),
-      jobsLoading,
-      atsLoading,
+        (!jobsReady && jobsLoading) ||
+        (!atsReady && atsLoading) ||
+        cloudCount === undefined,
+      jobsLoading: !jobsReady && jobsLoading,
+      atsLoading: !atsReady && atsLoading,
     }
-  }, [
-    atsResourceLoading,
-    atsSummaries,
-    jobSummaries,
-    jobsResourceLoading,
-    cloudCount,
-    resumesLoading,
-  ])
+  }, [jobs, jobsReady, jobsLoading, ats, atsReady, atsLoading, cloudCount])
 }

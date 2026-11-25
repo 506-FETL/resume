@@ -75,27 +75,26 @@ async function includeLegacyKeys(
   dated: IDBKeyRange,
   total: number,
 ) {
-  // 只有存在旧记录时才检查索引主键，将缺少 updated_at 的记录按创建时间并入。
-  const updated = new Set(await store.index('updated_at').getAllKeys(dated))
-
   const range =
     recent.length === CARD_LIMIT
       ? IDBKeyRange.lowerBound(recent[CARD_LIMIT - 1].date)
       : dated
 
-  const created = await readRecentKeys(
-    store.index('created_at'),
-    range,
-    updated,
-  )
+  const created = store.index('created_at')
+  // 超过已有候选数的一个主键，足以判断是否还有旧记录可能进入前两名。
+  const candidates = await created.getAllKeys(range, recent.length + 1)
 
-  recent.push(...created)
+  if (candidates.some((id) => !recent.some((item) => item.id === id))) {
+    const updated = new Set(await store.index('updated_at').getAllKeys(dated))
 
-  recent.sort(
-    (a, b) => indexedDB.cmp(b.date, a.date) || indexedDB.cmp(b.id, a.id),
-  )
+    recent.push(...(await readRecentKeys(created, range, updated)))
 
-  recent.splice(CARD_LIMIT)
+    recent.sort(
+      (a, b) => indexedDB.cmp(b.date, a.date) || indexedDB.cmp(b.id, a.id),
+    )
+
+    recent.splice(CARD_LIMIT)
+  }
 
   if (recent.length >= Math.min(total, CARD_LIMIT)) return
 

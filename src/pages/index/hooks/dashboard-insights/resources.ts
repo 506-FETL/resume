@@ -1,31 +1,26 @@
 import { requestDashboardResource } from './resource-request'
 import { useCallback, useEffect, useState } from 'react'
-import type { JobSummaries } from './types'
+import { EMPTY_DASHBOARD_JOBS, loadDashboardJobs } from './jobs'
 import type { TrendScores } from './types'
-import type { AtsSummaries } from './types'
+import type { AtsSummary } from './types'
 import type { VersionSummaries } from './types'
 import type { DashboardResource } from './types'
 import type { DashboardResources } from './types'
 
-const listAtsSummaries = () =>
-  import('./queries').then((module) => module.listDashboardAssessments())
+const listAtsSummary = (owner: string) =>
+  import('./queries').then((module) => module.getDashboardAtsSummary(owner))
 
-const listTrend = () =>
-  import('./queries').then((module) => module.listDashboardTrend())
+const listTrend = (owner: string) =>
+  import('./queries').then((module) => module.listDashboardTrend(owner))
 
-const loadWeeklyEdits = () =>
-  import('./queries').then((module) => module.loadDashboardWeeklyEdits())
+const loadWeeklyEdits = (owner: string) =>
+  import('./queries').then((module) => module.loadDashboardWeeklyEdits(owner))
 
-const listJobApplicationSummaries = () =>
-  import('@/lib/supabase/resume/company/queries').then((module) =>
-    module.listJobApplicationSummaries(),
-  )
-
-const listResumeHistoryVersionSummaries = () =>
-  import('./queries').then((module) => module.listDashboardVersions())
+const listResumeHistoryVersionSummaries = (owner: string) =>
+  import('./queries').then((module) => module.listDashboardVersions(owner))
 
 export function useDashboardResource<T>(
-  fetcher: () => Promise<T>,
+  fetcher: (owner: string) => Promise<T>,
   empty: T,
   ready: boolean,
   enabled: boolean,
@@ -58,7 +53,7 @@ export function useDashboardResource<T>(
       error: null,
     }))
 
-    if (!enabled) {
+    if (!enabled || !accountId) {
       setState({
         data: empty,
         loading: false,
@@ -101,15 +96,18 @@ export function useDashboardResource<T>(
     : { data: empty, loading: true, error: null, hasLoaded: false, retry }
 }
 
-export const EMPTY_JOBS: JobSummaries = []
-
-export const EMPTY_ATS: AtsSummaries = []
+const EMPTY_ATS: AtsSummary = {
+  avgAtsScore: null,
+  atsResumeCount: 0,
+  scoredResumeCount: 0,
+  atsTodoTotal: 0,
+}
 
 const EMPTY_TREND: TrendScores = []
 
 const EMPTY_WEEKLY_EDITS: Record<string, number> = {}
 
-export const EMPTY_VERSIONS: VersionSummaries = []
+const EMPTY_VERSIONS: VersionSummaries = []
 
 // 各资源独立请求、重试；账户切换时立即遮蔽旧数据并取消旧请求的写入。
 export function useDashboardResources(
@@ -118,15 +116,15 @@ export function useDashboardResources(
   accountId?: string,
 ): DashboardResources {
   const jobs = useDashboardResource(
-    listJobApplicationSummaries,
-    EMPTY_JOBS,
+    loadDashboardJobs,
+    EMPTY_DASHBOARD_JOBS,
     ready,
     enabled,
     accountId,
   )
 
   const ats = useDashboardResource(
-    listAtsSummaries,
+    listAtsSummary,
     EMPTY_ATS,
     ready,
     enabled,

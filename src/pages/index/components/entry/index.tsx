@@ -105,9 +105,9 @@ function Entry({
           >
             {events.length > 0 ? (
               <div className='flex flex-col gap-3'>
-                {unavailable && (
+                {(unavailable || timelineLoading) && (
                   <p role='status' className='text-xs text-muted-foreground'>
-                    部分动态暂不可用，请重试失败的数据源。
+                    {unavailable ? '部分动态未能加载' : '其余动态正在加载'}
                   </p>
                 )}
                 <ol className='flex flex-col'>
@@ -146,7 +146,7 @@ function Entry({
                     <FileUser className='text-muted-foreground/50' />
                   </EmptyMedia>
                   <EmptyTitle className='text-sm'>
-                    {unavailable ? '— 动态暂不可用' : '暂无动态'}
+                    {unavailable ? '暂时无法读取动态' : '暂无动态'}
                   </EmptyTitle>
                 </EmptyHeader>
                 {!unavailable && !timelineLoading && resumeCount === 0 && (

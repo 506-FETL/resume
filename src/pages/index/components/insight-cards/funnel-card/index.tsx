@@ -20,9 +20,11 @@ const FunnelChart = createDeferredComponent(
 export function FunnelCard({
   funnel,
   loading,
+  unavailable,
 }: {
   funnel: FunnelStage[]
   loading: boolean
+  unavailable: boolean
 }) {
   const navigate = useNavigate()
   const hasData = funnel.some((stage) => stage.count > 0)
@@ -36,9 +38,21 @@ export function FunnelCard({
       />
       <CardContent className='min-w-0 flex-1 px-0 pt-0'>
         <AnimatedContent
-          animationKey={loading ? 'loading' : hasData ? 'ready' : 'empty'}
+          animationKey={
+            unavailable
+              ? 'error'
+              : loading
+                ? 'loading'
+                : hasData
+                  ? 'ready'
+                  : 'empty'
+          }
         >
-          {loading ? (
+          {unavailable ? (
+            <p className='py-2 text-sm text-muted-foreground'>
+              暂时无法读取岗位分布
+            </p>
+          ) : loading ? (
             <DashboardChartSkeleton />
           ) : hasData ? (
             <ChartViewport>

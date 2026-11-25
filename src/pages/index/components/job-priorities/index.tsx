@@ -40,6 +40,7 @@ export default function JobPriorities({
         icon={BellRing}
         accent='text-amber-500 dark:text-amber-400'
         badgeAccent='bg-amber-100 text-amber-800 dark:bg-amber-500/15 dark:text-amber-300'
+        count={resources.jobs.data.pending}
         items={followUps}
         resource={resources.jobs}
         empty='暂无到期或久未推进的岗位'
@@ -49,6 +50,7 @@ export default function JobPriorities({
         icon={Flag}
         accent='text-red-500 dark:text-red-400'
         badgeAccent='bg-red-100 text-red-700 dark:bg-red-500/15 dark:text-red-300'
+        count={resources.jobs.data.focusedCount}
         items={focused}
         resource={resources.jobs}
         empty='还没有重点关注的职位'
@@ -64,6 +66,7 @@ function PriorityCard({
   accent,
   badgeAccent,
   items,
+  count = items.length,
   resource,
   empty,
   emptyHint,
@@ -73,11 +76,9 @@ function PriorityCard({
   icon: LucideIcon
   accent: string
   badgeAccent: string
+  count?: number
   items: JobPriorityItem[]
-  resource: Pick<
-    DashboardResources['jobs'],
-    'loading' | 'error' | 'hasLoaded' | 'retry'
-  >
+  resource: Pick<DashboardResources['jobs'], 'loading' | 'error' | 'hasLoaded'>
   empty: string
   emptyHint?: string
   allTo?: string
@@ -106,12 +107,12 @@ function PriorityCard({
       <CardHeader className='grid-cols-[minmax(0,1fr)_auto] items-center gap-2 px-5 pb-2'>
         <CardTitle className='flex items-center gap-2 text-base font-semibold'>
           {title}
-          {resource.hasLoaded && items.length > 0 && (
+          {resource.hasLoaded && count > 0 && (
             <Badge
               variant='secondary'
               className={`tabular-nums ${badgeAccent}`}
             >
-              {items.length}
+              {count}
             </Badge>
           )}
         </CardTitle>
@@ -152,7 +153,7 @@ function PriorityCard({
             </div>
           ) : (
             <div className='flex flex-col gap-2'>
-              {items.slice(0, 2).map((item) => (
+              {items.map((item) => (
                 <Button
                   key={item.id}
                   variant='ghost'
@@ -175,19 +176,6 @@ function PriorityCard({
             </div>
           )}
         </AnimatedContent>
-        {resource.error && (
-          <div
-            role='status'
-            className='mt-2 flex items-center justify-between gap-2 text-xs text-muted-foreground'
-          >
-            <span>
-              {resource.hasLoaded ? '刷新失败，保留上次数据' : '加载失败'}
-            </span>
-            <Button size='sm' variant='ghost' onClick={resource.retry}>
-              重试
-            </Button>
-          </div>
-        )}
       </CardContent>
     </Card>
   )

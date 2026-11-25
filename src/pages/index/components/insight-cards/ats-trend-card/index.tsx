@@ -24,9 +24,11 @@ const AtsTrendChart = createDeferredComponent(
 export function AtsTrendCard({
   trend,
   loading,
+  unavailable,
 }: {
   trend: AtsTrendPoint[]
   loading: boolean
+  unavailable: boolean
 }) {
   const navigate = useNavigate()
   // 至少两次检测才绘制趋势，单次检测展示分数与时间摘要。
@@ -42,16 +44,22 @@ export function AtsTrendCard({
       <CardContent className='min-w-0 flex-1 px-0 pt-0'>
         <AnimatedContent
           animationKey={
-            loading
-              ? 'loading'
-              : trend.length > 1
-                ? 'ready'
-                : hasData
-                  ? 'summary'
-                  : 'empty'
+            unavailable
+              ? 'error'
+              : loading
+                ? 'loading'
+                : trend.length > 1
+                  ? 'ready'
+                  : hasData
+                    ? 'summary'
+                    : 'empty'
           }
         >
-          {loading ? (
+          {unavailable ? (
+            <p className='py-2 text-sm text-muted-foreground'>
+              暂时无法读取检测趋势
+            </p>
+          ) : loading ? (
             <DashboardChartSkeleton />
           ) : trend.length === 1 ? (
             <div className='flex flex-wrap items-baseline gap-x-3 gap-y-1 py-2'>

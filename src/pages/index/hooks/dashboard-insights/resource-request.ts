@@ -3,9 +3,9 @@ import useUserStore from '@/store/user'
 let accountGeneration = 0
 
 const pending = new Map<
-  () => Promise<unknown>,
+  (owner: string) => Promise<unknown>,
   {
-    accountId: string | undefined
+    accountId: string
     generation: number
     promise: Promise<unknown>
   }
@@ -19,8 +19,8 @@ useUserStore.subscribe((state, previous) => {
 })
 
 export function requestDashboardResource<T>(
-  fetcher: () => Promise<T>,
-  accountId: string | undefined,
+  fetcher: (owner: string) => Promise<T>,
+  accountId: string,
 ): Promise<T> {
   const existing = pending.get(fetcher)
 
@@ -31,7 +31,7 @@ export function requestDashboardResource<T>(
   )
     return existing.promise as Promise<T>
 
-  const promise = fetcher().finally(() => {
+  const promise = fetcher(accountId).finally(() => {
     if (pending.get(fetcher)?.promise === promise) pending.delete(fetcher)
   })
 
