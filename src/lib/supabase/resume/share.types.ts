@@ -44,6 +44,10 @@ export interface ResolvedResumeShareRelease extends ResumeShareSnapshotSource {
   commentDocumentHash: string
 }
 
+export type CreateShareReleaseSource =
+  | ResolvedResumeShareRelease
+  | 'saved-current'
+
 export interface ResumeShareReleaseSummary {
   id: string
   releaseNo: number

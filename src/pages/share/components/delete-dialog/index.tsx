@@ -17,19 +17,25 @@ import useShareStore from '../../store'
 import { useShareDialogFocus } from '../../hooks/use-share-dialog-focus'
 import { findShareById } from '../../utils'
 
-export default function DeleteDialog() {
-  const {
-    pageShares,
-    shares,
-    deleteDialogOpen,
-    deleteShareId,
-    pendingShareIds,
-    closeDeleteDialog,
-    remove,
-  } = useShareStore()
+export default function DeleteDialog({
+  returnFocusTo,
+}: {
+  returnFocusTo?: HTMLElement | null
+}) {
+  const deleteDialogOpen = useShareStore((state) => state.deleteDialogOpen)
+  const deleteShareId = useShareStore((state) => state.deleteShareId)
 
-  const dialogFocus = useShareDialogFocus()
-  const share = findShareById(pageShares, shares, deleteShareId)
+  const share = useShareStore((state) =>
+    findShareById(state.pageShares, state.shares, deleteShareId),
+  )
+
+  const busy = useShareStore((state) =>
+    Boolean(deleteShareId && state.pendingShareIds.includes(deleteShareId)),
+  )
+
+  const { closeDeleteDialog, remove } = useShareStore.getState()
+
+  const dialogFocus = useShareDialogFocus(returnFocusTo)
 
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,
@@ -37,8 +43,6 @@ export default function DeleteDialog() {
 
   const renderedShare =
     share ?? (retainedShare?.id === deleteShareId ? retainedShare : null)
-
-  const busy = Boolean(deleteShareId && pendingShareIds.includes(deleteShareId))
 
   useEffect(() => {
     if (share) setRetainedShare(share)

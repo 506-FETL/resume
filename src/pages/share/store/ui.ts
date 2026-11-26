@@ -1,10 +1,14 @@
 import type { ShareSlice, ShareUiSlice } from './types'
+import { invalidateShareVersionPages } from './data/option-pages'
 
 export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
+  createDialogOpen: false,
+  setCreateDialogOpen: (createDialogOpen) => set({ createDialogOpen }),
   openForResumeId: null,
   openForResumeName: null,
   searchKeyword: '',
   resumeFilters: [],
+  resumeFilterNames: {},
   statusFilter: 'all',
   settingsDialogOpen: false,
   settingsShareId: null,
@@ -18,6 +22,8 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
   openDialog: (resumeId, resumeName) => {
     const requestId = get().dialogRequestId + 1
 
+    invalidateShareVersionPages(resumeId)
+
     set({
       openForResumeId: resumeId,
       openForResumeName: resumeName,
@@ -29,10 +35,6 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
 
     get()
       .loadDialogShares(resumeId)
-      .catch(() => undefined)
-
-    get()
-      .loadVersionOptions(resumeId, { force: true })
       .catch(() => undefined)
   },
 
@@ -51,8 +53,17 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
 
     if (!searchKeyword.trim()) get().setPageKeyword('')
   },
-  setResumeFilters: (resumeFilters) => {
-    set({ resumeFilters, pageNumber: 1 })
+  setResumeFilters: (resumeFilters, option) => {
+    const names = get().resumeFilterNames
+
+    const resumeFilterNames = Object.fromEntries(
+      resumeFilters.map((id) => [
+        id,
+        id === option?.resume_id ? option.display_name : names[id],
+      ]),
+    )
+
+    set({ resumeFilters, resumeFilterNames, pageNumber: 1 })
     get().reloadPage()
   },
   setStatusFilter: (statusFilter) => {
@@ -66,6 +77,7 @@ export const createShareUiSlice: ShareSlice<ShareUiSlice> = (set, get) => ({
       searchKeyword: '',
       pageKeyword: '',
       resumeFilters: [],
+      resumeFilterNames: {},
       statusFilter: 'all',
       pageNumber: 1,
     })

@@ -12,6 +12,10 @@ import {
   resumeLibraryPage,
   selectResumeLibrary,
 } from '@/lib/resume-library-route'
+import {
+  isShareManagement,
+  selectShareManagement,
+} from '@/lib/share-management-route'
 import { WORKSPACE_PATH } from '@/lib/workspace-path'
 import {
   isWorkspaceHome,
@@ -33,6 +37,7 @@ if (pathname === '/' && hasAuthCallback) {
 // 认证与界面并行加载；模块失败仍交给 App 的错误边界。
 const libraryRoute = isResumeLibrary(pathname)
 const assistantRoute = isAssistantPage(pathname)
+const shareRoute = isShareManagement(pathname)
 const archiveRoute = isExperienceArchive(pathname)
 const gatedLibrary = Boolean(new URLSearchParams(search).get('jobId'))
 
@@ -40,13 +45,16 @@ if (
   (isWorkspaceHome(pathname) ||
     libraryRoute ||
     archiveRoute ||
-    assistantRoute) &&
+    assistantRoute ||
+    shareRoute) &&
   !hasAuthCallback
 ) {
   import('./components/auth-session/subscription')
     .then(({ startAuthSession }) => startAuthSession())
     .catch(() => {})
 
+  if (shareRoute && !new URLSearchParams(search).has('jobId'))
+    selectShareManagement(true)
   if (assistantRoute) selectAssistantPage(true)
   if (libraryRoute && !gatedLibrary) selectResumeLibrary(true)
   if (archiveRoute)

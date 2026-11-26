@@ -13,17 +13,14 @@ export function removePending(ids: string[], shareId: string) {
 export function matchesManagementPage(
   state: ShareStoreState,
   record: ResumeShareRecord,
+  status = state.statusFilter,
 ) {
   if (
     state.resumeFilters.length &&
     !state.resumeFilters.includes(record.resume_id)
   )
     return false
-  if (
-    state.statusFilter !== 'all' &&
-    deriveShareStatus(record) !== state.statusFilter
-  )
-    return false
+  if (status !== 'all' && deriveShareStatus(record) !== status) return false
   if (!state.pageKeyword) return true
 
   return [record.label, record.display_name, record.token].some((field) =>

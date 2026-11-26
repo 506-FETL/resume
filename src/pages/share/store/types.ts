@@ -1,10 +1,13 @@
-import type { ShareManagementCounts } from '@/lib/supabase/resume/share/management'
+import type {
+  ShareManagementCounts,
+  ShareGroup,
+} from '@/lib/supabase/resume/share/management'
 import type { StateCreator } from 'zustand'
-import type { ResumeSummary } from '../types'
 import type { ShareStatusFilter } from '../utils'
-import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
+import type { ShareResumeOption } from '@/lib/supabase/resume/share/option-pages'
 import type {
   CreateShareOptions,
+  CreateShareReleaseSource,
   ResolvedResumeShareRelease,
   ResumeShareRecord,
 } from '@/lib/supabase/resume/share.types'
@@ -18,18 +21,8 @@ export interface SettingsPayload {
   allowComments: boolean
 }
 
-export interface VersionOptionsEntry {
-  items: Pick<
-    ResumeHistoryVersionListItem,
-    'id' | 'version_no' | 'version_name' | 'milestone_name' | 'created_at'
-  >[]
-  loading: boolean
-  error: string | null
-  requestId: number
-  loaded: boolean
-}
-
 export interface ShareDataSlice {
+  statsRequestId: number
   pageRequestId: number
   pageNumber: number
   pageQueryKey: string | null
@@ -43,34 +36,28 @@ export interface ShareDataSlice {
   statsLoading: boolean
   shares: ResumeShareRecord[]
   pageShares: ResumeShareRecord[]
-  resumeMap: Record<string, ResumeSummary>
+  pageGroups: Record<string, ShareGroup>
+  pageTotal: number | null
   pageLoading: boolean
   pageError: string | null
   pageLoaded: boolean
-  resumeOptionsLoading: boolean
-  resumeOptionsError: string | null
-  resumeOptionsLoaded: boolean
   dialogLoading: boolean
   dialogError: string | null
   dialogRequestId: number
   pendingShareIds: string[]
-  versionOptionsByResumeId: Record<string, VersionOptionsEntry>
 
   bootstrapPage: () => Promise<void>
   leaveManagement: () => void
-  invalidateManagement: (membershipChanged?: boolean) => void
+  invalidateManagement: (refresh?: { cards?: boolean; stats?: boolean }) => void
   setPageNumber: (page: number) => void
   setPageKeyword: (keyword: string) => void
+  reloadManagementStats: () => Promise<void>
+  reloadManagementCards: () => Promise<void>
   reloadPage: () => Promise<void>
-  reloadResumeOptions: () => Promise<void>
   loadDialogShares: (resumeId: string) => Promise<void>
-  loadVersionOptions: (
-    resumeId: string,
-    options?: { force?: boolean },
-  ) => Promise<void>
   createRelease: (
     resumeId: string,
-    release: ResolvedResumeShareRelease,
+    release: CreateShareReleaseSource,
     options?: CreateShareOptions,
   ) => Promise<void>
   setActive: (shareId: string, isActive: boolean) => Promise<void>
@@ -84,10 +71,13 @@ export interface ShareDataSlice {
 }
 
 export interface ShareUiSlice {
+  createDialogOpen: boolean
+  setCreateDialogOpen: (open: boolean) => void
   openForResumeId: string | null
   openForResumeName: string | null
   searchKeyword: string
   resumeFilters: string[]
+  resumeFilterNames: Record<string, string>
   statusFilter: ShareStatusFilter
   settingsDialogOpen: boolean
   settingsShareId: string | null
@@ -101,7 +91,7 @@ export interface ShareUiSlice {
   openDialog: (resumeId: string, resumeName: string | null) => void
   closeDialog: () => void
   setSearchKeyword: (value: string) => void
-  setResumeFilters: (value: string[]) => void
+  setResumeFilters: (value: string[], option?: ShareResumeOption) => void
   setStatusFilter: (value: ShareStatusFilter) => void
   resetFilters: () => void
   openSettingsDialog: (shareId: string) => void

@@ -8,7 +8,7 @@ export default function SharePagination() {
   const page = useShareStore((state) => state.pageNumber)
 
   const total = useShareStore(
-    (state) => state.statusCounts?.[state.statusFilter],
+    (state) => state.pageTotal ?? state.statusCounts?.[state.statusFilter],
   )
 
   const setPageNumber = useShareStore((state) => state.setPageNumber)

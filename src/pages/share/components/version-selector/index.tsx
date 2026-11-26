@@ -1,15 +1,21 @@
 import type { VersionDialogSelection } from '../../types'
 import type { ResumeHistoryShareOption } from '@/lib/supabase/resume/history'
-import type { ShareVersionSelection } from '@/lib/supabase/resume/share.types'
-import { Check, ChevronsUpDown, Clock3, History, RefreshCw } from 'lucide-react'
+import type {
+  ShareVersionSelection,
+  ShareVersionSource,
+} from '@/lib/supabase/resume/share.types'
+import { Check, ChevronsUpDown, Clock3, History } from 'lucide-react'
+import { defaultFilter } from 'cmdk'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Collapsible, CollapsibleContent } from '@/components/ui/collapsible'
+import { listShareVersionOptions } from '@/lib/supabase/resume/share/option-pages'
+import { useOptionPage } from '../../hooks/use-option-page'
+import { versionOptionPages } from '../../store/data/option-pages'
+import { OptionPagination, OptionResults } from '../option-results'
 import {
   Command,
-  CommandEmpty,
   CommandGroup,
   CommandInput,
   CommandItem,
@@ -27,15 +33,17 @@ import { formatDateTime } from '@/utils/date'
 
 interface VersionSelectorProps {
   value: VersionDialogSelection
-  versions: ResumeHistoryShareOption[]
-  loading: boolean
-  error: string | null
+  resumeId: string | null
+  selectedVersion?: ResumeHistoryShareOption | null
+  source?: ShareVersionSource
   freezeCurrent?: boolean
   currentDisabled?: boolean
   historyDisabled?: boolean
   disabled?: boolean
-  onChange: (value: ShareVersionSelection) => void
-  onRetry: () => void
+  onChange: (
+    value: ShareVersionSelection,
+    version?: ResumeHistoryShareOption,
+  ) => void
 }
 
 function getVersionLabel(version: ResumeHistoryShareOption) {
@@ -48,49 +56,83 @@ function getVersionLabel(version: ResumeHistoryShareOption) {
 
 function getSelectedLabel(
   value: VersionDialogSelection,
-  versions: ResumeHistoryShareOption[],
+  version?: ResumeHistoryShareOption | null,
+  source?: ShareVersionSource,
 ) {
   if (value.kind === 'current') return '当前版本'
   if (value.kind === 'deleted-history')
     return `V${value.versionNo} · ${value.versionLabel}`
 
-  const version = versions.find((item) => item.id === value.versionId)
+  if (version?.id === value.versionId)
+    return `V${version.version_no} · ${getVersionLabel(version)}`
+  if (source?.kind === 'history' && source.versionId === value.versionId)
+    return `V${source.versionNo} · ${source.versionLabel}`
 
-  return version
-    ? `V${version.version_no} · ${getVersionLabel(version)}`
-    : '所选历史版本'
+  return '所选历史版本'
 }
 
 export default function VersionSelector({
   value,
-  versions,
-  loading,
-  error,
+  resumeId,
+  selectedVersion,
+  source,
   disabled,
   currentDisabled,
   freezeCurrent,
   historyDisabled,
   onChange,
-  onRetry,
 }: VersionSelectorProps) {
   const reduceMotion = useReducedMotion()
   const [open, setOpen] = useState(false)
   const popoverOpen = open && !disabled
 
-  const selectedLabel = useMemo(
-    () =>
-      value.kind === 'current' && freezeCurrent
-        ? '云端已保存的当前内容（生成后固定）'
-        : getSelectedLabel(value, versions),
-    [value, versions, freezeCurrent],
+  const [picked, setPicked] = useState<ResumeHistoryShareOption>()
+  const readable = Boolean(resumeId && !historyDisabled)
+
+  const result = useOptionPage(
+    versionOptionPages,
+    resumeId ?? '',
+    popoverOpen && readable,
+    listShareVersionOptions,
   )
+
+  const loading = popoverOpen && readable && result.loading
+
+  const selectedLabel =
+    value.kind === 'current' && freezeCurrent
+      ? '云端已保存的当前内容（生成后固定）'
+      : getSelectedLabel(
+          value,
+          value.kind === 'history' && picked?.id === value.versionId
+            ? picked
+            : selectedVersion,
+          source,
+        )
+
+  const search = result.search.trim().toLocaleLowerCase()
+  const showCurrent = defaultFilter('当前版本 current', search) > 0
+
+  const showDeleted =
+    value.kind === 'deleted-history' &&
+    defaultFilter(
+      `V${value.versionNo} ${value.versionLabel} 原版本已删除`,
+      search,
+    ) > 0
 
   useEffect(() => {
     if (disabled) setOpen(false)
   }, [disabled])
 
   return (
-    <Popover modal open={popoverOpen} onOpenChange={setOpen}>
+    <Popover
+      modal
+      open={popoverOpen}
+      onOpenChange={(next) => {
+        if (next) result.onSearch('')
+
+        setOpen(next)
+      }}
+    >
       <PopoverTrigger asChild>
         <Button
           type='button'
@@ -164,39 +206,46 @@ export default function VersionSelector({
           animationTimingFunction: `cubic-bezier(${(popoverOpen ? EASE.out : EASE.in).join(',')})`,
         }}
       >
-        <Command>
-          <CommandInput placeholder='搜索版本' />
+        <Command shouldFilter={false}>
+          <CommandInput
+            placeholder='搜索版本'
+            value={result.search}
+            onValueChange={result.onSearch}
+            onCompositionStart={() => result.setComposing(true)}
+            onCompositionEnd={() => result.setComposing(false)}
+          />
           <CommandList className='max-h-[min(18rem,calc(var(--radix-popover-content-available-height)-5rem))] overscroll-contain'>
-            <CommandEmpty>没有匹配的版本</CommandEmpty>
             <CommandGroup heading='发布内容'>
-              <CommandItem
-                value='当前版本 current'
-                disabled={currentDisabled}
-                onSelect={() => {
-                  onChange({ kind: 'current' })
-                  setOpen(false)
-                }}
-              >
-                <Clock3 className='size-4' />
-                <div className='min-w-0 flex-1'>
-                  <p className='truncate'>
-                    {freezeCurrent ? '云端已保存的当前内容' : '当前版本'}
-                  </p>
-                  <p className='truncate text-xs text-muted-foreground'>
-                    {freezeCurrent
-                      ? '生成链接时固定，后续保存不会改变'
-                      : '保存后自动同步到分享链接'}
-                  </p>
-                </div>
-                <Check
-                  className={cn(
-                    'size-4',
-                    value.kind === 'current' ? 'opacity-100' : 'opacity-0',
-                  )}
-                />
-              </CommandItem>
+              {showCurrent && (
+                <CommandItem
+                  value='当前版本 current'
+                  disabled={currentDisabled}
+                  onSelect={() => {
+                    onChange({ kind: 'current' })
+                    setOpen(false)
+                  }}
+                >
+                  <Clock3 className='size-4' />
+                  <div className='min-w-0 flex-1'>
+                    <p className='truncate'>
+                      {freezeCurrent ? '云端已保存的当前内容' : '当前版本'}
+                    </p>
+                    <p className='truncate text-xs text-muted-foreground'>
+                      {freezeCurrent
+                        ? '生成链接时固定，后续保存不会改变'
+                        : '保存后自动同步到分享链接'}
+                    </p>
+                  </div>
+                  <Check
+                    className={cn(
+                      'size-4',
+                      value.kind === 'current' ? 'opacity-100' : 'opacity-0',
+                    )}
+                  />
+                </CommandItem>
+              )}
 
-              {value.kind === 'deleted-history' && (
+              {showDeleted && value.kind === 'deleted-history' && (
                 <CommandItem
                   disabled
                   value={`V${value.versionNo} ${value.versionLabel} 原版本已删除`}
@@ -216,67 +265,64 @@ export default function VersionSelector({
                 </CommandItem>
               )}
 
-              {versions.map((version) => {
-                const label = getVersionLabel(version)
+              {readable &&
+                result.items.map((version) => {
+                  const label = getVersionLabel(version)
 
-                const selected =
-                  value.kind === 'history' && value.versionId === version.id
+                  const selected =
+                    value.kind === 'history' && value.versionId === version.id
 
-                return (
-                  <CommandItem
-                    key={version.id}
-                    disabled={historyDisabled}
-                    value={`V${version.version_no} ${label} ${version.version_name ?? ''} ${version.milestone_name ?? ''}`}
-                    onSelect={() => {
-                      onChange({ kind: 'history', versionId: version.id })
-                      setOpen(false)
-                    }}
-                  >
-                    <History className='size-4' />
-                    <div className='min-w-0 flex-1'>
-                      <p className='truncate'>
-                        V{version.version_no}
-                        {' · '}
-                        {label}
-                      </p>
-                      <p className='truncate text-xs text-muted-foreground'>
-                        {formatDateTime(new Date(version.created_at).getTime())}
-                      </p>
-                    </div>
-                    <Check
-                      className={cn(
-                        'size-4',
-                        selected ? 'opacity-100' : 'opacity-0',
-                      )}
-                    />
-                  </CommandItem>
-                )
-              })}
+                  return (
+                    <CommandItem
+                      key={version.id}
+                      disabled={historyDisabled}
+                      value={`V${version.version_no} ${label} ${version.version_name ?? ''} ${version.milestone_name ?? ''}`}
+                      onSelect={() => {
+                        setPicked(version)
+
+                        onChange(
+                          { kind: 'history', versionId: version.id },
+                          version,
+                        )
+
+                        setOpen(false)
+                      }}
+                    >
+                      <History className='size-4' />
+                      <div className='min-w-0 flex-1'>
+                        <p className='truncate'>
+                          V{version.version_no}
+                          {' · '}
+                          {label}
+                        </p>
+                        <p className='truncate text-xs text-muted-foreground'>
+                          {formatDateTime(
+                            new Date(version.created_at).getTime(),
+                          )}
+                        </p>
+                      </div>
+                      <Check
+                        className={cn(
+                          'size-4',
+                          selected ? 'opacity-100' : 'opacity-0',
+                        )}
+                      />
+                    </CommandItem>
+                  )
+                })}
             </CommandGroup>
+            {readable && (
+              <OptionResults
+                result={result}
+                label='历史版本'
+                emptyMessage={
+                  search ? '没有匹配的版本' : '还没有冻结的历史版本'
+                }
+                showEmpty={!search || (!showCurrent && !showDeleted)}
+              />
+            )}
           </CommandList>
-          <Collapsible open={Boolean(error)}>
-            <CollapsibleContent
-              inert={!error || !popoverOpen}
-              aria-hidden={!error}
-              style={{
-                animationDuration: `${(reduceMotion ? 0 : error ? DURATION.base : DURATION.fast) * 1000}ms`,
-                animationTimingFunction: `cubic-bezier(${(error ? EASE.out : EASE.in).join(',')})`,
-              }}
-            >
-              <div className='flex items-center justify-between gap-2 border-t px-3 py-2 text-xs text-destructive'>
-                <span className='min-w-0 truncate'>历史版本加载失败</span>
-                <Button
-                  type='button'
-                  variant='ghost'
-                  size='xs'
-                  onClick={onRetry}
-                >
-                  <RefreshCw data-icon='inline-start' />
-                  重试
-                </Button>
-              </div>
-            </CollapsibleContent>
-          </Collapsible>
+          {readable && <OptionPagination result={result} />}
         </Command>
       </PopoverContent>
     </Popover>

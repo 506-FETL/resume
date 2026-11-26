@@ -17,19 +17,25 @@ import useShareStore from '../../store'
 import { useShareDialogFocus } from '../../hooks/use-share-dialog-focus'
 import { findShareById } from '../../utils'
 
-export default function ArchiveDialog() {
-  const {
-    pageShares,
-    shares,
-    archiveDialogOpen,
-    archiveShareId,
-    pendingShareIds,
-    closeArchiveDialog,
-    archive,
-  } = useShareStore()
+export default function ArchiveDialog({
+  returnFocusTo,
+}: {
+  returnFocusTo?: HTMLElement | null
+}) {
+  const archiveDialogOpen = useShareStore((state) => state.archiveDialogOpen)
+  const archiveShareId = useShareStore((state) => state.archiveShareId)
 
-  const dialogFocus = useShareDialogFocus()
-  const share = findShareById(pageShares, shares, archiveShareId)
+  const share = useShareStore((state) =>
+    findShareById(state.pageShares, state.shares, archiveShareId),
+  )
+
+  const busy = useShareStore((state) =>
+    Boolean(archiveShareId && state.pendingShareIds.includes(archiveShareId)),
+  )
+
+  const { closeArchiveDialog, archive } = useShareStore.getState()
+
+  const dialogFocus = useShareDialogFocus(returnFocusTo)
 
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,
@@ -37,10 +43,6 @@ export default function ArchiveDialog() {
 
   const renderedShare =
     share ?? (retainedShare?.id === archiveShareId ? retainedShare : null)
-
-  const busy = Boolean(
-    archiveShareId && pendingShareIds.includes(archiveShareId),
-  )
 
   useEffect(() => {
     if (share) setRetainedShare(share)

@@ -1,6 +1,5 @@
 import type { ComponentProps } from 'react'
 import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
-import type { VersionOptionsEntry } from '../../../store/types'
 import { useLayoutEffect } from 'react'
 import { RefreshCcw } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
@@ -16,14 +15,12 @@ interface QuickDialogContentProps {
     shares: ResumeShareRecord[]
     loading: boolean
     error: string | null
-    versionEntry?: VersionOptionsEntry
   } | null
   formId: string
   submitting: boolean
   setSubmitting: (value: boolean) => void
   pendingShareIds: string[]
   onReadyChange: (ready: boolean) => void
-  onRetryVersions: () => void
   onRetryShares: () => void
   onCreate: ComponentProps<typeof CreateForm>['onCreate']
 }
@@ -35,7 +32,6 @@ export default function QuickDialogContent({
   setSubmitting,
   pendingShareIds,
   onReadyChange,
-  onRetryVersions,
   onRetryShares,
   onCreate,
 }: QuickDialogContentProps) {
@@ -52,10 +48,7 @@ export default function QuickDialogContent({
         formId={formId}
         submitting={submitting}
         onSubmittingChange={setSubmitting}
-        versions={display?.versionEntry?.items ?? []}
-        versionsLoading={display?.versionEntry?.loading ?? false}
-        versionsError={display?.versionEntry?.error ?? null}
-        onRetryVersions={onRetryVersions}
+        resumeId={display?.resumeId ?? null}
         onCreate={onCreate}
       />
       <section

@@ -1,10 +1,11 @@
 export {
   archiveResumeShare,
-  createResumeShareRelease,
   deleteResumeShare,
   setResumeShareActive,
   updateResumeShareSettings,
-} from './mutations'
+} from './owner-actions'
+
+export { createResumeShareRelease } from './mutations'
 
 export {
   getResumeShareReleaseForReview,

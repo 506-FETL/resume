@@ -1,3 +1,4 @@
+import type { ResumeShareRecord } from '@/lib/supabase/resume/share.types'
 import type { ShareDataSlice, ShareSlice } from '../types'
 import {
   addPending,
@@ -7,15 +8,12 @@ import {
 } from './lists'
 import { shareReadGeneration } from './requests'
 import { SHARE_PAGE_SIZE } from '@/lib/supabase/resume/share/management'
-import { findShareById } from '../../utils'
+import { invalidateShareVersionPages } from './option-pages'
+import { deriveShareStatus, findShareById } from '../../utils'
 
-async function loadShareMutations(generation: number) {
-  const actions = await import('@/lib/supabase/resume/share')
-
+function assertShareGeneration(generation: number) {
   if (generation !== shareReadGeneration)
     throw new Error('登录状态已变更，请重新加载')
-
-  return actions
 }
 
 export const createShareMutations: ShareSlice<
@@ -29,14 +27,60 @@ export const createShareMutations: ShareSlice<
     | 'remove'
   >
 > = (set, get) => {
+  function applyShareUpdate(
+    shareId: string,
+    update: (share: ResumeShareRecord) => ResumeShareRecord,
+  ) {
+    const state = get()
+    const previous = findShareById(state.pageShares, state.shares, shareId)
+
+    if (!previous) {
+      state.invalidateManagement()
+
+      return
+    }
+
+    const record = update(previous)
+
+    set(
+      mapShareLists(state, (share) =>
+        share.id === shareId ? update(share) : share,
+      ),
+    )
+
+    const cards =
+      matchesManagementPage(state, previous) !==
+      matchesManagementPage(state, record)
+
+    const stats =
+      cards ||
+      matchesManagementPage(state, previous, 'all') !==
+        matchesManagementPage(state, record, 'all') ||
+      deriveShareStatus(previous) !== deriveShareStatus(record) ||
+      previous.expires_at !== record.expires_at ||
+      previous.view_count !== record.view_count
+
+    get().invalidateManagement({ cards, stats })
+  }
+
   return {
     createRelease: async (resumeId, release, options) => {
       const generation = shareReadGeneration
-      const { createResumeShareRelease } = await loadShareMutations(generation)
+
+      const { createResumeShareRelease } =
+        await import('@/lib/supabase/resume/share/mutations')
+
+      assertShareGeneration(generation)
+
       const record = await createResumeShareRelease(resumeId, release, options)
 
-      if (shareReadGeneration !== generation)
-        throw new Error('登录状态已变更，请重新加载')
+      assertShareGeneration(generation)
+
+      if (
+        options?.purpose === 'application' &&
+        (release === 'saved-current' || release.source.kind === 'current')
+      )
+        invalidateShareVersionPages(resumeId)
 
       set((state) => ({
         shares:
@@ -64,19 +108,15 @@ export const createShareMutations: ShareSlice<
       }))
 
       try {
-        const { setResumeShareActive } = await loadShareMutations(generation)
-        const savedActive = await setResumeShareActive(shareId, isActive)
+        const { setResumeShareActive } =
+          await import('@/lib/supabase/resume/share/owner-actions')
 
-        if (shareReadGeneration !== generation)
-          throw new Error('登录状态已变更，请重新加载')
+        assertShareGeneration(generation)
 
-        set((state) => ({
-          ...mapShareLists(state, (share) =>
-            share.id === shareId ? { ...share, is_active: savedActive } : share,
-          ),
-        }))
+        const saved = await setResumeShareActive(shareId, isActive)
 
-        get().invalidateManagement()
+        assertShareGeneration(generation)
+        applyShareUpdate(shareId, (share) => ({ ...share, ...saved }))
       } finally {
         if (shareReadGeneration === generation)
           set((state) => ({
@@ -89,8 +129,6 @@ export const createShareMutations: ShareSlice<
         throw new Error('操作正在进行中')
 
       const generation = shareReadGeneration
-      const { pageShares, shares } = get()
-      const previous = findShareById(pageShares, shares, shareId)
 
       set((state) => ({
         pendingShareIds: addPending(state.pendingShareIds, shareId),
@@ -98,41 +136,30 @@ export const createShareMutations: ShareSlice<
 
       try {
         const { updateResumeShareSettings } =
-          await loadShareMutations(generation)
+          await import('@/lib/supabase/resume/share/owner-actions')
 
+        assertShareGeneration(generation)
         await updateResumeShareSettings(shareId, settings)
 
-        if (shareReadGeneration !== generation)
-          throw new Error('登录状态已变更，请重新加载')
+        assertShareGeneration(generation)
 
-        set((state) => ({
-          ...mapShareLists(state, (share) =>
-            share.id === shareId
-              ? {
-                  ...share,
-                  label: settings.label,
-                  expires_at: settings.expiresAt,
-                  has_password:
-                    settings.password === undefined
-                      ? share.has_password
-                      : Boolean(settings.password),
-                  allowComments:
-                    share.purpose === 'showcase' ||
-                    settings.showPhone === false ||
-                    settings.showEmail === false
-                      ? false
-                      : settings.allowComments,
-                  showPhone: settings.showPhone ?? share.showPhone,
-                  showEmail: settings.showEmail ?? share.showEmail,
-                }
-              : share,
-          ),
+        applyShareUpdate(shareId, (share) => ({
+          ...share,
+          label: settings.label,
+          expires_at: settings.expiresAt,
+          has_password:
+            settings.password === undefined
+              ? share.has_password
+              : Boolean(settings.password),
+          allowComments:
+            share.purpose === 'showcase' ||
+            settings.showPhone === false ||
+            settings.showEmail === false
+              ? false
+              : settings.allowComments,
+          showPhone: settings.showPhone ?? share.showPhone,
+          showEmail: settings.showEmail ?? share.showEmail,
         }))
-
-        get().invalidateManagement(
-          previous?.label !== settings.label ||
-            previous.expires_at !== settings.expiresAt,
-        )
       } finally {
         if (shareReadGeneration === generation) {
           set((state) => ({
@@ -146,8 +173,6 @@ export const createShareMutations: ShareSlice<
         throw new Error('操作正在进行中')
 
       const generation = shareReadGeneration
-      const { pageShares, shares } = get()
-      const previous = findShareById(pageShares, shares, shareId)
 
       set((state) => ({
         pendingShareIds: addPending(state.pendingShareIds, shareId),
@@ -155,22 +180,15 @@ export const createShareMutations: ShareSlice<
 
       try {
         const { publishResumeShareRelease } =
-          await loadShareMutations(generation)
+          await import('@/lib/supabase/resume/share/release-publication')
+
+        assertShareGeneration(generation)
 
         const record = await publishResumeShareRelease(shareId, release)
 
-        if (shareReadGeneration !== generation)
-          throw new Error('登录状态已变更，请重新加载')
+        assertShareGeneration(generation)
 
-        set((state) => ({
-          ...mapShareLists(state, (share) =>
-            share.id === shareId ? record : share,
-          ),
-        }))
-
-        get().invalidateManagement(
-          previous?.display_name !== record.display_name,
-        )
+        applyShareUpdate(shareId, () => record)
       } finally {
         if (shareReadGeneration === generation)
           set((state) => ({
@@ -189,14 +207,15 @@ export const createShareMutations: ShareSlice<
       }))
 
       try {
-        const { archiveResumeShare } = await loadShareMutations(generation)
+        const { archiveResumeShare } =
+          await import('@/lib/supabase/resume/share/owner-actions')
 
+        assertShareGeneration(generation)
         await archiveResumeShare(shareId)
 
         const archivedAt = new Date().toISOString()
 
-        if (shareReadGeneration !== generation)
-          throw new Error('登录状态已变更，请重新加载')
+        assertShareGeneration(generation)
 
         set((state) => ({
           ...mapShareLists(state, (share) =>
@@ -227,12 +246,13 @@ export const createShareMutations: ShareSlice<
       }))
 
       try {
-        const { deleteResumeShare } = await loadShareMutations(generation)
+        const { deleteResumeShare } =
+          await import('@/lib/supabase/resume/share/owner-actions')
 
+        assertShareGeneration(generation)
         await deleteResumeShare(shareId)
 
-        if (shareReadGeneration !== generation)
-          throw new Error('登录状态已变更，请重新加载')
+        assertShareGeneration(generation)
 
         set((state) => ({
           shares: state.shares.filter((share) => share.id !== shareId),

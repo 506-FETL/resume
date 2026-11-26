@@ -24,7 +24,7 @@ export default function Content() {
     (state) => state.pageNumber > 1 && state.statsLoading,
   )
 
-  const reloadPage = useShareStore((state) => state.reloadPage)
+  const reloadCards = useShareStore((state) => state.reloadManagementCards)
 
   const hasFilter = useShareStore(
     (state) =>
@@ -61,14 +61,14 @@ export default function Content() {
               variant='outline'
               size='sm'
               disabled={pageLoading}
-              onClick={() => reloadPage()}
+              onClick={() => reloadCards()}
             >
               重试
             </Button>
           </div>
         )}
       </AnimatedContent>
-      <AnimatedContent animationKey={contentState}>
+      <AnimatedContent animationKey={contentState} mode='popLayout'>
         {contentState === 'loading' ? (
           <ShareContentSkeleton />
         ) : contentState === 'error' ? (
@@ -81,7 +81,7 @@ export default function Content() {
               <EmptyDescription>{pageError}</EmptyDescription>
             </EmptyHeader>
             <EmptyContent>
-              <Button variant='outline' onClick={() => reloadPage()}>
+              <Button variant='outline' onClick={() => reloadCards()}>
                 <RefreshCcw data-icon='inline-start' />
                 重试
               </Button>

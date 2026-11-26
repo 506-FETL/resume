@@ -1,6 +1,6 @@
 import { useRef } from 'react'
 
-export function useShareDialogFocus() {
+export function useShareDialogFocus(returnFocusTo?: HTMLElement | null) {
   const returnFocusRef = useRef<HTMLElement | null>(null)
 
   return {
@@ -11,7 +11,9 @@ export function useShareDialogFocus() {
           : null
     },
     onCloseAutoFocus: (event: Event) => {
-      const target = getShareReturnFocus(returnFocusRef.current)
+      const target = getShareReturnFocus(
+        returnFocusTo ?? returnFocusRef.current,
+      )
 
       if (!target) return
 

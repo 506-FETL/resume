@@ -31,20 +31,25 @@ import { dateToExpiryIso, expiryIsoToDate, findShareById } from '../../utils'
 import DateField from '../quick-dialog/date-field'
 import VisibilityIcon from '../visibility-icon'
 
-export default function SettingsDialog() {
+export default function SettingsDialog({
+  returnFocusTo,
+}: {
+  returnFocusTo?: HTMLElement | null
+}) {
   const reduceMotion = useReducedMotion()
 
-  const {
-    pageShares,
-    shares,
-    settingsDialogOpen,
-    settingsShareId,
-    pendingShareIds,
-    closeSettingsDialog,
-    updateSettings,
-  } = useShareStore()
+  const settingsDialogOpen = useShareStore((state) => state.settingsDialogOpen)
+  const settingsShareId = useShareStore((state) => state.settingsShareId)
 
-  const share = findShareById(pageShares, shares, settingsShareId)
+  const share = useShareStore((state) =>
+    findShareById(state.pageShares, state.shares, settingsShareId),
+  )
+
+  const busy = useShareStore((state) =>
+    Boolean(settingsShareId && state.pendingShareIds.includes(settingsShareId)),
+  )
+
+  const { closeSettingsDialog, updateSettings } = useShareStore.getState()
 
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,
@@ -54,11 +59,7 @@ export default function SettingsDialog() {
     retainedShare?.id === settingsShareId ? retainedShare : share
 
   const initializedShareIdRef = useRef<string | null>(null)
-  const dialogFocus = useShareDialogFocus()
-
-  const busy = Boolean(
-    settingsShareId && pendingShareIds.includes(settingsShareId),
-  )
+  const dialogFocus = useShareDialogFocus(returnFocusTo)
 
   const [showPhone, setShowPhone] = useState(true)
   const [showEmail, setShowEmail] = useState(true)
@@ -96,10 +97,30 @@ export default function SettingsDialog() {
     setValidationError(null)
   }, [settingsDialogOpen, share])
 
-  const handleSave = async () => {
-    if (!share) return
+  const original = renderedShare
+  const originalDate = expiryIsoToDate(original?.expires_at ?? null)
 
-    const nextPassword = password.trim()
+  const expiryChanged =
+    expiresAt?.toDateString() !== originalDate?.toDateString()
+
+  const nextPassword = password.trim()
+  const nextLabel = label.trim() || null
+
+  const nextComments =
+    original?.purpose !== 'showcase' && showPhone && showEmail && allowComments
+
+  const changed =
+    original &&
+    (nextLabel !== original.label ||
+      expiryChanged ||
+      passwordEnabled !== original.has_password ||
+      (passwordEnabled && Boolean(nextPassword)) ||
+      nextComments !== original.allowComments ||
+      showPhone !== original.showPhone ||
+      showEmail !== original.showEmail)
+
+  const handleSave = async () => {
+    if (!share || !changed) return
 
     if (passwordEnabled && !share.has_password && !nextPassword) {
       setValidationError('开启密码访问时，请输入一个访问密码。')
@@ -111,13 +132,16 @@ export default function SettingsDialog() {
 
     try {
       await updateSettings(share.id, {
-        label: label.trim() || null,
-        expiresAt: dateToExpiryIso(expiresAt),
-        password: passwordEnabled ? nextPassword || undefined : null,
-        allowComments:
-          share.purpose === 'showcase' || !showPhone || !showEmail
-            ? false
-            : allowComments,
+        label: nextLabel,
+        expiresAt: expiryChanged
+          ? dateToExpiryIso(expiresAt)
+          : original.expires_at,
+        password: passwordEnabled
+          ? nextPassword || undefined
+          : original.has_password
+            ? null
+            : undefined,
+        allowComments: nextComments,
         showPhone,
         showEmail,
       })
@@ -341,7 +365,7 @@ export default function SettingsDialog() {
           >
             取消
           </Button>
-          <Button onClick={handleSave} disabled={!share || busy}>
+          <Button onClick={handleSave} disabled={!share || !changed || busy}>
             {busy && <Spinner data-icon='inline-start' />}
             {busy ? '正在保存…' : '保存设置'}
           </Button>

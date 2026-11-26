@@ -13,7 +13,6 @@ import { createDeferredComponent } from '@/components/deferred-content'
 import { ContentSkeleton } from '@/components/loading-skeleton'
 import { Button } from '@/components/ui/button'
 import { Spinner } from '@/components/ui/spinner'
-import { resolveResumeShareRelease } from '@/lib/supabase/resume/share'
 import useShareStore from '../../store'
 import ArchiveDialog from '../archive-dialog'
 import DeleteDialog from '../delete-dialog'
@@ -44,9 +43,7 @@ function QuickDialog({ getSnapshot, returnFocusTo }: QuickDialogProps) {
     pendingShareIds,
     closeDialog,
     createRelease,
-    loadVersionOptions,
     loadDialogShares,
-    versionOptionsByResumeId,
   } = useShareStore()
 
   const navigate = useNavigate()
@@ -56,10 +53,6 @@ function QuickDialog({ getSnapshot, returnFocusTo }: QuickDialogProps) {
 
   const open = Boolean(openForResumeId)
 
-  const versionEntry = openForResumeId
-    ? versionOptionsByResumeId[openForResumeId]
-    : undefined
-
   const currentDisplay = useMemo(
     () => ({
       ownerUserId,
@@ -68,7 +61,6 @@ function QuickDialog({ getSnapshot, returnFocusTo }: QuickDialogProps) {
       shares,
       loading: dialogLoading,
       error: dialogError,
-      versionEntry,
     }),
     [
       ownerUserId,
@@ -77,7 +69,6 @@ function QuickDialog({ getSnapshot, returnFocusTo }: QuickDialogProps) {
       shares,
       dialogLoading,
       dialogError,
-      versionEntry,
     ],
   )
 
@@ -103,6 +94,9 @@ function QuickDialog({ getSnapshot, returnFocusTo }: QuickDialogProps) {
     if (!openForResumeId) return false
 
     try {
+      const { resolveResumeShareRelease } =
+        await import('@/lib/supabase/resume/share/release-source')
+
       const release = await resolveResumeShareRelease({
         resumeId: openForResumeId,
         displayName: openForResumeName,
@@ -180,12 +174,6 @@ function QuickDialog({ getSnapshot, returnFocusTo }: QuickDialogProps) {
           pendingShareIds={pendingShareIds}
           onReadyChange={setContentReady}
           onCreate={handleCreate}
-          onRetryVersions={() => {
-            if (openForResumeId)
-              loadVersionOptions(openForResumeId, { force: true }).catch(
-                () => undefined,
-              )
-          }}
           onRetryShares={() => {
             if (openForResumeId) loadDialogShares(openForResumeId)
           }}

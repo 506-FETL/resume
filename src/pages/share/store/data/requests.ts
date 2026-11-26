@@ -1,14 +1,13 @@
 import type { ShareStoreState } from '../types'
+import { clearShareOptionPages } from './option-pages'
 
 export let shareReadGeneration = 0
 
 export function clearShareReadRequests() {
   shareReadGeneration += 1
-  versionOptionRequests.clear()
+  clearShareOptionPages()
   dialogShareRequests.clear()
 }
-
-export const versionOptionRequests = new Map<string, Promise<void>>()
 
 export const dialogShareRequests = new Map<
   string,

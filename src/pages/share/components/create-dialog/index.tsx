@@ -3,19 +3,13 @@ import type { SharePurpose } from '@/lib/supabase/resume/share.types'
 import { sharePurposeDefaults } from '@/lib/share-purpose'
 import PurposeFields from '../purpose-fields'
 import type { ShareVersionSelection } from '@/lib/supabase/resume/share.types'
-import { Check, ChevronsUpDown, Plus } from 'lucide-react'
+import { ChevronsUpDown, Plus } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useLayoutEffect, useMemo, useState } from 'react'
+import { useLayoutEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
+import ResumeCommand from '../resume-option-command'
+import type { ShareResumeOption } from '@/lib/supabase/resume/share/option-pages'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import {
@@ -26,11 +20,6 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { Switch } from '@/components/ui/switch'
 import { DURATION, EASE } from '@/lib/motion'
-import {
-  getResumeSnapshotById,
-  resolveResumeShareRelease,
-} from '@/lib/supabase/resume/share'
-import { cn } from '@/lib/utils'
 import useShareStore from '../../store'
 import { dateToExpiryIso } from '../../utils'
 import DateField from '../quick-dialog/date-field'
@@ -40,24 +29,21 @@ import ShareDrawer from '../share-drawer'
 
 interface CreateDialogProps {
   open: boolean
+  returnFocusTo?: HTMLElement | null
   onOpenChange: (open: boolean) => void
 }
 
 export default function CreateDialog({
   open,
+  returnFocusTo,
   onOpenChange,
 }: CreateDialogProps) {
   const jobContext = useJobContextStore((state) => state.context)
   const reduceMotion = useReducedMotion()
 
-  const {
-    resumeMap,
-    createRelease,
-    loadVersionOptions,
-    versionOptionsByResumeId,
-  } = useShareStore()
-
-  const [resumeId, setResumeId] = useState('')
+  const createRelease = useShareStore((state) => state.createRelease)
+  const [resume, setResume] = useState<ShareResumeOption | null>(null)
+  const resumeId = resume?.resume_id ?? ''
   const [resumeOpen, setResumeOpen] = useState(false)
   const [purpose, setPurpose] = useState<SharePurpose>('review')
   const [showPhone, setShowPhone] = useState(true)
@@ -84,30 +70,17 @@ export default function CreateDialog({
     kind: 'current',
   })
 
-  const resumes = useMemo(
-    () =>
-      Object.values(resumeMap).sort((left, right) =>
-        left.displayName.localeCompare(right.displayName),
-      ),
-    [resumeMap],
-  )
-
-  const selectedResume = useMemo(
-    () => resumes.find((resume) => resume.resumeId === resumeId) ?? null,
-    [resumeId, resumes],
-  )
-
-  const versionEntry = resumeId ? versionOptionsByResumeId[resumeId] : undefined
-
   useLayoutEffect(() => {
     if (!open) return
 
-    setResumeId(jobContext?.resumeId ?? '')
-
-    if (jobContext?.resumeId)
-      loadVersionOptions(jobContext.resumeId, { force: true }).catch(
-        () => undefined,
-      )
+    setResume(
+      jobContext?.resumeId
+        ? {
+            resume_id: jobContext.resumeId,
+            display_name: jobContext.resumeName || '未命名简历',
+          }
+        : null,
+    )
 
     setResumeOpen(false)
     setLabel('')
@@ -117,7 +90,7 @@ export default function CreateDialog({
     changePurpose('review')
     setAllowComments(true)
     setSelection({ kind: 'current' })
-  }, [open, jobContext, loadVersionOptions])
+  }, [open, jobContext])
 
   const handleCreate = async () => {
     if (!resumeId) return
@@ -125,12 +98,18 @@ export default function CreateDialog({
     setSubmitting(true)
 
     try {
-      const release = await resolveResumeShareRelease({
-        resumeId,
-        displayName: selectedResume?.displayName ?? null,
-        selection,
-        getCurrentSource: getResumeSnapshotById,
-      })
+      const { getResumeSnapshotById, resolveResumeShareRelease } =
+        await import('@/lib/supabase/resume/share/release-source')
+
+      const release =
+        purpose === 'application' && selection.kind === 'current'
+          ? 'saved-current'
+          : await resolveResumeShareRelease({
+              resumeId,
+              displayName: resume?.display_name ?? null,
+              selection,
+              getCurrentSource: getResumeSnapshotById,
+            })
 
       await createRelease(resumeId, release, {
         label: label.trim() || null,
@@ -160,6 +139,7 @@ export default function CreateDialog({
       open={open}
       busy={submitting}
       onOpenChange={onOpenChange}
+      returnFocusTo={returnFocusTo}
       title='新建分享'
       footer={
         <>
@@ -206,7 +186,7 @@ export default function CreateDialog({
                     className='w-full min-w-0 justify-between'
                   >
                     <span className='truncate'>
-                      {selectedResume?.displayName ?? '搜索并选择简历'}
+                      {resume?.display_name ?? '搜索并选择简历'}
                     </span>
                     <ChevronsUpDown
                       data-icon='inline-end'
@@ -223,42 +203,16 @@ export default function CreateDialog({
                     animationTimingFunction: `cubic-bezier(${(resumeOpen ? EASE.out : EASE.in).join(',')})`,
                   }}
                 >
-                  <Command>
-                    <CommandInput placeholder='搜索简历' />
-                    <CommandList className='max-h-[min(18rem,calc(var(--radix-popover-content-available-height)-3rem))] overscroll-contain'>
-                      <CommandEmpty>没有匹配的简历</CommandEmpty>
-                      <CommandGroup>
-                        {resumes.map((resume) => (
-                          <CommandItem
-                            key={resume.resumeId}
-                            value={`${resume.displayName} ${resume.resumeId}`}
-                            onSelect={() => {
-                              setResumeId(resume.resumeId)
-                              setSelection({ kind: 'current' })
-
-                              loadVersionOptions(resume.resumeId, {
-                                force: true,
-                              }).catch(() => undefined)
-
-                              setResumeOpen(false)
-                            }}
-                          >
-                            <span className='min-w-0 flex-1 truncate'>
-                              {resume.displayName}
-                            </span>
-                            <Check
-                              className={cn(
-                                'size-4',
-                                resumeId === resume.resumeId
-                                  ? 'opacity-100'
-                                  : 'opacity-0',
-                              )}
-                            />
-                          </CommandItem>
-                        ))}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
+                  <ResumeCommand
+                    open={open && resumeOpen}
+                    creating
+                    selected={resumeId ? [resumeId] : []}
+                    onSelect={(option) => {
+                      setResume(option)
+                      setSelection({ kind: 'current' })
+                      setResumeOpen(false)
+                    }}
+                  />
                 </PopoverContent>
               </Popover>
             </Field>
@@ -268,19 +222,12 @@ export default function CreateDialog({
               <VersionSelector
                 value={selection}
                 freezeCurrent={purpose === 'application'}
-                versions={versionEntry?.items ?? []}
-                loading={versionEntry?.loading ?? false}
-                error={versionEntry?.error ?? null}
+                key={resumeId}
+                resumeId={resumeId}
                 disabled={
                   !open || !resumeId || submitting || purpose !== 'application'
                 }
                 onChange={setSelection}
-                onRetry={() => {
-                  if (resumeId)
-                    loadVersionOptions(resumeId, { force: true }).catch(
-                      () => undefined,
-                    )
-                }}
               />
             </Field>
           </FieldGroup>

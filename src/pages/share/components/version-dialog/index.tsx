@@ -4,7 +4,11 @@ import type {
   CurrentResumeShareSnapshotProvider,
   ResumeShareRecord,
 } from '@/lib/supabase/resume/share.types'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useEffectEvent, useRef, useState } from 'react'
+import useUserStore from '@/store/user'
+import { getShareVersionOption } from '@/lib/supabase/resume/share/option-pages'
+import { invalidateShareVersionPages } from '../../store/data/option-pages'
+import { shareReadGeneration } from '../../store/data/requests'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -16,7 +20,6 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { Spinner } from '@/components/ui/spinner'
-import { resolveResumeShareRelease } from '@/lib/supabase/resume/share'
 import useShareStore from '../../store'
 import { useShareDialogFocus } from '../../hooks/use-share-dialog-focus'
 import {
@@ -25,65 +28,33 @@ import {
   toVersionDialogSelection,
 } from '../../utils'
 import VersionSelector from '../version-selector'
+import { getDeletedSelection, checkShareVersionOption } from './source-option'
 
 interface VersionDialogProps {
+  returnFocusTo?: HTMLElement | null
   getCurrentSnapshot: CurrentResumeShareSnapshotProvider
 }
 
-function getVersionLabel(version: ResumeHistoryShareOption) {
-  return (
-    version.version_name?.trim() ||
-    version.milestone_name?.trim() ||
-    '未命名版本'
-  )
-}
-
-function getDeletedSelection(
-  versionId: number,
-  versions: ResumeHistoryShareOption[],
-  share: ResumeShareRecord,
-): VersionDialogSelection | null {
-  const version = versions.find((item) => item.id === versionId)
-
-  if (version) {
-    return {
-      kind: 'deleted-history',
-      versionNo: version.version_no,
-      versionLabel: getVersionLabel(version),
-      versionCreatedAt: version.created_at,
-    }
-  }
-
-  if (share.source.kind === 'history' && share.source.versionId === versionId) {
-    return {
-      kind: 'deleted-history',
-      versionNo: share.source.versionNo,
-      versionLabel: share.source.versionLabel,
-      versionCreatedAt: share.source.versionCreatedAt,
-    }
-  }
-
-  return null
-}
-
 export default function VersionDialog({
+  returnFocusTo,
   getCurrentSnapshot,
 }: VersionDialogProps) {
-  const {
-    pageShares,
-    shares,
-    resumeMap,
-    versionDialogOpen,
-    versionShareId,
-    versionOptionsByResumeId,
-    pendingShareIds,
-    loadVersionOptions,
-    publishRelease,
-    closeVersionDialog,
-  } = useShareStore()
+  const versionDialogOpen = useShareStore((state) => state.versionDialogOpen)
+  const versionShareId = useShareStore((state) => state.versionShareId)
 
-  const dialogFocus = useShareDialogFocus()
-  const share = findShareById(pageShares, shares, versionShareId)
+  const pending = useShareStore((state) =>
+    Boolean(
+      state.versionShareId &&
+      state.pendingShareIds.includes(state.versionShareId),
+    ),
+  )
+
+  const share = useShareStore((state) =>
+    findShareById(state.pageShares, state.shares, state.versionShareId),
+  )
+
+  const { publishRelease, closeVersionDialog } = useShareStore.getState()
+  const dialogFocus = useShareDialogFocus(returnFocusTo)
 
   const [retainedShare, setRetainedShare] = useState<ResumeShareRecord | null>(
     null,
@@ -99,13 +70,12 @@ export default function VersionDialog({
   const [submitting, setSubmitting] = useState(false)
   const initializedShareIdRef = useRef<string | null>(null)
 
-  const busy =
-    submitting ||
-    Boolean(renderedShare && pendingShareIds.includes(renderedShare.id))
+  const busy = submitting || pending
 
-  const versionEntry = renderedShare
-    ? versionOptionsByResumeId[renderedShare.resume_id]
-    : undefined
+  const ownerId = useUserStore((state) => state.currentUser?.id)
+  const [checkFailed, setCheckFailed] = useState(false)
+  const [checkAttempt, setCheckAttempt] = useState(0)
+  const [picked, setPicked] = useState<ResumeHistoryShareOption | null>(null)
 
   useEffect(() => {
     if (share) setRetainedShare(share)
@@ -118,10 +88,8 @@ export default function VersionDialog({
     initializedShareIdRef.current = renderedShare.id
     setSelection(toVersionDialogSelection(renderedShare.source))
 
-    loadVersionOptions(renderedShare.resume_id, { force: true }).catch(
-      () => undefined,
-    )
-  }, [loadVersionOptions, renderedShare, versionDialogOpen])
+    setPicked(null)
+  }, [renderedShare, versionDialogOpen])
 
   useEffect(() => {
     if (versionDialogOpen) return
@@ -129,29 +97,56 @@ export default function VersionDialog({
     initializedShareIdRef.current = null
   }, [versionDialogOpen])
 
+  const source = renderedShare?.source
+  const resumeId = renderedShare?.resume_id
+  const sourceId = source?.kind === 'history' ? source.versionId : null
+
+  const applySourceCheck = useEffectEvent(
+    (checkedId: number, existing: ResumeHistoryShareOption | null) => {
+      if (existing) {
+        setPicked((previous) => previous ?? existing)
+
+        return
+      }
+      if (!renderedShare) return
+
+      const deleted = getDeletedSelection(checkedId, null, renderedShare)
+
+      if (deleted)
+        setSelection((previous) =>
+          previous.kind === 'history' && previous.versionId === checkedId
+            ? deleted
+            : previous,
+        )
+    },
+  )
+
   useEffect(() => {
-    if (
-      !versionDialogOpen ||
-      !renderedShare ||
-      !versionEntry?.loaded ||
-      versionEntry.loading ||
-      versionEntry.error ||
-      selection.kind !== 'history' ||
-      renderedShare.source.kind !== 'history' ||
-      selection.versionId !== renderedShare.source.versionId ||
-      versionEntry.items.some((version) => version.id === selection.versionId)
-    ) {
-      return
+    if (!versionDialogOpen || !ownerId || !resumeId || sourceId == null) return
+
+    let active = true
+
+    setCheckFailed(false)
+
+    checkShareVersionOption(ownerId, resumeId, sourceId)
+      .then((existing) => {
+        if (active) applySourceCheck(sourceId, existing)
+      })
+      .catch(() => {
+        if (active) setCheckFailed(true)
+      })
+
+    return () => {
+      active = false
     }
-
-    const deleted = getDeletedSelection(
-      selection.versionId,
-      versionEntry.items,
-      renderedShare,
-    )
-
-    if (deleted) setSelection(deleted)
-  }, [renderedShare, selection, versionDialogOpen, versionEntry])
+  }, [
+    ownerId,
+    versionDialogOpen,
+    versionShareId,
+    resumeId,
+    sourceId,
+    checkAttempt,
+  ])
 
   const handlePublish = async () => {
     if (busy || !renderedShare || !isPublishableVersionSelection(selection))
@@ -167,16 +162,17 @@ export default function VersionDialog({
     }
 
     const submittedSelection = selection
-    const versionsBeforePublish = versionEntry?.items ?? []
+    const generation = shareReadGeneration
 
     setSubmitting(true)
 
     try {
+      const { resolveResumeShareRelease } =
+        await import('@/lib/supabase/resume/share/release-source')
+
       const release = await resolveResumeShareRelease({
         resumeId: renderedShare.resume_id,
-        displayName:
-          resumeMap[renderedShare.resume_id]?.displayName ??
-          renderedShare.display_name,
+        displayName: renderedShare.display_name,
         selection: submittedSelection,
         getCurrentSource: getCurrentSnapshot,
       })
@@ -185,28 +181,26 @@ export default function VersionDialog({
       toast.success('已发布所选版本')
       closeVersionDialog()
     } catch (error) {
-      if (submittedSelection.kind === 'history') {
+      if (
+        submittedSelection.kind === 'history' &&
+        ownerId &&
+        generation === shareReadGeneration
+      ) {
         const deleted = getDeletedSelection(
           submittedSelection.versionId,
-          versionsBeforePublish,
+          picked,
           renderedShare,
         )
 
-        await loadVersionOptions(renderedShare.resume_id, { force: true })
+        const existing = await getShareVersionOption(
+          ownerId,
+          renderedShare.resume_id,
+          submittedSelection.versionId,
+        ).catch(() => undefined)
 
-        const refreshed =
-          useShareStore.getState().versionOptionsByResumeId[
-            renderedShare.resume_id
-          ]
-
-        if (
-          deleted &&
-          refreshed?.loaded &&
-          !refreshed.error &&
-          !refreshed.items.some(
-            (version) => version.id === submittedSelection.versionId,
-          )
-        ) {
+        if (generation !== shareReadGeneration) return
+        if (deleted && existing === null) {
+          invalidateShareVersionPages(renderedShare.resume_id)
           setSelection(deleted)
           toast.error('所选历史版本已删除，请重新选择')
 
@@ -246,18 +240,34 @@ export default function VersionDialog({
               renderedShare?.purpose === 'review' ||
               renderedShare?.purpose === 'showcase'
             }
-            versions={versionEntry?.items ?? []}
-            loading={versionEntry?.loading ?? false}
-            error={versionEntry?.error ?? null}
-            disabled={!renderedShare || busy}
-            onChange={setSelection}
-            onRetry={() => {
-              if (renderedShare)
-                loadVersionOptions(renderedShare.resume_id, {
-                  force: true,
-                }).catch(() => undefined)
+            key={renderedShare?.id}
+            resumeId={resumeId ?? null}
+            selectedVersion={picked}
+            source={source}
+            disabled={!versionDialogOpen || !renderedShare || busy}
+            onChange={(next, version) => {
+              setSelection(next)
+              setPicked(version ?? null)
             }}
           />
+          {checkFailed &&
+            selection.kind === 'history' &&
+            selection.versionId === sourceId && (
+              <div
+                role='alert'
+                className='flex items-center justify-between gap-2 text-sm text-muted-foreground'
+              >
+                暂时无法确认所选版本是否仍然可用。
+                <Button
+                  type='button'
+                  variant='outline'
+                  size='sm'
+                  onClick={() => setCheckAttempt((n) => n + 1)}
+                >
+                  重试
+                </Button>
+              </div>
+            )}
           {selection.kind === 'deleted-history' && (
             <p className='rounded-md bg-destructive/8 px-3 py-2 text-sm text-destructive'>
               原历史版本已删除，当前链接仍保留发布时的快照。请选择新的版本后再发布。

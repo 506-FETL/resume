@@ -18,6 +18,10 @@ import {
   selectResumeLibrary,
 } from '@/lib/resume-library-route'
 import { isAssistantPage, selectAssistantPage } from '@/lib/assistant-route'
+import {
+  isShareManagement,
+  selectShareManagement,
+} from '@/lib/share-management-route'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
 import {
   isExperienceArchive,
@@ -120,6 +124,16 @@ function App() {
     )
   }, [archiveRoute, location.key])
 
+  const shareManagement = isShareManagement(location.pathname)
+
+  useEffect(() => {
+    selectShareManagement(
+      shareManagement &&
+        !hasAuthCallback &&
+        !new URLSearchParams(location.search).has('jobId'),
+    )
+  }, [shareManagement, location.search])
+
   const assistantPage = isAssistantPage(location.pathname)
 
   useEffect(() => {
@@ -196,6 +210,7 @@ function App() {
                     isWorkspaceHome(location.pathname) ||
                     isResumeLibrary(location.pathname) ||
                     archiveRoute ||
+                    shareManagement ||
                     assistantPage ? (
                       <DashboardOpening
                         fullBleed={assistantPage && authStatus !== 'anonymous'}

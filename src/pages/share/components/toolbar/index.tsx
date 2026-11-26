@@ -1,20 +1,12 @@
 import type { ShareStatusFilter } from '../../utils'
-import { Check, ChevronDown, FileUser, Search, X } from 'lucide-react'
+import { ChevronDown, FileUser, Search, X } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useState } from 'react'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
-import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from '@/components/ui/command'
 import { Input } from '@/components/ui/input'
-import { ContentSkeleton } from '@/components/loading-skeleton'
+import ResumeCommand from '../resume-option-command'
 import {
   Popover,
   PopoverContent,
@@ -22,51 +14,38 @@ import {
 } from '@/components/ui/popover'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DURATION, EASE } from '@/lib/motion'
-import { cn } from '@/lib/utils'
 import { SHARE_SEARCH_INPUT_ID, SHARE_STATUS_FILTERS } from '../../const'
 import { useShareFilterActions } from '../../hooks/use-share-filter-actions'
 import useShareStore from '../../store'
 import { useDebouncedValue } from '@/hooks/use-debounce'
 
 export default function Toolbar() {
+  const statusCounts = useShareStore((state) => state.statusCounts)
+  const statsError = useShareStore((state) => state.statsError)
+  const statsLoading = useShareStore((state) => state.statsLoading)
+  const resumeFilterNames = useShareStore((state) => state.resumeFilterNames)
+  const searchKeyword = useShareStore((state) => state.searchKeyword)
+  const resumeFilters = useShareStore((state) => state.resumeFilters)
+  const statusFilter = useShareStore((state) => state.statusFilter)
+
   const {
-    statusCounts,
-    statsError,
-    statsLoading,
-    reloadPage,
+    reloadManagementStats,
     setPageKeyword,
-    resumeMap,
-    resumeOptionsLoaded,
-    resumeOptionsLoading,
-    resumeOptionsError,
-    reloadResumeOptions,
-    searchKeyword,
-    resumeFilters,
-    statusFilter,
     setSearchKeyword,
     setResumeFilters,
     setStatusFilter,
-  } = useShareStore()
+  } = useShareStore.getState()
 
   const { resetFilters, clearSearch } = useShareFilterActions()
   const [resumeOpen, setResumeOpen] = useState(false)
   const reduceMotion = useReducedMotion()
   const indicatorId = useId()
 
-  const resumes = useMemo(
-    () =>
-      Object.values(resumeMap).sort((a, b) =>
-        a.displayName.localeCompare(b.displayName),
-      ),
-    [resumeMap],
-  )
-
   const selectedLabel =
     resumeFilters.length === 0
       ? '全部简历'
       : resumeFilters.length === 1
-        ? (resumes.find((resume) => resume.resumeId === resumeFilters[0])
-            ?.displayName ?? '已选 1 项')
+        ? (resumeFilterNames[resumeFilters[0]] ?? '已选 1 项')
         : `已选 ${resumeFilters.length} 份简历`
 
   const [composing, setComposing] = useState(false)
@@ -92,7 +71,7 @@ export default function Toolbar() {
             variant='outline'
             size='sm'
             disabled={statsLoading}
-            onClick={() => reloadPage()}
+            onClick={() => reloadManagementStats()}
           >
             重试统计
           </Button>
@@ -185,83 +164,30 @@ export default function Toolbar() {
             </Button>
           </PopoverTrigger>
           <PopoverContent className='w-64 p-0' align='start'>
-            <Command>
-              <CommandInput placeholder='搜索简历' />
-              <CommandList>
-                {!resumeOptionsLoaded && !resumeOptionsError ? (
-                  <ContentSkeleton rows={3} label='正在加载简历列表' />
-                ) : resumeOptionsError ? (
-                  <div
-                    role='alert'
-                    className='space-y-2 p-3 text-sm text-muted-foreground'
-                  >
-                    <p>简历列表暂时不可用。</p>
-                    <Button
-                      size='sm'
-                      variant='outline'
-                      disabled={resumeOptionsLoading}
-                      onClick={() => reloadResumeOptions()}
-                    >
-                      重试
-                    </Button>
-                  </div>
-                ) : (
-                  <CommandEmpty>没有匹配的简历</CommandEmpty>
-                )}
-                <CommandGroup>
-                  {resumes.map((resume) => (
-                    <CommandItem
-                      key={resume.resumeId}
-                      value={`${resume.displayName} ${resume.resumeId}`}
-                      onSelect={() =>
-                        setResumeFilters(
-                          resumeFilters.includes(resume.resumeId)
-                            ? resumeFilters.filter(
-                                (id) => id !== resume.resumeId,
-                              )
-                            : [...resumeFilters, resume.resumeId],
-                        )
-                      }
-                    >
-                      <span
-                        className={cn(
-                          'flex size-4 items-center justify-center rounded border',
-                          resumeFilters.includes(resume.resumeId) &&
-                            'border-primary bg-primary text-primary-foreground',
-                        )}
-                      >
-                        <Check
-                          className={cn(
-                            'size-3',
-                            !resumeFilters.includes(resume.resumeId) &&
-                              'opacity-0',
-                          )}
-                        />
-                      </span>
-                      <span className='min-w-0 flex-1 truncate'>
-                        {resume.displayName}
-                      </span>
-                      {resumeFilters.includes(resume.resumeId) && (
-                        <span className='sr-only'>已选择</span>
-                      )}
-                    </CommandItem>
-                  ))}
-                </CommandGroup>
-              </CommandList>
-              {resumeFilters.length > 0 && (
-                <div className='border-t p-1'>
-                  <Button
-                    variant='ghost'
-                    size='sm'
-                    className='w-full justify-start'
-                    onClick={() => setResumeFilters([])}
-                  >
-                    <X className='size-3.5' />
-                    清空选择
-                  </Button>
-                </div>
-              )}
-            </Command>
+            <ResumeCommand
+              open={resumeOpen}
+              selected={resumeFilters}
+              onSelect={(resume) => {
+                const next = resumeFilters.includes(resume.resume_id)
+                  ? resumeFilters.filter((id) => id !== resume.resume_id)
+                  : [...resumeFilters, resume.resume_id]
+
+                setResumeFilters(next, resume)
+              }}
+            />
+            {resumeFilters.length > 0 && (
+              <div className='border-t p-1'>
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  className='w-full justify-start'
+                  onClick={() => setResumeFilters([])}
+                >
+                  <X className='size-3.5' />
+                  清空选择
+                </Button>
+              </div>
+            )}
           </PopoverContent>
         </Popover>
         <AnimatePresence initial={false}>

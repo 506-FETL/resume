@@ -20,8 +20,7 @@ interface GridProps {
 
 export default function Grid({ shares }: GridProps) {
   const reduceMotion = useReducedMotion()
-  const groupCounts = useShareStore((state) => state.pageStats?.groups)
-  const resumeMap = useShareStore((state) => state.resumeMap)
+  const pageGroups = useShareStore((state) => state.pageGroups)
 
   const groups = useMemo(() => {
     const groupedShares = new Map<string, ResumeShareRecord[]>()
@@ -37,11 +36,9 @@ export default function Grid({ shares }: GridProps) {
       resumeId,
       links,
       title:
-        resumeMap[resumeId]?.displayName ||
-        links[0].display_name ||
-        '未命名简历',
+        pageGroups[resumeId]?.title || links[0].display_name || '未命名简历',
     }))
-  }, [resumeMap, shares])
+  }, [pageGroups, shares])
 
   return (
     <div
@@ -90,7 +87,7 @@ export default function Grid({ shares }: GridProps) {
                     </h2>
                     <p className='mt-1.5 text-xs leading-4 text-muted-foreground'>
                       <span className='font-medium tabular-nums'>
-                        {groupCounts?.[resumeId] ?? '—'}
+                        {pageGroups[resumeId]?.count ?? '—'}
                       </span>{' '}
                       个分享链接
                     </p>

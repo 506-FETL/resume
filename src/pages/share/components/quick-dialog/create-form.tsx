@@ -1,7 +1,6 @@
 import type { SharePurpose } from '@/lib/supabase/resume/share.types'
 import { sharePurposeDefaults } from '@/lib/share-purpose'
 import PurposeFields from '../purpose-fields'
-import type { ResumeHistoryShareOption } from '@/lib/supabase/resume/history'
 import type {
   CreateShareOptions,
   ShareVersionSelection,
@@ -20,10 +19,7 @@ interface CreateFormProps {
   formId: string
   submitting: boolean
   onSubmittingChange: (submitting: boolean) => void
-  versions: ResumeHistoryShareOption[]
-  versionsLoading: boolean
-  versionsError: string | null
-  onRetryVersions: () => void
+  resumeId: string | null
   onCreate: (
     selection: ShareVersionSelection,
     options: CreateShareOptions,
@@ -34,10 +30,7 @@ export function CreateForm({
   formId,
   submitting,
   onSubmittingChange,
-  versions,
-  versionsLoading,
-  versionsError,
-  onRetryVersions,
+  resumeId,
   onCreate,
 }: CreateFormProps) {
   const [selection, setSelection] = useState<ShareVersionSelection>({
@@ -127,12 +120,9 @@ export function CreateForm({
             <VersionSelector
               value={selection}
               freezeCurrent={purpose === 'application'}
-              versions={versions}
-              loading={versionsLoading}
-              error={versionsError}
+              resumeId={resumeId}
               disabled={submitting || purpose !== 'application'}
               onChange={setSelection}
-              onRetry={onRetryVersions}
             />
           </Field>
         </FieldGroup>
