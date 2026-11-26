@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow'
 import { OptimizeBasisSkeleton } from '@/components/page-skeletons/optimize'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { BrainCircuit, ChevronDown, Layers3, Sparkles } from 'lucide-react'
@@ -23,7 +24,17 @@ import ProTips from '../pro-tips'
 import ScoresRadarChart from './scores-radar-chart'
 
 export default function AssessmentBasisCard() {
-  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const currentAtsConfig = useAtsStore(
+    useShallow(
+      ({ currentAtsConfig: report }) =>
+        report && {
+          scores: report.scores,
+          meta: report.meta,
+          readabilityIndex: report.readabilityIndex,
+        },
+    ),
+  )
+
   const loading = useAtsStore((s) => s.loading)
   const isMobile = useIsMobile()
   const rationaleId = useId()

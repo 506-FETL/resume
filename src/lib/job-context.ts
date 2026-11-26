@@ -1,5 +1,5 @@
 import type { ResumeType } from '@/lib/schema'
-import { create } from 'zustand'
+import type { JobContext } from './job-context-store'
 import supabase from '@/lib/supabase/client'
 import { getCurrentUser } from '@/lib/supabase/user'
 import {
@@ -9,35 +9,29 @@ import {
 } from '@/pages/tracker/lib/account-scope'
 import { trackerProcessError } from '@/lib/supabase/resume/tracker-companies'
 
-export interface JobContext {
-  id: string
-  userId: string
-  company: string
-  position: string
-  jdText: string
-  resumeId: string | null
-  resumeType: ResumeType | null
-  resumeName: string | null
-}
-
 interface JobContextRow {
   id: string
   user_id: string
   company: string
   position: string
-  jd_text: string | null
+  jd_text?: string | null
   resume_id: string | null
   resume: { type: ResumeType; display_name: string | null } | null
 }
 
-const JOB_CONTEXT_FIELDS =
-  'id,user_id,company,position,jd_text,resume_id,resume:resume_config!company_resume_id_fkey(type,display_name)'
+const JOB_REFERENCE_FIELDS =
+  'id,user_id,company,position,resume_id,resume:resume_config!company_resume_id_fkey(type,display_name)'
+
+const JOB_CONTEXT_FIELDS = `${JOB_REFERENCE_FIELDS},jd_text`
+
+export { useJobContextStore, type JobContext } from './job-context-store'
 
 export { jobContextUrl } from './job-context-url'
 
 export async function readJobContext(
   jobId: string,
   signal?: AbortSignal,
+  includeDescription = true,
 ): Promise<JobContext> {
   assertJobId(jobId)
 
@@ -48,7 +42,7 @@ export async function readJobContext(
 
   const query = supabase
     .from('company')
-    .select(JOB_CONTEXT_FIELDS)
+    .select(includeDescription ? JOB_CONTEXT_FIELDS : JOB_REFERENCE_FIELDS)
     .eq('id', jobId)
     .eq('user_id', user!.id)
     .eq('resume.user_id', user!.id)
@@ -119,17 +113,52 @@ function toJobContext(job: JobContextRow): JobContext {
     userId: job.user_id,
     company: job.company,
     position: job.position,
-    jdText: job.jd_text ?? '',
+    jdText: job.jd_text === undefined ? undefined : (job.jd_text ?? ''),
     resumeId: job.resume_id,
     resumeType: job.resume?.type ?? null,
     resumeName: job.resume?.display_name ?? null,
   }
 }
 
-export const useJobContextStore = create<{
-  context: JobContext | null
-  setContext: (context: JobContext | null) => void
-}>((set) => ({
-  context: null,
-  setContext: (context) => set({ context }),
-}))
+const descriptions = new WeakMap<JobContext, Promise<string>>()
+
+export async function readJobContextDescription(
+  context: JobContext,
+): Promise<string> {
+  const scope = getTrackerAccountScope()
+
+  createTrackerAccountGuard(scope)(context.userId)
+
+  if (context.jdText !== undefined) return Promise.resolve(context.jdText)
+
+  if (!context.resumeId) throw new Error('还没有准备中的简历')
+
+  const cached = descriptions.get(context)
+
+  if (cached) return cached
+
+  const request = supabase
+    .from('company')
+    .select('jd_text')
+    .eq('id', context.id)
+    .eq('user_id', context.userId)
+    .eq('resume_id', context.resumeId)
+    .single()
+    .then(({ data, error }) => {
+      assertTrackerAccountScope(scope)
+
+      if (error || !data) throw new Error('岗位描述读取失败，请重试。')
+
+      return data.jd_text ?? ''
+    })
+
+  const result = Promise.resolve(request).catch((error: unknown) => {
+    descriptions.delete(context)
+
+    throw error
+  })
+
+  descriptions.set(context, result)
+
+  return result
+}

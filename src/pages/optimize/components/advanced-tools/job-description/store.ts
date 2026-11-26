@@ -1,245 +1,127 @@
-import type { JobDescriptionComparisonResult } from './types'
-import type { AnalysisState } from '@/pages/optimize/types'
+import type { JobDescriptionToolSession } from './const'
 import { create } from 'zustand'
-import { createJSONStorage, persist } from 'zustand/middleware'
-import {
-  createInitialJobDescriptionAnalysisState,
-  createInitialJobDescriptionToolSession,
-} from './const'
+import useUserStore from '@/store/user'
+import { createInitialJobDescriptionToolSession } from './const'
 
-interface JobDescriptionToolStore {
-  sessions: Record<
-    string,
-    ReturnType<typeof createInitialJobDescriptionToolSession>
-  >
-  setAnalysisError: (sessionKey: string, error: string | null) => void
-  setAnalysisOpen: (sessionKey: string, open: boolean) => void
-  setAnalysisState: (sessionKey: string, state: AnalysisState) => void
-  setAnalyzing: (sessionKey: string, analyzing: boolean) => void
-  setJobDescription: (sessionKey: string, value: string) => void
-  setResult: (
-    sessionKey: string,
-    result: JobDescriptionComparisonResult | null,
-  ) => void
-  updateAnalysisLog: (
-    sessionKey: string,
+const storageKey = 'optimize-job-description-tool-storage'
+const pending = new Set<string>()
+const timers = new Map<string, ReturnType<typeof setTimeout>>()
+
+export const initialSession = createInitialJobDescriptionToolSession()
+
+interface JobDescriptionStore {
+  sessions: Record<string, JobDescriptionToolSession>
+  load: (key: string, legacyKey?: string) => void
+  update: (
     key: string,
-    value: string,
-    append?: boolean,
-  ) => void
-  updateAnalysisState: (
-    sessionKey: string,
-    partial: Partial<AnalysisState>,
+    changes: Partial<JobDescriptionToolSession>,
+    persist?: 'draft' | 'stream' | 'now',
   ) => void
 }
 
-function getSession(
-  sessions: Record<
-    string,
-    ReturnType<typeof createInitialJobDescriptionToolSession>
-  >,
-  sessionKey: string,
-) {
-  return sessions[sessionKey] ?? createInitialJobDescriptionToolSession()
-}
+function readSession(
+  key: string,
+  legacyKey?: string,
+): JobDescriptionToolSession {
+  try {
+    const stored = localStorage.getItem(`${storageKey}:${key}`)
 
-function normalizeAnalysisState(value: unknown): AnalysisState {
-  const initialState = createInitialJobDescriptionAnalysisState()
+    const raw = stored
+      ? JSON.parse(stored)
+      : legacyKey
+        ? JSON.parse(localStorage.getItem(storageKey) ?? 'null')?.state
+            ?.sessions?.[legacyKey]
+        : null
 
-  if (!value || typeof value !== 'object') {
-    return initialState
-  }
+    if (!raw || typeof raw !== 'object') return initialSession
 
-  const analysisState = value as Partial<AnalysisState>
-
-  return {
-    ...initialState,
-    ...analysisState,
-    logs: analysisState.logs ?? {},
-  }
-}
-
-function normalizePersistedSession(value: unknown) {
-  const initialSession = createInitialJobDescriptionToolSession()
-
-  if (!value || typeof value !== 'object') {
+    return {
+      ...initialSession,
+      ...raw,
+      analyzing: false,
+      analysisState: {
+        ...initialSession.analysisState,
+        ...raw.analysisState,
+        logs: raw.analysisState?.logs ?? {},
+      },
+    }
+  } catch {
     return initialSession
   }
+}
 
-  const session = value as Partial<
-    ReturnType<typeof createInitialJobDescriptionToolSession>
-  >
+function flushSession(key: string) {
+  clearTimeout(timers.get(key))
+  timers.delete(key)
 
-  return {
-    ...initialSession,
-    ...session,
-    analyzing: false,
-    analysisState: normalizeAnalysisState(session.analysisState),
+  if (!pending.delete(key)) return
+
+  const session = useJobDescriptionToolStore.getState().sessions[key]
+
+  try {
+    localStorage.setItem(`${storageKey}:${key}`, JSON.stringify(session))
+  } catch {
+    // 浏览器空间耗尽时，当前标签页仍保留可编辑的输入与结果。
   }
 }
 
-function updateSession(
-  sessions: Record<
-    string,
-    ReturnType<typeof createInitialJobDescriptionToolSession>
-  >,
-  sessionKey: string,
-  updater: (
-    session: ReturnType<typeof createInitialJobDescriptionToolSession>,
-  ) => ReturnType<typeof createInitialJobDescriptionToolSession>,
-) {
-  const session = getSession(sessions, sessionKey)
-
-  return {
-    ...sessions,
-    [sessionKey]: updater(session),
-  }
+export function flushJobDescriptionSessions() {
+  for (const key of pending) flushSession(key)
 }
 
-const useJobDescriptionToolStore = create<JobDescriptionToolStore>()(
-  persist(
-    (set) => ({
-      sessions: {},
-      setJobDescription: (sessionKey, value) => {
-        set((state) => ({
-          sessions: updateSession(state.sessions, sessionKey, (session) => ({
-            ...session,
-            jobDescription: value,
-          })),
-        }))
-      },
-      setResult: (sessionKey, result) => {
-        set((state) => ({
-          sessions: updateSession(state.sessions, sessionKey, (session) => ({
-            ...session,
-            result,
-          })),
-        }))
-      },
-      setAnalyzing: (sessionKey, analyzing) => {
-        set((state) => ({
-          sessions: updateSession(state.sessions, sessionKey, (session) => ({
-            ...session,
-            analyzing,
-          })),
-        }))
-      },
-      setAnalysisOpen: (sessionKey, open) => {
-        set((state) => ({
-          sessions: updateSession(state.sessions, sessionKey, (session) => ({
-            ...session,
-            analysisOpen: open,
-          })),
-        }))
-      },
-      setAnalysisError: (sessionKey, error) => {
-        set((state) => ({
-          sessions: updateSession(state.sessions, sessionKey, (session) => ({
-            ...session,
-            analysisError: error,
-          })),
-        }))
-      },
-      setAnalysisState: (sessionKey, analysisState) => {
-        set((state) => ({
-          sessions: updateSession(state.sessions, sessionKey, (session) => ({
-            ...session,
-            analysisState,
-          })),
-        }))
-      },
-      updateAnalysisState: (sessionKey, partial) => {
-        set((state) => ({
-          sessions: updateSession(state.sessions, sessionKey, (session) => ({
-            ...session,
-            analysisState: {
-              ...session.analysisState,
-              ...partial,
-            },
-          })),
-        }))
-      },
-      updateAnalysisLog: (sessionKey, key, value, append = false) => {
-        set((state) => {
-          const session = getSession(state.sessions, sessionKey)
-          const currentValue = session.analysisState.logs[key]
+const useJobDescriptionToolStore = create<JobDescriptionStore>()(
+  (set, get) => ({
+    sessions: {},
+    load: (key, legacyKey) => {
+      const existing = get().sessions[key]
 
-          return {
-            sessions: updateSession(
-              state.sessions,
-              sessionKey,
-              (currentSession) => ({
-                ...currentSession,
-                analysisState: {
-                  ...currentSession.analysisState,
-                  logs: {
-                    ...currentSession.analysisState.logs,
-                    [key]:
-                      append && currentValue
-                        ? `${currentValue}\n${value}`
-                        : value,
-                  },
-                },
-              }),
-            ),
-          }
-        })
-      },
-    }),
-    {
-      name: 'optimize-job-description-tool-storage',
-      storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({
-        sessions: state.sessions,
-      }),
-      version: 1,
-      merge: (persistedState, currentState) => {
-        const persistedSessions =
-          (persistedState as Partial<JobDescriptionToolStore> | undefined)
-            ?.sessions ?? {}
+      if (existing && (existing !== initialSession || !legacyKey)) return
 
-        const normalizedSessions = Object.fromEntries(
-          Object.entries(persistedSessions).map(([sessionKey, session]) => [
-            sessionKey,
-            normalizePersistedSession(session),
-          ]),
-        )
+      const session = readSession(key, legacyKey)
 
-        return {
-          ...currentState,
-          sessions: normalizedSessions,
-        }
-      },
+      set((state) => ({ sessions: { ...state.sessions, [key]: session } }))
     },
-  ),
+    update: (key, changes, persist = 'now') => {
+      const session = get().sessions[key] ?? initialSession
+
+      set((state) => ({
+        sessions: { ...state.sessions, [key]: { ...session, ...changes } },
+      }))
+
+      pending.add(key)
+
+      if (persist === 'now') flushSession(key)
+      if (persist === 'draft') {
+        clearTimeout(timers.get(key))
+
+        timers.set(
+          key,
+          setTimeout(() => flushSession(key), 250),
+        )
+      }
+    },
+  }),
 )
 
-export function getJobDescriptionToolSession(sessionKey: string) {
-  return (
-    useJobDescriptionToolStore.getState().sessions[sessionKey] ??
-    createInitialJobDescriptionToolSession()
-  )
-}
+useUserStore.subscribe((state, previous) => {
+  const owner = previous.currentUser?.id
 
-export function resetJobDescriptionToolAnalysis(sessionKey: string) {
-  const current = getJobDescriptionToolSession(sessionKey)
+  if (!owner || state.currentUser?.id === owner) return
 
-  useJobDescriptionToolStore.getState().setAnalysisState(sessionKey, {
-    ...createInitialJobDescriptionAnalysisState(),
-    status: 'sending',
-    logs: {
-      send: '正在上传当前简历和岗位描述...',
-    },
+  const { sessions, update } = useJobDescriptionToolStore.getState()
+
+  for (const [key, session] of Object.entries(sessions)) {
+    if (session.analyzing && key.startsWith(`${owner}:`))
+      update(key, { analyzing: false })
+  }
+})
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', flushJobDescriptionSessions)
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.hidden) flushJobDescriptionSessions()
   })
-
-  useJobDescriptionToolStore
-    .getState()
-    .setJobDescription(sessionKey, current.jobDescription)
-
-  useJobDescriptionToolStore.getState().setResult(sessionKey, null)
-  useJobDescriptionToolStore.getState().setAnalysisError(sessionKey, null)
-  useJobDescriptionToolStore.getState().setAnalysisOpen(sessionKey, true)
-  useJobDescriptionToolStore.getState().setAnalyzing(sessionKey, true)
 }
 
 export default useJobDescriptionToolStore

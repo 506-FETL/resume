@@ -47,7 +47,7 @@ export function CreationJob({
               variant='outline'
               className='w-full justify-between'
               onClick={() => {
-                if (jobContext && !jobContext.jdText.trim()) {
+                if (jobContext && !jobContext.jdText?.trim()) {
                   toast.info('请先返回岗位补充 JD 原文')
 
                   return

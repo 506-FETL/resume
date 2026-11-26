@@ -4,7 +4,7 @@ import type {
   BenchmarkResult,
 } from './types'
 import type { ResumeSchema } from '@/lib/schema'
-import { getResumeEvidenceStats } from '@/lib/ats'
+import { getResumeEvidenceStats } from '@/lib/ats/evidence'
 import { normalizeMultilineText } from '../shared/text'
 import { BENCHMARK_PROFILES, GENERAL_BENCHMARK_PROFILE } from './const'
 

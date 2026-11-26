@@ -222,9 +222,11 @@ export function parseLlmJsonObject<T>(value: string): T {
   // 先原样解析，失败再用状态机修复后重试。
   let lastError: unknown
 
-  for (const candidate of [jsonText, repairJsonText(jsonText)]) {
+  for (let attempt = 0; attempt < 2; attempt++) {
     try {
-      const parsed = JSON.parse(candidate)
+      const parsed = JSON.parse(
+        attempt === 0 ? jsonText : repairJsonText(jsonText),
+      )
 
       if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed))
         throw new Error('LLM 返回的 JSON 结构无效')
@@ -338,7 +340,10 @@ export async function runJobDescriptionStructured(
     },
   } as ChatCompletionCreateParamsBase
 
-  return await streamStructuredJson(req, onUpdate, options)
+  return streamStructuredJson(req, onUpdate, {
+    ...options,
+    requireComplete: true,
+  })
 }
 
 export async function runJdVariantParse(

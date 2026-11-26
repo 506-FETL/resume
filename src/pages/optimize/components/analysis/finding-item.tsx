@@ -1,6 +1,6 @@
-import type { Severity } from '../../types'
+import type { Finding, Severity } from '../../types'
 import { Check, ChevronDown } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { memo, useEffect, useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,29 +9,23 @@ import {
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { hasUnresolvedSuggestionInput, isAtsFindingPending } from '@/lib/ats'
+import { hasUnresolvedSuggestionInput } from '@/lib/ats/result/suggestion-readiness'
+import { isAtsFindingPending } from '@/lib/ats/status'
 import { cn } from '@/lib/utils'
 import { severityConfig } from '../../const'
-import useAtsStore from '../../store'
 import IssueFix from './Issue-fix'
 
 interface FindingItemProps {
-  id: string
+  finding: Finding
   severity: Severity
   featured?: boolean
 }
 
-export default function FindingItem({
-  id,
+function FindingItem({
+  finding,
   severity,
   featured = false,
 }: FindingItemProps) {
-  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
-
-  const finding = currentAtsConfig?.findings?.[severity]?.find(
-    (item) => item.id === id,
-  )
-
   const [open, setOpen] = useState(featured)
   const hasToggledRef = useRef(false)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -42,8 +36,6 @@ export default function FindingItem({
   useEffect(() => {
     if (featured && !hasToggledRef.current) setOpen(true)
   }, [featured])
-
-  if (!finding) return null
 
   const suggestions = finding.fix.suggestions || []
   const needsUserInput = hasUnresolvedSuggestionInput(suggestions)
@@ -202,7 +194,7 @@ export default function FindingItem({
                   </ul>
                 )}
               </div>
-              <IssueFix id={id} severity={severity}>
+              <IssueFix id={finding.id} severity={severity}>
                 <Button
                   size='sm'
                   variant={isFixed ? 'outline' : 'default'}
@@ -235,3 +227,5 @@ export default function FindingItem({
     </Collapsible>
   )
 }
+
+export default memo(FindingItem)

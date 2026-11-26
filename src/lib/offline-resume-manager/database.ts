@@ -30,6 +30,7 @@ export interface ResumeDB extends DBSchema {
       derived_status: string
       display_name: string
       description: string
+      option_metadata: string[]
     }
   }
 }
@@ -38,7 +39,9 @@ export type OfflineResumeRecord = ResumeDB['resumes']['value']
 
 export const DB_NAME = 'offline-resumes'
 
-export const DB_VERSION = 3
+export const DB_VERSION = 4
+
+const OPTION_KEY = ['resume_id', 'display_name', 'created_at', 'updated_at']
 
 export let dbInstance: IDBPDatabase<ResumeDB> | null = null
 
@@ -80,6 +83,12 @@ async function openResumeDatabase(): Promise<IDBPDatabase<ResumeDB>> {
 
         store.createIndex('display_name', 'display_name')
         store.createIndex('description', 'description')
+      }
+      if (oldVersion < 4) {
+        const store = tx.objectStore('resumes')
+
+        if (!store.indexNames.contains('option_metadata'))
+          store.createIndex('option_metadata', OPTION_KEY)
       }
     },
   }).catch(async (error: unknown) => {
@@ -124,19 +133,24 @@ async function openResumeDatabase(): Promise<IDBPDatabase<ResumeDB>> {
   try {
     const transaction = connection.transaction('resumes', 'readonly')
     const store = transaction.store
-    const searchIndexes = ['display_name', 'description'] as const
 
-    if (
-      searchIndexes.some(
-        (name) =>
-          store.indexNames.contains(name) &&
-          (store.index(name).keyPath !== name || store.index(name).unique),
-      )
-    )
-      throw new Error('本地简历搜索索引不兼容，已有数据已保留')
+    const metadataIndexes = [
+      ['display_name', 'display_name'],
+      ['description', 'description'],
+      ['option_metadata', OPTION_KEY],
+    ] as const
 
-    const missing = searchIndexes.filter(
-      (name) => !store.indexNames.contains(name),
+    for (const [name, key] of metadataIndexes) {
+      if (!store.indexNames.contains(name)) continue
+
+      const index = store.index(name)
+
+      if (JSON.stringify(index.keyPath) !== JSON.stringify(key) || index.unique)
+        throw new Error('本地简历索引不兼容，已有数据已保留')
+    }
+
+    const missing = metadataIndexes.filter(
+      ([name]) => !store.indexNames.contains(name),
     )
 
     await transaction.done
@@ -151,7 +165,7 @@ async function openResumeDatabase(): Promise<IDBPDatabase<ResumeDB>> {
         upgrade(_db, _oldVersion, _newVersion, tx) {
           const resumeStore = tx.objectStore('resumes')
 
-          for (const name of missing) resumeStore.createIndex(name, name)
+          for (const [name, key] of missing) resumeStore.createIndex(name, key)
         },
       })
     }

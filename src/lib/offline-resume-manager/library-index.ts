@@ -11,17 +11,21 @@ export interface OfflineResumeLibraryIndex {
 
 type ResumeStore = IDBPObjectStore<ResumeDB, ['resumes'], 'resumes', 'readonly'>
 
-export async function getOrderedOfflineResumeIds(limit?: number) {
+export async function getOrderedOfflineResumeIds(limit?: number, offset = 0) {
   const db = await getDB()
   const tx = db.transaction('resumes')
-  const ids = await readOrderedResumeIds(tx.store, limit)
+  const ids = await readOrderedResumeIds(tx.store, limit, offset)
 
   await tx.done
 
   return ids
 }
 
-async function readOrderedResumeIds(store: ResumeStore, limit?: number) {
+async function readOrderedResumeIds(
+  store: ResumeStore,
+  limit?: number,
+  offset = 0,
+) {
   const updated = store.index('updated_at')
   const dated = IDBKeyRange.lowerBound('', true)
 
@@ -50,6 +54,8 @@ async function readOrderedResumeIds(store: ResumeStore, limit?: number) {
 
   let cursor = await updated.openKeyCursor(dated, 'prev')
 
+  if (cursor && offset) cursor = await cursor.advance(offset)
+
   while (cursor) {
     ids.push(cursor.primaryKey)
 
@@ -59,11 +65,22 @@ async function readOrderedResumeIds(store: ResumeStore, limit?: number) {
   }
 
   // 旧记录缺少更新时间时排在所有有效日期之后，主键倒序补到本批上限。
-  const known = new Set(ids)
+  const [datedCount, total] = await Promise.all([
+    updated.count(dated),
+    store.count(),
+  ])
+
+  if (datedCount === total) return ids
+
+  const known = new Set(offset ? await updated.getAllKeys(dated) : ids)
+  let skip = Math.max(0, offset - datedCount)
   let fallback = await store.openKeyCursor(null, 'prev')
 
   while (fallback) {
-    if (!known.has(fallback.primaryKey)) ids.push(fallback.primaryKey)
+    if (!known.has(fallback.primaryKey)) {
+      if (skip > 0) skip -= 1
+      else ids.push(fallback.primaryKey)
+    }
     if (ids.length === limit) break
 
     fallback = await fallback.continue()

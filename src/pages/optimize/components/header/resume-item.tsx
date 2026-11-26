@@ -5,8 +5,6 @@ import { Badge } from '@/components/ui/badge'
 import { cn } from '@/lib/utils'
 
 interface ResumeConfig {
-  id: string
-  resume_id: string
   display_name: string
   isScored: boolean | null
   overall_score: number | null

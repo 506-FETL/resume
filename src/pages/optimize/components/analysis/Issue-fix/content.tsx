@@ -9,21 +9,31 @@ import {
   ListOrdered,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
-import { CodeSnippet } from '@/components/ui/code-snippet'
+import { type ComponentProps, useLayoutEffect } from 'react'
+import { createDeferredComponent } from '@/components/deferred-content'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { hasUnresolvedSuggestionInput } from '@/lib/ats'
 import { cn } from '@/lib/utils'
 import { severityConfig } from '@/pages/optimize/const'
 import useAtsStore from '@/pages/optimize/store'
-import CustomEditor from '../custom-editor'
+import { CustomEditor } from '../custom-editor/deferred'
 import { SuggestionCompareCard } from '../custom-editor/renderer'
+
+const CodeComparison = createDeferredComponent<
+  ComponentProps<typeof import('./code-comparison').default>
+>(() => import('./code-comparison'), '代码对比')
 
 interface IssueFixContentProps {
   severity: Severity
   id: string
+  onReadyChange: (ready: boolean) => void
 }
 
-function IssueFixContent({ severity, id }: IssueFixContentProps) {
+function IssueFixContent({
+  severity,
+  id,
+  onReadyChange,
+}: IssueFixContentProps) {
   const update = useAtsStore((s) => s.update)
   const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
 
@@ -32,6 +42,12 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
   )
 
   const config = severityConfig[severity]
+
+  useLayoutEffect(() => {
+    onReadyChange(true)
+
+    return () => onReadyChange(false)
+  }, [onReadyChange])
 
   if (!finding) return null
 
@@ -52,18 +68,6 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
   const suggestions = finding.fix.suggestions || []
   const needsUserInput = hasUnresolvedSuggestionInput(suggestions)
 
-  const beforeCode = JSON.stringify(
-    suggestions.map((s) => s.before ?? null),
-    null,
-    2,
-  )
-
-  const afterCode = JSON.stringify(
-    suggestions.map((s) => s.after ?? null),
-    null,
-    2,
-  )
-
   const handleChange = (newSuggestions: Suggestion[]) => {
     if (!currentAtsConfig?.findings) return
 
@@ -80,8 +84,6 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
       [severity]: updatedFinding,
     })
   }
-
-  if (!finding) return null
 
   return (
     <div className='min-h-0 flex-1 space-y-4 overflow-y-auto overscroll-contain p-4 sm:space-y-5 md:p-6 lg:space-y-8'>
@@ -200,26 +202,7 @@ function IssueFixContent({ severity, id }: IssueFixContentProps) {
           </TabsContent>
 
           <TabsContent value='code'>
-            <div>
-              <div className='grid gap-3 sm:grid-cols-1 lg:grid-cols-2 lg:gap-6'>
-                <CodeSnippet
-                  language='json'
-                  filename='before.json'
-                  className='text-sm lg:text-base'
-                  showLineNumbers
-                >
-                  {beforeCode}
-                </CodeSnippet>
-                <CodeSnippet
-                  language='json'
-                  filename='after.json'
-                  className='text-sm lg:text-base'
-                  showLineNumbers
-                >
-                  {afterCode}
-                </CodeSnippet>
-              </div>
-            </div>
+            <CodeComparison suggestions={suggestions} />
           </TabsContent>
 
           <TabsContent value='edit'>

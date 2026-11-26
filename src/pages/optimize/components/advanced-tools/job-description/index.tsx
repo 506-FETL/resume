@@ -1,11 +1,17 @@
-import { jobContextUrl, useJobContextStore } from '@/lib/job-context'
+import {
+  jobContextUrl,
+  readJobContextDescription,
+  useJobContextStore,
+} from '@/lib/job-context'
 import type { ResumeToolContext } from '../shared/types'
-import type { JobDescriptionComparisonResult } from './types'
+import type { ComponentProps } from 'react'
+import { createDeferredComponent } from '@/components/deferred-content'
 import { GitBranch, Search, Target } from 'lucide-react'
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useCallback, useEffect, useId, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { JdVariantDialog } from '@/components/jd-variant/components/generator-dialog'
+import { deferDialog } from '@/components/deferred-dialog'
+import type { JdVariantDialogProps } from '@/components/jd-variant/components/generator-dialog'
 import { MIN_JD_CHARS } from '@/components/jd-variant/const'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
@@ -17,8 +23,8 @@ import {
 } from '@/components/ui/field'
 import { Spinner } from '@/components/ui/spinner'
 import { Textarea } from '@/components/ui/textarea'
-import { parseLlmJsonObject, runJobDescriptionStructured } from '@/lib/llm'
-import useJdVariantStore from '@/store/jd-variant'
+import useUserStore from '@/store/user'
+import useAtsStore from '@/pages/optimize/store'
 import useCurrentResumeStore from '@/store/resume/current'
 import {
   ToolEmptyState,
@@ -27,45 +33,59 @@ import {
   ToolPanelCard,
   ToolPanelHeader,
 } from '../shared/primitives'
-import AnalysisTrace from './analysis-trace'
-import ComparisonResultView from './comparison-result'
-import {
-  createInitialJobDescriptionToolSession,
-  getJobDescriptionSessionKey,
-} from './const'
-import useJobDescriptionToolStore from './store'
-import {
-  hasJobDescriptionAnalysisFlow,
-  normalizeJobDescriptionComparisonResult,
-} from './utils'
+import { getJobDescriptionSessionKey } from './const'
+import useJobDescriptionToolStore, {
+  initialSession,
+  flushJobDescriptionSessions,
+} from './store'
+import { hasJobDescriptionAnalysisFlow } from './utils'
+
+const AnalysisTrace = createDeferredComponent<
+  ComponentProps<typeof import('./analysis-trace').default>
+>(() => import('./analysis-trace'), '比对过程')
+
+const ComparisonResultView = createDeferredComponent<
+  ComponentProps<typeof import('./comparison-result').default>
+>(() => import('./comparison-result'), '比对结果')
+
+const VariantDialog = deferDialog<JdVariantDialogProps>(
+  () => import('./variant-dialog'),
+  '派生针对性简历',
+)
 
 interface JobDescriptionToolProps {
-  resumeContext: ResumeToolContext
+  resumeId: string
+  resumeType: ResumeToolContext['resumeType']
+  resume: ResumeToolContext['resume'] | undefined
+  initialJobDescription?: Promise<string>
 }
 
-function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
-  const jobContext = useJobContextStore((state) => state.context)
+function JobDescriptionTool({
+  resumeId,
+  resumeType,
+  resume,
+  initialJobDescription,
+}: JobDescriptionToolProps) {
+  const owner = useUserStore((state) => state.currentUser?.id ?? 'guest')
 
-  const sessionKey = useMemo(
-    () =>
-      `${jobContext ? `${jobContext.userId}:${jobContext.id}:` : ''}${getJobDescriptionSessionKey(resumeContext)}`,
-    [resumeContext, jobContext],
+  const jobContext = useJobContextStore((state) =>
+    state.context?.userId === owner ? state.context : null,
   )
+
+  const target = getJobDescriptionSessionKey(resumeId, resumeType)
+  const sessionKey = `${owner}:${jobContext ? `${jobContext.id}:` : ''}${target}`
+
+  const legacyKey = jobContext
+    ? `${jobContext.userId}:${jobContext.id}:${target}`
+    : resumeType === 'online' && resume
+      ? target
+      : undefined
 
   const session =
     useJobDescriptionToolStore((state) => state.sessions[sessionKey]) ??
-    createInitialJobDescriptionToolSession()
+    initialSession
 
-  const {
-    setAnalysisError,
-    setAnalysisOpen,
-    setAnalysisState,
-    setAnalyzing,
-    setJobDescription,
-    setResult,
-    updateAnalysisLog,
-    updateAnalysisState,
-  } = useJobDescriptionToolStore()
+  const { update, load } = useJobDescriptionToolStore.getState()
 
   const {
     analysisError,
@@ -76,10 +96,67 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
     result,
   } = session
 
+  const [jdRetry, setJdRetry] = useState(0)
+
+  const [jdStatus, setJdStatus] = useState<'loading' | 'ready' | 'error'>(
+    'ready',
+  )
+
+  const editedRef = useRef(false)
+
   useEffect(() => {
-    if (jobContext && jobContext.resumeId === resumeContext.resumeId)
-      setJobDescription(sessionKey, jobContext.jdText)
-  }, [jobContext, resumeContext.resumeId, sessionKey, setJobDescription])
+    load(sessionKey, legacyKey)
+  }, [load, sessionKey, legacyKey])
+
+  useEffect(() => {
+    editedRef.current = false
+
+    setJdStatus('ready')
+
+    return flushJobDescriptionSessions
+  }, [sessionKey])
+
+  useEffect(() => {
+    if (!jobContext || jobContext.resumeId !== resumeId) return
+
+    let current = true
+    const existing = useJobDescriptionToolStore.getState().sessions[sessionKey]
+
+    const keepDraft =
+      existing?.jobDescriptionEdited ?? Boolean(existing?.jobDescription)
+
+    setJdStatus('loading')
+
+    const source =
+      jdRetry === 0 && initialJobDescription
+        ? initialJobDescription
+        : Promise.resolve().then(() => readJobContextDescription(jobContext))
+
+    source.then(
+      (description) => {
+        if (!current) return
+
+        if (
+          !editedRef.current &&
+          !keepDraft &&
+          existing?.jobDescription !== description
+        )
+          update(sessionKey, {
+            jobDescription: description,
+            jobDescriptionEdited: false,
+          })
+
+        setJdStatus('ready')
+      },
+      () => {
+        if (current) setJdStatus('error')
+      },
+    )
+
+    return () => {
+      current = false
+    }
+  }, [jobContext, resumeId, sessionKey, initialJobDescription, update, jdRetry])
 
   const jobDescriptionLength = jobDescription.trim().length
 
@@ -92,89 +169,79 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
   const canDerive = analysisDone && jobDescription.trim().length >= MIN_JD_CHARS
   const [deriveOpen, setDeriveOpen] = useState(false)
   const navigate = useNavigate()
-  const { setCurrentResume } = useCurrentResumeStore()
+
+  const setCurrentResume = useCurrentResumeStore(
+    (state) => state.setCurrentResume,
+  )
+
   const jobDescriptionId = useId()
+
+  const setAnalysisOpen = useCallback(
+    (open: boolean) => update(sessionKey, { analysisOpen: open }),
+    [sessionKey, update],
+  )
 
   const handleCompare = async () => {
     const normalizedJobDescription = jobDescription.trim()
 
-    if (!normalizedJobDescription) {
+    if (!normalizedJobDescription || !resume) {
       return
     }
 
-    setAnalyzing(sessionKey, true)
-    setResult(sessionKey, null)
-    setAnalysisError(sessionKey, null)
-    setAnalysisOpen(sessionKey, true)
+    const isCurrent = useAtsStore.getState().isReportAccountCurrent()
 
-    setAnalysisState(sessionKey, {
-      ...createInitialJobDescriptionToolSession().analysisState,
-      status: 'sending',
-      logs: {
-        send: '正在上传当前简历和岗位描述...',
-      },
+    const initial = {
+      ...initialSession.analysisState,
+      status: 'sending' as const,
+      logs: { send: '正在提交简历和岗位描述…' },
+    }
+
+    update(sessionKey, {
+      analyzing: true,
+      result: null,
+      analysisError: null,
+      analysisOpen: true,
+      analysisState: initial,
     })
 
     try {
-      let finalContent = ''
+      const { compareJobDescription } = await import('./compare')
 
-      await runJobDescriptionStructured(
-        resumeContext.resume,
-        normalizedJobDescription,
-        ({ content: streamContent, reasoning: streamReasoning }) => {
-          if (streamReasoning) {
-            updateAnalysisState(sessionKey, {
-              status: 'thinking',
-              reasoning: streamReasoning,
-            })
+      if (!isCurrent()) return
 
-            updateAnalysisLog(
-              sessionKey,
-              'send',
-              '已上传，开始推导岗位匹配关系...',
-            )
-          }
-
-          if (streamContent) {
-            finalContent = streamContent
-
-            updateAnalysisState(sessionKey, {
-              status: 'generating',
-              content: streamContent,
-            })
-
-            updateAnalysisLog(sessionKey, 'result', '正在生成结构化分析结果...')
-          }
-        },
-      )
-
-      if (!finalContent.trim()) {
-        throw new Error('大模型没有返回有效结果')
-      }
-
-      updateAnalysisState(sessionKey, { status: 'received' })
-      updateAnalysisLog(sessionKey, 'result', '已收到结构化结果')
-
-      const parsed =
-        parseLlmJsonObject<Partial<JobDescriptionComparisonResult>>(
-          finalContent,
-        )
-
-      setResult(
+      const completed = await compareJobDescription(
         sessionKey,
-        normalizeJobDescriptionComparisonResult(parsed, resumeContext.resume),
+        resume,
+        normalizedJobDescription,
+        isCurrent,
       )
 
-      updateAnalysisState(sessionKey, { status: 'complete' })
-      updateAnalysisLog(sessionKey, 'display', '已展示职位描述比对结果')
+      if (!completed || !isCurrent()) return
+
+      const { comparison, content, reasoning } = completed
+
+      update(sessionKey, {
+        analyzing: false,
+        result: comparison,
+        analysisState: {
+          status: 'complete',
+          content,
+          reasoning,
+          logs: {
+            send: '已提交',
+            result: '已收到比对结果',
+            display: '已展示结果',
+          },
+        },
+      })
     } catch (error) {
+      if (!isCurrent()) return
+
       const message =
         error instanceof Error ? error.message : '职位描述分析失败，请稍后重试'
 
-      setAnalysisError(sessionKey, message)
+      update(sessionKey, { analyzing: false, analysisError: message })
       toast.error(message)
-    } finally {
-      setAnalyzing(sessionKey, false)
     }
   }
 
@@ -197,12 +264,38 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
               <Textarea
                 id={jobDescriptionId}
                 value={jobDescription}
-                onChange={(event) =>
-                  setJobDescription(sessionKey, event.target.value)
-                }
+                onChange={(event) => {
+                  editedRef.current = true
+
+                  update(
+                    sessionKey,
+                    {
+                      jobDescription: event.target.value,
+                      jobDescriptionEdited: true,
+                    },
+                    'draft',
+                  )
+                }}
                 className='min-h-40 resize-y border-border/60 bg-background sm:max-h-60 lg:max-h-80 xl:max-h-100'
                 placeholder='粘贴职位描述、岗位职责、任职要求或加分项。'
               />
+              {jdStatus === 'loading' && (
+                <p role='status' className='text-sm text-muted-foreground'>
+                  正在读取岗位描述…
+                </p>
+              )}
+              {jdStatus === 'error' && (
+                <div role='alert' className='flex items-center gap-2 text-sm'>
+                  <span>岗位描述读取失败，可以手动填写。</span>
+                  <Button
+                    variant='outline'
+                    size='sm'
+                    onClick={() => setJdRetry((count) => count + 1)}
+                  >
+                    重试
+                  </Button>
+                </div>
+              )}
               <FieldDescription>
                 派生针对性简历至少需要 {MIN_JD_CHARS} 字。
               </FieldDescription>
@@ -212,7 +305,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
             <Button
               className='w-full sm:w-auto'
               onClick={handleCompare}
-              disabled={analyzing || !jobDescription.trim()}
+              disabled={analyzing || !resume || !jobDescription.trim()}
             >
               {analyzing ? (
                 <Spinner data-icon='inline-start' />
@@ -227,17 +320,6 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
               className='w-full sm:w-auto'
               disabled={!canDerive}
               onClick={() => {
-                const task =
-                  useJdVariantStore.getState().tasks[resumeContext.resumeId]
-
-                if (
-                  task &&
-                  (task.phase === 'success' ||
-                    task.phase === 'error' ||
-                    task.phase === 'aborted')
-                )
-                  useJdVariantStore.getState().clearTask(resumeContext.resumeId)
-
                 setDeriveOpen(true)
               }}
             >
@@ -257,7 +339,7 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
             analysisError={analysisError}
             analysisOpen={analysisOpen}
             analysisState={analysisState}
-            onAnalysisOpenChange={(open) => setAnalysisOpen(sessionKey, open)}
+            onAnalysisOpenChange={setAnalysisOpen}
           />
         )}
       </AnimatedContent>
@@ -275,27 +357,29 @@ function JobDescriptionTool({ resumeContext }: JobDescriptionToolProps) {
         ) : null}
       </AnimatedContent>
 
-      <JdVariantDialog
-        open={deriveOpen}
-        onOpenChange={setDeriveOpen}
-        parentResumeId={resumeContext.resumeId}
-        jobId={jobContext?.id}
-        initialJd={jobDescription.trim()}
-        skipInputStep
-        recentJds={[]}
-        onOpenResume={(draftId) => {
-          setCurrentResume(
-            draftId,
-            resumeContext.resumeType === 'offline' ? 'default' : 'default',
-          )
+      <VariantDialog open={deriveOpen} onClose={() => setDeriveOpen(false)}>
+        {(DialogContent, opener) => (
+          <DialogContent
+            open={deriveOpen}
+            returnFocusTo={opener}
+            onOpenChange={setDeriveOpen}
+            parentResumeId={resumeId}
+            jobId={jobContext?.id}
+            initialJd={jobDescription.trim()}
+            skipInputStep
+            recentJds={[]}
+            onOpenResume={(draftId) => {
+              setCurrentResume(draftId, 'default')
 
-          navigate(
-            jobContext
-              ? jobContextUrl('/resume/editor', jobContext.id)
-              : '/resume/editor',
-          )
-        }}
-      />
+              navigate(
+                jobContext
+                  ? jobContextUrl('/resume/editor', jobContext.id)
+                  : '/resume/editor',
+              )
+            }}
+          />
+        )}
+      </VariantDialog>
     </div>
   )
 }

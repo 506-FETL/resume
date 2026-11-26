@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { ToolTone } from '../shared/primitives'
 import type {
   AnalysisState,
@@ -127,7 +128,7 @@ function renderStepDescription(
   )
 }
 
-export default function AnalysisTrace({
+function AnalysisTrace({
   analysisError,
   analysisOpen,
   analysisState,
@@ -198,3 +199,5 @@ export default function AnalysisTrace({
     </ToolPanelCard>
   )
 }
+
+export default memo(AnalysisTrace)

@@ -6,6 +6,7 @@ import { ANALYSIS_INITIAL_STATE } from '@/pages/optimize/const'
 
 export interface JobDescriptionToolSession {
   jobDescription: string
+  jobDescriptionEdited?: boolean
   result: JobDescriptionComparisonResult | null
   analyzing: boolean
   analysisState: AnalysisState
@@ -58,6 +59,9 @@ export function createInitialJobDescriptionToolSession(): JobDescriptionToolSess
   }
 }
 
-export function getJobDescriptionSessionKey(resumeContext: ResumeToolContext) {
-  return `${resumeContext.resumeType}:${resumeContext.resumeId}`
+export function getJobDescriptionSessionKey(
+  resumeId: string,
+  resumeType: ResumeToolContext['resumeType'],
+) {
+  return `${resumeType}:${resumeId}`
 }

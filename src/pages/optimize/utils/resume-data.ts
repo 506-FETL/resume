@@ -1,6 +1,5 @@
-import type { AutomergeResumeDocument } from '@/lib/automerge'
 import type { ResumeSchema } from '@/lib/schema'
-import { getOfflineResumeById } from '@/lib/offline-resume-manager'
+import { isCloudResumeId, ResumeNotFoundError } from '@/lib/resume-id'
 import {
   DEFAULT_APPLICATION_INFO,
   DEFAULT_BASICS,
@@ -17,7 +16,8 @@ import {
   normalizeResumeFormData,
 } from '@/lib/schema'
 import { FORM_DATA_KEYS } from '@/store/resume/const'
-import { getResumeById } from '@/lib/supabase/resume'
+import { readOwnedResumeRow } from '@/lib/supabase/resume/read-owned-row'
+import { getCurrentUser } from '@/lib/supabase/user/profile'
 
 export function sanitizeDeep<T>(value: T): T {
   if (Array.isArray(value)) {
@@ -39,7 +39,7 @@ export function sanitizeDeep<T>(value: T): T {
 }
 
 export function mapDocToResumeSchema(
-  doc: Partial<AutomergeResumeDocument> | null | undefined,
+  doc: Record<string, unknown> | null | undefined,
 ): ResumeSchema {
   const source = doc as Record<string, any> | undefined
 
@@ -109,24 +109,28 @@ export async function fetchResumeDataForAnalysis(
   isOffline: boolean,
 ): Promise<ResumeSchema> {
   if (isOffline) {
-    const offlineResume = await getOfflineResumeById(id)
+    const { getDB } = await import('@/lib/offline-resume-manager/database')
+    const db = await getDB()
+    const offlineResume = await db.get('resumes', id)
 
     if (!offlineResume) {
       throw new Error('离线简历不存在')
     }
 
-    return mapDocToResumeSchema(
-      offlineResume.data as Partial<AutomergeResumeDocument>,
-    )
+    return mapDocToResumeSchema(offlineResume.data)
   }
 
-  const onlineResume = await getResumeById(id, FORM_DATA_KEYS.join(','))
+  if (!isCloudResumeId(id)) throw new ResumeNotFoundError()
 
-  if (!onlineResume) {
-    throw new Error('在线简历不存在')
-  }
+  const user = await getCurrentUser()
 
-  return mapDocToResumeSchema(
-    onlineResume as unknown as Partial<AutomergeResumeDocument>,
+  if (!user) throw new Error('用户未登录')
+
+  const onlineResume = await readOwnedResumeRow(
+    id,
+    user.id,
+    FORM_DATA_KEYS.join(','),
   )
+
+  return mapDocToResumeSchema(onlineResume)
 }

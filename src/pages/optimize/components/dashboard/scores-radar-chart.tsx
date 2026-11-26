@@ -1,18 +1,12 @@
 import type { Scores } from '../../types'
-import type { ChartConfig } from '@/components/ui/chart'
+import type { ComponentProps } from 'react'
+import { createDeferredComponent } from '@/components/deferred-content'
 import { Activity } from 'lucide-react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useMemo } from 'react'
-import { PolarAngleAxis, PolarGrid, Radar, RadarChart } from 'recharts'
+import { useInView } from 'motion/react'
+import { useRef, useMemo } from 'react'
 import AnimatedContent from '@/components/motion/animated-content'
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart'
 import { LoadingRegion } from '@/components/loading-skeleton'
 import { Skeleton } from '@/components/ui/skeleton'
-import { DURATION } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { SCORE_LABELS } from '../../const'
 
@@ -22,19 +16,22 @@ interface ScoresRadarChartProps {
   embedded?: boolean
 }
 
-const chartConfig = {
-  score: {
-    label: '得分',
-    color: 'var(--chart-1)',
-  },
-} satisfies ChartConfig
+const RadarPlot = createDeferredComponent<
+  ComponentProps<typeof import('./radar-plot').default>
+>(
+  () => import('./radar-plot'),
+  '评分图表',
+  <Skeleton className='h-full w-full' />,
+  { wrapFallback: false },
+)
 
 export default function ScoresRadarChart({
   scores,
   loading = false,
   embedded = false,
 }: ScoresRadarChartProps) {
-  const reduceMotion = useReducedMotion()
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const visible = useInView(viewportRef, { once: true, margin: '150px 0px' })
 
   const chartData = useMemo(() => {
     if (!scores) return []
@@ -49,7 +46,7 @@ export default function ScoresRadarChart({
   }, [scores])
 
   const content = (
-    <div className='flex min-h-0 min-w-0 flex-col'>
+    <div ref={viewportRef} className='flex min-h-0 min-w-0 flex-col'>
       <div className='flex items-center justify-between gap-3'>
         <div className='flex items-center gap-2'>
           <Activity aria-hidden className='size-4 text-muted-foreground' />
@@ -72,73 +69,14 @@ export default function ScoresRadarChart({
           </LoadingRegion>
         ) : chartData.length > 0 ? (
           <>
-            <ChartContainer
-              aria-label='ATS 五维评分雷达图'
-              config={chartConfig}
+            <div
               className={cn(
-                'mx-auto w-full flex-none aspect-auto',
+                'mx-auto w-full',
                 embedded ? 'h-56 max-w-72' : 'h-72 max-w-[24rem] sm:h-80',
               )}
             >
-              <RadarChart
-                accessibilityLayer
-                data={chartData}
-                cx='50%'
-                cy='50%'
-                margin={{ top: 30, right: 52, bottom: 30, left: 52 }}
-                outerRadius='64%'
-              >
-                <ChartTooltip
-                  cursor={false}
-                  content={
-                    <ChartTooltipContent
-                      labelFormatter={(value) =>
-                        SCORE_LABELS[value as keyof typeof SCORE_LABELS] ||
-                        value
-                      }
-                      formatter={(value, _, item) => (
-                        <div className='max-w-64 space-y-1.5'>
-                          <div className='flex items-center gap-1'>
-                            <span className='font-medium'>
-                              {item.payload.raw}
-                            </span>
-                            <span className='text-muted-foreground'>/</span>
-                            <span className='text-muted-foreground'>
-                              {item.payload.max}
-                            </span>
-                            <span className='ml-1 text-xs text-muted-foreground'>
-                              ({value}
-                              %)
-                            </span>
-                          </div>
-                          {item.payload.rationale && (
-                            <p className='whitespace-normal text-xs leading-5 text-muted-foreground'>
-                              {item.payload.rationale}
-                            </p>
-                          )}
-                        </div>
-                      )}
-                    />
-                  }
-                />
-                <PolarAngleAxis
-                  dataKey='category'
-                  tick={{ fontSize: 11, fill: 'var(--muted-foreground)' }}
-                  tickLine={false}
-                />
-                <PolarGrid gridType='polygon' stroke='var(--border)' />
-                <Radar
-                  isAnimationActive={!reduceMotion}
-                  animationDuration={DURATION.slow * 1000}
-                  animationEasing='ease-out'
-                  dataKey='score'
-                  fill='var(--chart-1)'
-                  fillOpacity={0.28}
-                  stroke='var(--chart-1)'
-                  strokeWidth={2}
-                />
-              </RadarChart>
-            </ChartContainer>
+              {visible ? <RadarPlot chartData={chartData} /> : null}
+            </div>
 
             <div
               className={cn(

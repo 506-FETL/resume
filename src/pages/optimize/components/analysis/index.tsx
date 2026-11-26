@@ -1,39 +1,43 @@
 import type { Severity } from '../../types'
+import { useMemo } from 'react'
 import { Search } from 'lucide-react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { OptimizeFindingsSkeleton } from '@/components/page-skeletons/optimize'
-import { isAtsFindingPending } from '@/lib/ats'
+import { isAtsFindingPending } from '@/lib/ats/status'
 import useAtsStore from '../../store'
 import FindingItem from './finding-item'
 
 const severityOrder: Severity[] = ['high', 'medium', 'low']
 
 export default function IssueAnalysis() {
-  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const reportId = useAtsStore((s) => s.currentAtsConfig?.id)
   const loading = useAtsStore((s) => s.loading)
   const loadError = useAtsStore((s) => s.loadError)
   const analysisError = useAtsStore((s) => s.analysisError)
-  const initialLoading = loading && !currentAtsConfig
-  const findings = currentAtsConfig?.findings
+  const initialLoading = loading && !reportId
+  const findings = useAtsStore((s) => s.currentAtsConfig?.findings)
 
-  const allFindings = severityOrder.flatMap((severity) =>
-    (findings?.[severity] ?? []).map((finding) => ({ finding, severity })),
-  )
+  const { orderedFindings, totalPendingIssues } = useMemo(() => {
+    const allFindings = severityOrder.flatMap((severity) =>
+      (findings?.[severity] ?? []).map((finding) => ({ finding, severity })),
+    )
 
-  const pendingFindings = allFindings.filter(({ finding }) =>
-    isAtsFindingPending(finding),
-  )
+    const pendingFindings = allFindings.filter(({ finding }) =>
+      isAtsFindingPending(finding),
+    )
 
-  const firstPending = pendingFindings[0]
+    const firstPending = pendingFindings[0]
 
-  const orderedFindings = firstPending
-    ? [firstPending, ...allFindings.filter((entry) => entry !== firstPending)]
-    : allFindings
+    const orderedFindings = firstPending
+      ? [firstPending, ...allFindings.filter((entry) => entry !== firstPending)]
+      : allFindings
 
-  const totalPendingIssues = pendingFindings.length
-  const totalFindings = allFindings.length
-  const hasError = !currentAtsConfig && Boolean(loadError || analysisError)
+    return { orderedFindings, totalPendingIssues: pendingFindings.length }
+  }, [findings])
+
+  const totalFindings = orderedFindings.length
+  const hasError = !reportId && Boolean(loadError || analysisError)
 
   return (
     <div className='min-w-0'>
@@ -61,7 +65,7 @@ export default function IssueAnalysis() {
             ? 'loading'
             : hasError
               ? 'error'
-              : !currentAtsConfig
+              : !reportId
                 ? 'unassessed'
                 : totalFindings === 0
                   ? 'empty'
@@ -77,11 +81,11 @@ export default function IssueAnalysis() {
             <p className='text-sm font-medium'>
               {hasError
                 ? '暂时无法查看问题分析'
-                : currentAtsConfig
+                : reportId
                   ? '本次检测未发现问题'
                   : '尚未生成检测结果'}
             </p>
-            {!currentAtsConfig && !hasError && (
+            {!reportId && !hasError && (
               <p className='mt-2 text-sm'>
                 选择简历并开始检测后，这里会按优先级展示问题。
               </p>
@@ -91,8 +95,8 @@ export default function IssueAnalysis() {
           <div className='min-w-0'>
             {orderedFindings.map(({ finding, severity }, index) => (
               <FindingItem
-                key={`${currentAtsConfig?.id}:${severity}:${finding.id}`}
-                id={finding.id}
+                key={`${reportId}:${severity}:${finding.id}`}
+                finding={finding}
                 severity={severity}
                 featured={index === 0 && totalPendingIssues > 0}
               />

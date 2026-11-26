@@ -7,7 +7,6 @@ import useAtsStore from '../../store'
 import { AnalysisActions } from './analysis-actions'
 import { AnalysisDialog } from './analysis-dialog'
 import { ResumeManager } from './resume-manager'
-import { celebrate } from './utils'
 
 function Header() {
   const startAnalysis = useAtsStore((s) => s.startAnalysis)
@@ -50,7 +49,8 @@ function Header() {
 
     startAnalysis({
       onComplete: () => {
-        if (!reduceMotion) celebrate()
+        if (!reduceMotion)
+          import('./utils').then(({ celebrate }) => celebrate()).catch(() => {})
       },
     })
   }, [startAnalysis, reduceMotion])

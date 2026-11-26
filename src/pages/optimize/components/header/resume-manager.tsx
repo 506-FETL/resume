@@ -20,26 +20,33 @@ import { useResumeManager } from './use-resume-manager'
 
 export function ResumeManager() {
   const {
-    loading,
-    loadError,
-    retry,
+    pages,
+    authReady,
+    loadMore,
+    userId,
     open,
     setOpen,
     selectedResumeName,
     selectedResumeId,
-    onlineResumes,
-    offlineResumes,
     ButtonIcon,
     iconColorClass,
     handleSelect,
-    resumes,
   } = useResumeManager()
 
-  const summariesError = useAtsStore((s) => s.summariesError)
-  const summariesLoading = useAtsStore((s) => s.summariesLoading)
-  const reloadSummaries = useAtsStore((s) => s.reloadSummaries)
+  const scoresLoading = useAtsStore((s) => s.optionScoresLoading)
+  const retryScores = useAtsStore((s) => s.retryOptionScores)
   const reduceMotion = useReducedMotion()
-  const initialLoading = loading && resumes.length === 0
+
+  const groups = [
+    { source: 'online', label: '云端简历', page: pages.online },
+    { source: 'offline', label: '本地简历', page: pages.offline },
+  ] as const
+
+  const empty = groups.every(({ page }) => page.ready && !page.items.length)
+
+  const initialLoading =
+    !authReady ||
+    (groups.every(({ page }) => !page.items.length && !page.error) && !empty)
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -61,23 +68,74 @@ export function ResumeManager() {
         <ScrollArea className='-mx-2 min-h-0 max-h-[min(350px,55dvh)] px-2'>
           <AnimatedContent
             animationKey={
-              resumes.length
-                ? 'resumes'
-                : initialLoading
-                  ? 'loading'
-                  : loadError
-                    ? 'error'
-                    : 'empty'
+              initialLoading ? 'loading' : empty ? 'empty' : 'resumes'
             }
           >
             {initialLoading ? (
               <ContentSkeleton label='正在加载简历列表' rows={3} />
             ) : (
               <div className='space-y-4'>
-                <AnimatedContent
-                  animationKey={summariesError ? 'error' : 'ready'}
-                >
-                  {summariesError && (
+                {groups.map(({ label, source, page }) => (
+                  <div key={source} className='space-y-2 empty:hidden'>
+                    <AnimatedContent
+                      animationKey={
+                        page.items.length > 0 || page.error ? 'list' : 'idle'
+                      }
+                      className='space-y-2 empty:hidden'
+                    >
+                      {(page.items.length > 0 || page.error) && (
+                        <p className='text-xs font-medium text-muted-foreground'>
+                          {label}
+                        </p>
+                      )}
+                      {page.items.map((item) => (
+                        <ResumeItem
+                          key={item.resume_id}
+                          resume={{
+                            display_name: item.display_name || '未命名简历',
+                            created_at: item.created_at,
+                            isOffline: source === 'offline',
+                            isScored:
+                              item.report === undefined
+                                ? null
+                                : Boolean(item.report),
+                            overall_score: item.report?.overall_score ?? null,
+                          }}
+                          isSelected={selectedResumeId === item.resume_id}
+                          onSelect={() => handleSelect(item.resume_id, source)}
+                        />
+                      ))}
+                    </AnimatedContent>
+                    {page.loading && !page.items.length && (
+                      <ContentSkeleton label={`正在加载${label}`} rows={2} />
+                    )}
+                    {(page.error || page.hasMore) && (
+                      <div className='flex items-center justify-between gap-3 text-xs text-muted-foreground'>
+                        {page.error && (
+                          <span role='alert'>{label}加载失败，请重试。</span>
+                        )}
+                        <Button
+                          variant='outline'
+                          size='sm'
+                          className='ml-auto'
+                          disabled={page.loading}
+                          aria-busy={page.loading}
+                          onClick={() => loadMore(source)}
+                        >
+                          {page.error
+                            ? '重试'
+                            : page.loading
+                              ? '正在加载'
+                              : `加载更多${label}`}
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                ))}
+                {userId &&
+                  pages.online.items.some(
+                    (item) => item.report === undefined,
+                  ) && (
                     <div
                       role='alert'
                       className='flex items-center justify-between gap-3 text-sm text-muted-foreground'
@@ -86,59 +144,14 @@ export function ResumeManager() {
                       <Button
                         size='sm'
                         variant='outline'
-                        disabled={summariesLoading}
-                        onClick={() => reloadSummaries()}
+                        disabled={scoresLoading}
+                        onClick={() => retryScores(userId)}
                       >
                         重试检测记录
                       </Button>
                     </div>
                   )}
-                </AnimatedContent>
-                <AnimatedContent animationKey={loadError ? 'error' : 'ready'}>
-                  {loadError && (
-                    <div
-                      role='alert'
-                      className='flex items-center justify-between gap-3 text-sm text-muted-foreground'
-                    >
-                      <p>
-                        {resumes.length
-                          ? '部分简历加载失败，已显示可用简历。'
-                          : '简历列表加载失败，请重试。'}
-                      </p>
-                      <Button
-                        size='sm'
-                        variant='outline'
-                        disabled={loading}
-                        onClick={() => {
-                          retry()
-                        }}
-                      >
-                        重试
-                      </Button>
-                    </div>
-                  )}
-                </AnimatedContent>
-                {[
-                  { label: '云端简历', items: onlineResumes },
-                  { label: '本地简历', items: offlineResumes },
-                ].map(({ label, items }) =>
-                  items.length > 0 ? (
-                    <div key={label} className='space-y-2'>
-                      <p className='text-xs font-medium text-muted-foreground'>
-                        {label}
-                      </p>
-                      {items.map((resume) => (
-                        <ResumeItem
-                          key={resume.id}
-                          resume={resume}
-                          isSelected={selectedResumeId === resume.resume_id}
-                          onSelect={() => handleSelect(resume)}
-                        />
-                      ))}
-                    </div>
-                  ) : null,
-                )}
-                {resumes.length === 0 && !loadError && (
+                {empty && (
                   <div className='flex min-h-48 flex-col items-center justify-center gap-3 text-muted-foreground'>
                     <FileText className='size-9 opacity-50' aria-hidden />
                     <p className='text-sm'>

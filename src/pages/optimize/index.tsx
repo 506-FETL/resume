@@ -1,5 +1,7 @@
-import { useJobContextStore } from '@/lib/job-context'
-import { JobContextBar } from '@/components/job-context'
+import { useSearchParams } from 'react-router-dom'
+import { prepareOptimizeReport } from '@/lib/optimize-route'
+import { useJobContextStore } from '@/lib/job-context-store'
+import { JobContextBar } from '@/components/job-context/bar'
 import { useEffect } from 'react'
 import { PageLayout } from '@/components/layout/page-layout'
 import AdvancedTools from './components/advanced-tools'
@@ -13,20 +15,21 @@ import useUserStore from '@/store/user'
 
 function Optimize() {
   const jobContext = useJobContextStore((state) => state.context)
-  const init = useAtsStore((state) => state.init)
+  const [params] = useSearchParams()
+  const jobId = params.get('jobId') || null
+  const target = jobId && jobContext?.id === jobId ? jobContext.resumeId : null
   const ownerId = useUserStore((state) => state.currentUser?.id)
 
   useEffect(() => {
     if (!ownerId) return
 
-    if (jobContext?.resumeId) {
+    if (target) {
       useAtsStore.getState().setAdvancedToolOpen(false)
       useAtsStore.getState().setAdvancedToolResumeContext(null)
-      useAtsStore.getState().setSelectedResume(jobContext.resumeId, 'online')
     }
 
-    init()
-  }, [init, jobContext, ownerId])
+    prepareOptimizeReport(ownerId, jobId, target ?? undefined)
+  }, [jobId, target, ownerId])
 
   return (
     <PageLayout>

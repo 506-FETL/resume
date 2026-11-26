@@ -11,12 +11,9 @@ import {
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { ensureAtsFindingsHaveSuggestions } from '@/lib/ats'
-import { syncAutomergeDocument } from '@/lib/automerge'
-import { updateOfflineResume } from '@/lib/offline-resume-manager'
-import { updateAtsConfig } from '@/lib/supabase/resume'
+import { updateAtsConfig } from '@/lib/supabase/resume/ats'
 import useAtsStore from '@/pages/optimize/store'
-import { startConfetti } from '@/utils'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { formatToolError } from '../shared/config'
 import {
   ToolEmptyState,
@@ -41,6 +38,7 @@ interface FormatterToolProps {
 }
 
 function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
+  const reduced = useReducedMotion()
   const [applying, setApplying] = useState(false)
 
   const [editableFindings, setEditableFindings] =
@@ -59,11 +57,7 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
   }, [currentAtsConfig, resumeContext.atsConfig, resumeContext.resumeId])
 
   useEffect(() => {
-    setEditableFindings(
-      activeAtsConfig
-        ? ensureAtsFindingsHaveSuggestions(activeAtsConfig.findings)
-        : null,
-    )
+    setEditableFindings(activeAtsConfig?.findings ?? null)
   }, [activeAtsConfig])
 
   const effectiveFindings =
@@ -121,31 +115,53 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
       batchResult.appliedSuggestionIds,
     )
 
-    const updatedResume = applySuggestionsToResume(
-      resumeContext.resume,
-      batchResult.suggestionsToApply,
-    )
+    const isCurrent = useAtsStore.getState().isReportAccountCurrent()
 
     setApplying(true)
 
     try {
-      await updateAtsConfig(activeAtsConfig.id, {
-        findings: nextFindings,
-      })
+      let updatedResume
 
       if (resumeContext.resumeType === 'online') {
-        await syncAutomergeDocument(
+        const { syncAutomergeDocument } =
+          await import('@/lib/automerge/document/sync')
+
+        if (!isCurrent()) return
+
+        const patch = await syncAutomergeDocument(
           resumeContext.resumeId,
           batchResult.suggestionsToApply,
           { syncToResumeConfig: true },
         )
+
+        updatedResume = { ...resumeContext.resume, ...patch }
       } else {
+        const { updateOfflineResume } =
+          await import('@/lib/offline-resume-manager')
+
+        if (!isCurrent()) return
+
+        updatedResume = applySuggestionsToResume(
+          resumeContext.resume,
+          batchResult.suggestionsToApply,
+        )
+
         await updateOfflineResume(resumeContext.resumeId, updatedResume)
       }
 
+      if (!isCurrent()) return
+
+      await updateAtsConfig(activeAtsConfig.id, { findings: nextFindings })
+
+      if (!isCurrent()) return
+
       const nextAtsConfig = { ...activeAtsConfig, findings: nextFindings }
 
-      update('findings', nextFindings)
+      update('findings', nextFindings, activeAtsConfig.id)
+
+      if (useAtsStore.getState().currentAtsConfig?.id !== activeAtsConfig.id)
+        return
+
       setEditableFindings(nextFindings)
 
       onResumeUpdated({
@@ -154,7 +170,10 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
         resume: updatedResume,
       })
 
-      startConfetti(actionButtonRef)
+      if (!reduced)
+        import('@/utils/confetti')
+          .then(({ startConfetti }) => startConfetti(actionButtonRef))
+          .catch(() => {})
 
       toast.success(
         batchResult.conflictedSuggestionCount > 0 ||
@@ -163,7 +182,7 @@ function FormatterTool({ onResumeUpdated, resumeContext }: FormatterToolProps) {
           : '已完成当前简历的一键优化',
       )
     } catch (error) {
-      toast.error(formatToolError(error))
+      if (isCurrent()) toast.error(formatToolError(error))
     } finally {
       setApplying(false)
     }

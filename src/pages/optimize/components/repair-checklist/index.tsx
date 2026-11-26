@@ -16,7 +16,8 @@ import { cn } from '@/lib/utils'
 import useAtsStore from '../../store'
 
 export default function RepairChecklist() {
-  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const checklist = useAtsStore((s) => s.currentAtsConfig?.fixChecklist)
+  const hasReport = useAtsStore((s) => Boolean(s.currentAtsConfig))
   const loading = useAtsStore((s) => s.loading)
   const revertFixChecklist = useAtsStore((s) => s.revertFixChecklist)
   const [open, setOpen] = useState(false)
@@ -24,8 +25,8 @@ export default function RepairChecklist() {
   const contentRef = useRef<HTMLDivElement>(null)
   const reduceMotion = useReducedMotion()
   const checkboxGroupId = useId()
-  const initialLoading = loading && !currentAtsConfig
-  const fixList = currentAtsConfig?.fixChecklist ?? []
+  const initialLoading = loading && !hasReport
+  const fixList = checklist ?? []
   const completed = fixList.filter((item) => item.isDone).length
   const progress = fixList.length ? (completed / fixList.length) * 100 : 0
 
@@ -45,7 +46,7 @@ export default function RepairChecklist() {
           animationKey={
             initialLoading
               ? 'loading'
-              : !currentAtsConfig
+              : !hasReport
                 ? 'unassessed'
                 : fixList.length === 0
                   ? 'empty'
@@ -56,7 +57,7 @@ export default function RepairChecklist() {
             <OptimizeChecklistSkeleton />
           ) : fixList.length === 0 ? (
             <p className='text-sm leading-6 text-muted-foreground'>
-              {currentAtsConfig
+              {hasReport
                 ? '本次检测没有待处理建议。'
                 : '检测后可在这里记录处理进度。'}
             </p>

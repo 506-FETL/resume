@@ -7,18 +7,37 @@ import { getCurrentUser } from '../user'
 export async function updateResumeConfig(
   resumeId: string,
   data: Record<string, any>,
+  expectedUpdatedAt?: string | null,
 ) {
   const userId = await getResumeOwnerId(resumeId)
 
-  const { error } = await supabase
+  const query = supabase
     .from('resume_config')
     .update(data)
     .eq('resume_id', resumeId)
     .eq('user_id', userId)
 
-  if (error) throw error
+  if (expectedUpdatedAt === undefined) {
+    const { error } = await query
 
-  notifyResumeReadChanged(resumeId)
+    if (error) throw error
+
+    notifyResumeReadChanged(resumeId)
+  } else {
+    const versioned =
+      expectedUpdatedAt === null
+        ? query.is('updated_at', null)
+        : query.eq('updated_at', expectedUpdatedAt)
+
+    const { data: saved, error } = await versioned
+      .select('resume_id,display_name,updated_at')
+      .maybeSingle()
+
+    if (error) throw error
+    if (!saved) throw new Error('简历已更新，请重新读取后再应用')
+
+    notifyResumeReadChanged(resumeId, { owner: userId, label: saved })
+  }
 }
 
 export async function updateResumeLibraryMeta(

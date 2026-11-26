@@ -26,6 +26,7 @@ import {
   isTemplateGallery,
   selectTemplateGallery,
 } from '@/lib/template-gallery-route'
+import { isOptimizePage, selectOptimizePage } from '@/lib/optimize-route'
 import { isTrackerPage, selectTrackerPage } from '@/lib/tracker-route'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
 import {
@@ -135,6 +136,17 @@ function App() {
     if (!galleryPage || !hasAuthCallback) selectTemplateGallery(galleryPage)
   }, [galleryPage])
 
+  const optimizePage = isOptimizePage(location.pathname)
+
+  const optimizeJobId = optimizePage
+    ? new URLSearchParams(location.search).get('jobId') || null
+    : null
+
+  useEffect(() => {
+    if (!optimizePage || !hasAuthCallback)
+      selectOptimizePage(optimizePage, optimizeJobId)
+  }, [optimizePage, optimizeJobId])
+
   const trackerPage = isTrackerPage(location.pathname)
 
   useEffect(() => {
@@ -230,6 +242,7 @@ function App() {
                     shareManagement ||
                     trackerPage ||
                     galleryPage ||
+                    optimizePage ||
                     assistantPage ? (
                       <DashboardOpening
                         fullBleed={assistantPage && authStatus !== 'anonymous'}

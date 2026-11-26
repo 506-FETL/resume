@@ -12,7 +12,7 @@ import {
 } from '@/components/ui/collapsible'
 import { cn } from '@/lib/utils'
 import { severityConfig } from '@/pages/optimize/const'
-import CustomEditor from '../../analysis/custom-editor'
+import { CustomEditor } from '../../analysis/custom-editor/deferred'
 import { SuggestionCompareCard } from '../../analysis/custom-editor/renderer'
 
 interface FormatterFindingCardProps {

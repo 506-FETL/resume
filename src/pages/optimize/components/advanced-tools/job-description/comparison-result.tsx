@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import type { JobDescriptionComparisonResult } from './types'
 import { BadgeCheck, CircleAlert, Search, Sparkles, Target } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -34,7 +35,7 @@ function getScoreTone(score: number) {
   return 'danger'
 }
 
-export default function ComparisonResultView({
+function ComparisonResultView({
   result,
 }: JobDescriptionComparisonResultViewProps) {
   const scoreTone = getScoreTone(result.matchScore)
@@ -306,3 +307,5 @@ export default function ComparisonResultView({
     </>
   )
 }
+
+export default memo(ComparisonResultView)

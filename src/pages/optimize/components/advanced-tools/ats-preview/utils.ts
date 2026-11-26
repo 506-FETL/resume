@@ -1,10 +1,16 @@
 import type { AtsPreviewResult } from './types'
 import type { ResumeSchema } from '@/lib/schema'
-import { getResumeEvidenceStats } from '@/lib/ats'
+import { getResumeEvidenceStats } from '@/lib/ats/evidence'
 import { getResumeSections } from '../shared/resume'
 import { extractKeywords } from '../shared/text'
 
+const previews = new WeakMap<ResumeSchema, AtsPreviewResult>()
+
 export function buildAtsPreview(resume: ResumeSchema): AtsPreviewResult {
+  const cached = previews.get(resume)
+
+  if (cached) return cached
+
   const sections = getResumeSections(resume)
   const evidenceStats = getResumeEvidenceStats(resume)
 
@@ -35,9 +41,9 @@ export function buildAtsPreview(resume: ResumeSchema): AtsPreviewResult {
       : '',
   ].filter(Boolean)
 
-  return {
-    plainText,
-    stats,
-    warnings,
-  }
+  const preview = { plainText, stats, warnings }
+
+  previews.set(resume, preview)
+
+  return preview
 }

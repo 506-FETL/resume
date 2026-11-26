@@ -1,8 +1,5 @@
-import type { ResumeToolContext } from './types'
 import type { ResumeSchema } from '@/lib/schema'
-import type { AtsEvaluationResult } from '@/pages/optimize/types'
-import { getResumeEvidenceStats, isMeaningfulAtsValue } from '@/lib/ats'
-import { fetchResumeDataForAnalysis } from '@/pages/optimize/utils'
+import { isMeaningfulAtsValue } from '@/lib/ats/assessment-input/fields'
 import { SECTION_LABEL_MAP } from './const'
 import {
   isStructurallyEmpty,
@@ -16,7 +13,6 @@ interface ResumeSection {
   key: keyof ResumeSchema
   label: string
   lines: string[]
-  text: string
 }
 
 function buildExperienceBlock(
@@ -47,7 +43,6 @@ function buildExperienceBlock(
   return {
     label: title,
     lines,
-    text: lines.join('\n'),
   }
 }
 
@@ -301,41 +296,5 @@ export function getResumeSections(resume: ResumeSchema): ResumeSection[] {
       label: SECTION_LABEL_MAP.hobbies,
       lines: hobbyLines,
     },
-  ].map((section) => ({
-    ...section,
-    text: section.lines.join('\n'),
-  }))
-}
-
-export function getAdvancedToolResumeSummary(resume: ResumeSchema) {
-  const evidenceStats = getResumeEvidenceStats(resume)
-
-  return {
-    title: normalizeInlineText(resume.basics.name) || '未命名简历',
-    jobIntent:
-      normalizeInlineText(resume.job_intent.jobIntent) || '未填写求职意向',
-    evidenceCount: evidenceStats.evidenceCount,
-  }
-}
-
-interface LoadResumeContextOptions {
-  atsConfig: AtsEvaluationResult | null
-  resumeId: string
-  resumeType: 'online' | 'offline'
-}
-
-export async function loadResumeToolContext(
-  options: LoadResumeContextOptions,
-): Promise<ResumeToolContext> {
-  const resume = await fetchResumeDataForAnalysis(
-    options.resumeId,
-    options.resumeType === 'offline',
-  )
-
-  return {
-    resumeId: options.resumeId,
-    resumeType: options.resumeType,
-    resume,
-    atsConfig: options.atsConfig,
-  }
+  ]
 }

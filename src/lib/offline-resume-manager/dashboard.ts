@@ -1,4 +1,4 @@
-import type { IDBPObjectStore } from 'idb'
+import type { IDBPIndex, IDBPObjectStore } from 'idb'
 import { readResumeListTemplateBinding } from '@/lib/resume-template/list-binding'
 import { normalizeResumeType } from '@/lib/schema/resume/resume-type'
 import { getDB, type ResumeDB } from './database'
@@ -49,7 +49,13 @@ export async function getDashboardOfflineResumes() {
 }
 
 async function readRecentKeys(
-  index: ReturnType<ResumeStore['index']>,
+  index: IDBPIndex<
+    ResumeDB,
+    ['resumes'],
+    'resumes',
+    'created_at' | 'updated_at',
+    'readonly'
+  >,
   dated: IDBKeyRange,
   excluded?: Set<string>,
 ) {

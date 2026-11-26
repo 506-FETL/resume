@@ -7,11 +7,6 @@ export interface ResumeEvidenceStats {
   positioningConsistency: number
 }
 
-interface EvidenceEntry {
-  description: string
-  heading: string
-}
-
 const IMPACT_PATTERN =
   /\d|%|百分|上线|落地|交付|推动|支撑|解决|优化|提升|增长|降低|节省|覆盖|转化|复用|稳定|性能|效率|规模|用户|业务/
 
@@ -37,94 +32,54 @@ function isMeaningful(value: unknown): boolean {
   return normalized !== '' && normalized !== '不填'
 }
 
-function buildEvidenceEntries(resume: ResumeSchema): EvidenceEntry[] {
-  const educationEntries = resume.edu_background.items
-    .filter((item) =>
-      [
-        item.schoolName,
-        item.professional,
-        item.degree,
-        item.duration,
-        item.eduInfo,
-      ].some(isMeaningful),
-    )
-    .map((item) => ({
-      heading: [item.schoolName, item.professional, item.degree]
-        .map(normalizeText)
-        .filter(Boolean)
-        .join(' '),
-      description: normalizeText(item.eduInfo),
-    }))
+export function getResumeEvidenceCount(resume: ResumeSchema): number {
+  const educationEntries = resume.edu_background.items.filter((item) =>
+    [
+      item.schoolName,
+      item.professional,
+      item.degree,
+      item.duration,
+      item.eduInfo,
+    ].some(isMeaningful),
+  ).length
 
-  const workEntries = resume.work_experience.items
-    .filter((item) =>
-      [item.companyName, item.position, item.workDuration, item.workInfo].some(
-        isMeaningful,
-      ),
-    )
-    .map((item) => ({
-      heading: [item.companyName, item.position]
-        .map(normalizeText)
-        .filter(Boolean)
-        .join(' '),
-      description: normalizeText(item.workInfo),
-    }))
+  const workEntries = resume.work_experience.items.filter((item) =>
+    [item.companyName, item.position, item.workDuration, item.workInfo].some(
+      isMeaningful,
+    ),
+  ).length
 
-  const internshipEntries = resume.internship_experience.items
-    .filter((item) =>
-      [
-        item.companyName,
-        item.position,
-        item.internshipDuration,
-        item.internshipInfo,
-      ].some(isMeaningful),
-    )
-    .map((item) => ({
-      heading: [item.companyName, item.position]
-        .map(normalizeText)
-        .filter(Boolean)
-        .join(' '),
-      description: normalizeText(item.internshipInfo),
-    }))
+  const internshipEntries = resume.internship_experience.items.filter((item) =>
+    [
+      item.companyName,
+      item.position,
+      item.internshipDuration,
+      item.internshipInfo,
+    ].some(isMeaningful),
+  ).length
 
-  const campusEntries = resume.campus_experience.items
-    .filter((item) =>
-      [item.experienceName, item.role, item.duration, item.campusInfo].some(
-        isMeaningful,
-      ),
-    )
-    .map((item) => ({
-      heading: [item.experienceName, item.role]
-        .map(normalizeText)
-        .filter(Boolean)
-        .join(' '),
-      description: normalizeText(item.campusInfo),
-    }))
+  const campusEntries = resume.campus_experience.items.filter((item) =>
+    [item.experienceName, item.role, item.duration, item.campusInfo].some(
+      isMeaningful,
+    ),
+  ).length
 
-  const projectEntries = resume.project_experience.items
-    .filter((item) =>
-      [
-        item.projectName,
-        item.participantRole,
-        item.projectDuration,
-        item.projectInfo,
-      ].some(isMeaningful),
-    )
-    .map((item) => ({
-      heading: [item.projectName, item.participantRole]
-        .map(normalizeText)
-        .filter(Boolean)
-        .join(' '),
-      description: normalizeText(item.projectInfo),
-    }))
+  const projectEntries = resume.project_experience.items.filter((item) =>
+    [
+      item.projectName,
+      item.participantRole,
+      item.projectDuration,
+      item.projectInfo,
+    ].some(isMeaningful),
+  ).length
 
-  return [
-    ...educationEntries,
-    ...workEntries,
-    ...internshipEntries,
-    ...campusEntries,
-    ...projectEntries,
-  ]
+  return (
+    educationEntries +
+    workEntries +
+    internshipEntries +
+    campusEntries +
+    projectEntries
+  )
 }
 
 function buildExperienceDescriptions(resume: ResumeSchema): string[] {
@@ -215,7 +170,6 @@ function calculatePositioningConsistency(resume: ResumeSchema): number {
 export function getResumeEvidenceStats(
   resume: ResumeSchema,
 ): ResumeEvidenceStats {
-  const evidenceEntries = buildEvidenceEntries(resume)
   const experienceDescriptions = buildExperienceDescriptions(resume)
 
   const substantiveCount = experienceDescriptions.filter(
@@ -227,7 +181,7 @@ export function getResumeEvidenceStats(
   ).length
 
   return {
-    evidenceCount: evidenceEntries.length,
+    evidenceCount: getResumeEvidenceCount(resume),
     substantiveRatio:
       experienceDescriptions.length === 0
         ? 0

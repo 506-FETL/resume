@@ -9,7 +9,7 @@ import type {
 } from '@/lib/schema/ats'
 import supabase from '../client'
 import { collectPages } from '../pagination'
-import { getCurrentUser } from '../user'
+import { getCurrentUser } from '../user/profile'
 
 export interface AtsSummaryRecord {
   id: AtsRecordId
@@ -54,19 +54,14 @@ export interface AtsReportSummary {
 
 async function readAtsReportSummaries(
   userId: string,
-  latest = false,
 ): Promise<AtsReportSummary[]> {
   const rows: AtsReportSummary[] = []
   const pageSize = 500
 
   for (let offset = 0; ; offset += pageSize) {
     const { data, error } = await supabase
-      .from(latest ? 'latest_ats_reports' : 'ats')
-      .select(
-        latest
-          ? 'id,resume_id,created_at,overall_score'
-          : 'id,resume_id,created_at,overall_score:summary->overall_score',
-      )
+      .from('ats')
+      .select('id,resume_id,created_at,overall_score:summary->overall_score')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .order('id', { ascending: false })
@@ -82,38 +77,58 @@ async function readAtsReportSummaries(
   return rows
 }
 
-export async function listLatestAtsReportSummaries(): Promise<
-  AtsReportSummary[]
-> {
-  const user = await getCurrentUser()
-
-  if (!user) throw new Error('用户未登录')
-
-  return readAtsReportSummaries(user.id, true)
+export interface AtsResumeLabel {
+  resume_id: string
+  display_name: string
+  updated_at: string
 }
 
-export async function getLatestAtsReport(
-  resumeId?: string | null,
-): Promise<AtsEvaluationResult | null> {
+const LABEL_FIELDS = 'resume_id,display_name,updated_at'
+
+export async function readLatestAtsSelection(resumeId: string | null): Promise<{
+  report: AtsEvaluationResult | null
+  resume: AtsResumeLabel | null
+}> {
   const user = await getCurrentUser()
 
   if (!user) throw new Error('用户未登录')
 
-  let query = supabase
+  if (resumeId) {
+    const { data, error } = await supabase
+      .from('resume_config')
+      .select(`${LABEL_FIELDS},reports:ats!ats_resume_id_fkey(*)`)
+      .eq('user_id', user.id)
+      .eq('resume_id', resumeId)
+      .eq('reports.user_id', user.id)
+      .order('created_at', { ascending: false, referencedTable: 'reports' })
+      .order('id', { ascending: false, referencedTable: 'reports' })
+      .limit(1, { referencedTable: 'reports' })
+      .maybeSingle<AtsResumeLabel & { reports: AtsEvaluationResult[] }>()
+
+    if (error) throw error
+    if (!data) return { report: null, resume: null }
+
+    const { reports, ...resume } = data
+
+    return { report: reports[0] ?? null, resume }
+  }
+
+  const { data, error } = await supabase
     .from('ats')
-    .select('*')
+    .select(`*,resume:resume_config!ats_resume_id_fkey(${LABEL_FIELDS})`)
     .eq('user_id', user.id)
+    .eq('resume.user_id', user.id)
     .order('created_at', { ascending: false })
     .order('id', { ascending: false })
     .limit(1)
-
-  if (resumeId) query = query.eq('resume_id', resumeId)
-
-  const { data, error } = await query.maybeSingle()
+    .maybeSingle<AtsEvaluationResult & { resume: AtsResumeLabel | null }>()
 
   if (error) throw error
+  if (!data) return { report: null, resume: null }
 
-  return data as AtsEvaluationResult | null
+  const { resume, ...report } = data
+
+  return { report, resume }
 }
 
 export async function getAtsReport(
@@ -195,6 +210,8 @@ export async function updateAtsConfig(
     .update(safePayload)
     .eq('user_id', user.id)
     .eq('id', id)
+    .select('id')
+    .single()
 
   if (error) {
     throw error

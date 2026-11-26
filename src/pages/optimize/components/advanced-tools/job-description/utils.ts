@@ -5,7 +5,6 @@ import isArray from 'lodash/isArray'
 import isFinite from 'lodash/isFinite'
 import isNumber from 'lodash/isNumber'
 import { SECTION_LABEL_MAP } from '../shared/const'
-import { getResumeSections } from '../shared/resume'
 import {
   isPlainObject,
   normalizeInlineText,
@@ -77,10 +76,9 @@ function buildSummaryFallback(matchScore: number, missingKeywords: string[]) {
 
 export function normalizeJobDescriptionComparisonResult(
   raw: unknown,
-  resume: ResumeSchema,
 ): JobDescriptionComparisonResult {
   const payload = isPlainObject(raw) ? raw : {}
-  const resumeSections = getResumeSections(resume)
+  const sectionKeys = Object.keys(SECTION_LABEL_MAP) as (keyof ResumeSchema)[]
 
   const extractedKeywords = normalizeStringList(
     payload.extractedKeywords,
@@ -124,9 +122,9 @@ export function normalizeJobDescriptionComparisonResult(
     })
   }
 
-  const sectionMatches = resumeSections
-    .map((section) => {
-      const rawSection = rawSectionMatches.get(section.key)
+  const sectionMatches = sectionKeys
+    .map((key) => {
+      const rawSection = rawSectionMatches.get(key)
 
       const sectionMatchedKeywords = normalizeStringList(
         rawSection?.matchedKeywords,
@@ -150,8 +148,8 @@ export function normalizeJobDescriptionComparisonResult(
           : '该板块与岗位描述的直接承接较弱，建议补充更贴近 JD 的关键词和成果表达。')
 
       return {
-        sectionKey: section.key,
-        sectionLabel: SECTION_LABEL_MAP[section.key],
+        sectionKey: key,
+        sectionLabel: SECTION_LABEL_MAP[key],
         matchedCount,
         coverage,
         matchedKeywords: sectionMatchedKeywords,

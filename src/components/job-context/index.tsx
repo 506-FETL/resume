@@ -16,6 +16,7 @@ import {
   readJobContext,
   useJobContextStore,
 } from '@/lib/job-context'
+import { isOptimizePage, prepareOptimizeReport } from '@/lib/optimize-route'
 import useCurrentResumeStore from '@/store/resume/current'
 import useUserStore from '@/store/user'
 
@@ -33,6 +34,9 @@ export function JobContextGate({ children }: { children: ReactNode }) {
   }>({ key: '', error: null, ready: false })
 
   const [attempt, setAttempt] = useState(0)
+
+  const includeDescription = !isOptimizePage(location.pathname)
+
   const key = `${userId}:${jobId}:${location.pathname}:${attempt}`
 
   useEffect(() => {
@@ -45,7 +49,7 @@ export function JobContextGate({ children }: { children: ReactNode }) {
 
     setState({ key, error: null, ready: false })
 
-    readJobContext(jobId, controller.signal)
+    readJobContext(jobId, controller.signal, includeDescription)
       .then((context) => {
         if (cancelled) return
 
@@ -55,6 +59,9 @@ export function JobContextGate({ children }: { children: ReactNode }) {
           useCurrentResumeStore
             .getState()
             .setCurrentResume(context.resumeId, context.resumeType)
+
+        if (!includeDescription && context.resumeId)
+          prepareOptimizeReport(context.userId, jobId, context.resumeId)
 
         setState({ key, error: null, ready: true })
       })
@@ -72,7 +79,7 @@ export function JobContextGate({ children }: { children: ReactNode }) {
       controller.abort()
       useJobContextStore.getState().setContext(null)
     }
-  }, [jobId, key])
+  }, [jobId, key, includeDescription])
 
   if (!jobId) return children
   if (state.key !== key || (!state.ready && !state.error))
@@ -119,20 +126,4 @@ export function JobContextGate({ children }: { children: ReactNode }) {
   return children
 }
 
-export function JobContextBar() {
-  const context = useJobContextStore((state) => state.context)
-  const [params] = useSearchParams()
-
-  if (!context || context.id !== params.get('jobId')) return null
-
-  return (
-    <div className='flex min-w-0 flex-wrap items-center gap-2 text-sm'>
-      <Button asChild size='sm' variant='outline'>
-        <Link to={jobContextUrl('/tracker', context.id)}>返回岗位</Link>
-      </Button>
-      <span className='min-w-0 truncate text-muted-foreground'>
-        {context.company} · {context.position}
-      </span>
-    </div>
-  )
-}
+export { JobContextBar } from './bar'

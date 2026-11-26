@@ -1,4 +1,6 @@
 import type { ResumeTemplateBinding, ResumeType } from '@/lib/schema'
+import type { AtsResumeLabel } from './ats'
+import { FORM_DATA_KEYS } from '@/store/resume/const'
 import { notifyResumeReadChanged } from '@/lib/resume-read-events'
 import { isCloudResumeId, ResumeNotFoundError } from '@/lib/resume-id'
 import { toTemplateBinding } from '@/lib/resume-template/binding'
@@ -52,12 +54,39 @@ export async function getAllResumesFromUser() {
 
 export { getResumeById } from './get-by-id'
 
+type OfflineUploadInfo = { display_name: string; description?: string }
+
+type SyncUpload = { resumeId: string; expectedOwner: string }
+
+type AnalysisUpload = { forAnalysis: true; expectedOwner: string }
+
+export function uploadOfflineResumeToCloud(
+  resumeData: Record<string, unknown>,
+  info: OfflineUploadInfo,
+  type: ResumeType,
+  options: AnalysisUpload,
+): Promise<AtsResumeLabel & Record<string, unknown>>
+
+export function uploadOfflineResumeToCloud(
+  resumeData: Record<string, unknown>,
+  info: OfflineUploadInfo,
+  type?: ResumeType,
+  options?: SyncUpload,
+): Promise<{ resume_id: string }>
+
 export async function uploadOfflineResumeToCloud(
   resumeData: Record<string, unknown>,
-  info: { display_name: string; description?: string },
+  info: OfflineUploadInfo,
   type: ResumeType = 'default',
-  options?: { resumeId: string; expectedOwner: string },
+  options?: SyncUpload | AnalysisUpload,
 ) {
+  const sync = options && 'resumeId' in options ? options : null
+
+  const returning =
+    options && 'forAnalysis' in options
+      ? ['resume_id', 'display_name', 'updated_at', ...FORM_DATA_KEYS].join(',')
+      : 'resume_id'
+
   const user = await getCurrentUser()
 
   if (!user) throw new Error('用户未登陆')
@@ -69,7 +98,7 @@ export async function uploadOfflineResumeToCloud(
       .from('resume_config')
       .select()
       .eq('user_id', user.id)
-      .eq('resume_id', options!.resumeId)
+      .eq('resume_id', sync!.resumeId)
       .maybeSingle()
 
     if (error) throw error
@@ -92,7 +121,7 @@ export async function uploadOfflineResumeToCloud(
   }
 
   const payload = {
-    ...(options ? { resume_id: options.resumeId } : {}),
+    ...(sync ? { resume_id: sync.resumeId } : {}),
     user_id: user.id,
     type,
     ...DEFAULT_RESUME_APPEARANCE,
@@ -129,7 +158,7 @@ export async function uploadOfflineResumeToCloud(
     return { resume_id: existing.resume_id }
   }
 
-  if (options) {
+  if (sync) {
     const existing = await findExisting()
 
     if (existing) return verifyExisting(existing)
@@ -140,11 +169,12 @@ export async function uploadOfflineResumeToCloud(
   const { data, error } = await supabase
     .from('resume_config')
     .insert(payload)
-    .select('resume_id')
+    .select(returning)
     .single()
+    .overrideTypes<AtsResumeLabel & Record<string, unknown>, { merge: false }>()
 
   if (error) {
-    if (options) {
+    if (sync) {
       const existing = await findExisting()
 
       if (existing) return verifyExisting(existing)

@@ -1,11 +1,12 @@
+import { useShallow } from 'zustand/react/shallow'
 import { ArrowDown } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { OptimizeSummarySkeleton } from '@/components/page-skeletons/optimize'
-import { isAtsFindingPending } from '@/lib/ats'
+import { isAtsFindingPending } from '@/lib/ats/status'
 import { cn } from '@/lib/utils'
 import useAtsStore from '../../store'
-import { calculateRating, calculateReadabilityRating } from '../../utils'
+import { calculateRating, calculateReadabilityRating } from '../../utils/values'
 import '@fontsource/racing-sans-one/latin-400.css'
 
 interface OverviewSummaryCardProps {
@@ -15,7 +16,18 @@ interface OverviewSummaryCardProps {
 export default function OverviewSummaryCard({
   loading,
 }: OverviewSummaryCardProps) {
-  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
+  const currentAtsConfig = useAtsStore(
+    useShallow(
+      ({ currentAtsConfig: report }) =>
+        report && {
+          meta: report.meta,
+          summary: report.summary,
+          readabilityIndex: report.readabilityIndex,
+          findings: report.findings,
+        },
+    ),
+  )
+
   const loadError = useAtsStore((s) => s.loadError)
   const analysisError = useAtsStore((s) => s.analysisError)
   const { meta, readabilityIndex, summary } = currentAtsConfig ?? {}

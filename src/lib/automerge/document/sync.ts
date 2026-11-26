@@ -1,20 +1,24 @@
 import type { AutomergeResumeDocument } from './schema'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import type { Suggestion } from '@/lib/schema/ats'
-import set from 'lodash/set'
+import get from 'lodash/get'
 import toPath from 'lodash/toPath'
-import { toast } from 'sonner'
+import { deepEqual } from '@/lib/ats/result/values'
+import { readResumeListTemplateBinding } from '@/lib/resume-template/list-binding'
+import { FORM_DATA_KEYS } from '@/store/resume/const'
+import { readOwnedResumeRow } from '@/lib/supabase/resume/read-owned-row'
 import {
   normalizeResumeFormData,
+  normalizeResumeSection,
   resolveResumeTemplateBinding,
 } from '@/lib/schema'
 import {
   applyResumeEntryIdPatches,
   collectMissingResumeEntryIdPatches,
 } from '@/lib/schema/resume/entry-id'
-import { getResumeById, updateResumeConfig } from '@/lib/supabase/resume'
+import { updateResumeConfig } from '@/lib/supabase/resume/config'
 import { getCurrentUser } from '@/lib/supabase/user'
-import { setLeaf } from '@/pages/optimize/utils'
+import { setLeaf } from '@/pages/optimize/utils/values'
 import { DocumentManager } from './manager'
 
 export type ResumeDocumentSnapshot = PersistedResumeSnapshot
@@ -24,58 +28,114 @@ export async function syncAutomergeDocument(
   updates: Suggestion[],
   options: { syncToResumeConfig?: boolean } = {},
 ) {
-  const validSuggestions = updates?.filter((s) => s?.locate?.path) || []
+  const suggestions = updates.filter(
+    (suggestion) => suggestion.locate.path && !suggestion.fixed,
+  )
 
-  if (validSuggestions.length === 0) {
-    return
-  }
+  if (!suggestions.length) throw new Error('没有可应用的修复建议')
+
+  const sections = [
+    ...new Set(suggestions.map((item) => toPath(item.locate.path)[0])),
+  ]
+
+  const keys = FORM_DATA_KEYS.filter((key) => sections.includes(key))
+
+  if (keys.length !== sections.length) throw new Error('建议指向的简历栏目无效')
 
   const user = await getCurrentUser()
 
-  if (!user) {
-    return
-  }
+  if (!user) throw new Error('用户未登录')
 
   const manager = new DocumentManager(resumeId, user.id)
-  const handle = await manager.initialize()
-
-  manager.change((doc) => {
-    validSuggestions.forEach((suggestion) => {
-      setLeaf(doc, toPath(suggestion.locate.path), suggestion.after)
-    })
-
-    const normalized = normalizeResumeFormData(doc)
-
-    applyResumeEntryIdPatches(
-      doc,
-      collectMissingResumeEntryIdPatches(doc, normalized),
-    )
-  })
-
-  await manager.saveToSupabase(handle)
-
-  if (!options.syncToResumeConfig) {
-    return
-  }
 
   try {
-    const resumeConfig = await getResumeById(resumeId)
+    const readSections = () =>
+      readOwnedResumeRow(
+        resumeId,
+        user.id,
+        ['updated_at', 'template_binding', ...keys].join(','),
+      )
 
-    validSuggestions.forEach((suggestion) => {
-      set(resumeConfig, suggestion.locate.path, suggestion.after)
-    })
+    const [handle, initialRow] = await Promise.all([
+      manager.initialize(),
+      options.syncToResumeConfig ? readSections() : null,
+    ])
 
-    const normalized = normalizeResumeFormData(resumeConfig)
+    // 初始化旧文档可能补写模板并改变 updated_at。
+    const row =
+      initialRow && !readResumeListTemplateBinding(initialRow.template_binding)
+        ? await readSections()
+        : initialRow
 
-    applyResumeEntryIdPatches(
-      resumeConfig,
-      collectMissingResumeEntryIdPatches(resumeConfig, normalized),
+    const doc = handle.doc()
+
+    if (!doc) throw new Error('未取得简历正文')
+
+    const patch = Object.fromEntries(
+      keys.map((key) => [key, normalizeResumeSection(key, row?.[key])]),
     )
 
-    await updateResumeConfig(resumeId, resumeConfig)
-  } catch (error) {
-    toast.error(`Failed to sync to resume_config：${error}`)
+    const configChanges = row
+      ? pendingSuggestionChanges(patch, suggestions)
+      : []
+
+    const documentSections = Object.fromEntries(
+      keys.map((key) => [key, normalizeResumeSection(key, doc[key])]),
+    )
+
+    const documentChanges = pendingSuggestionChanges(
+      documentSections,
+      suggestions,
+    )
+
+    if (documentChanges.length) {
+      manager.change((next) => {
+        for (const suggestion of documentChanges)
+          setLeaf(next, toPath(suggestion.locate.path), suggestion.after)
+
+        const normalized = normalizeResumeFormData(next)
+
+        applyResumeEntryIdPatches(
+          next,
+          collectMissingResumeEntryIdPatches(next, normalized),
+        )
+      })
+
+      await manager.saveToSupabase(handle)
+    }
+
+    if (row) {
+      if (configChanges.length) {
+        for (const suggestion of configChanges)
+          setLeaf(patch, toPath(suggestion.locate.path), suggestion.after)
+
+        for (const key of keys)
+          patch[key] = normalizeResumeSection(key, patch[key])
+
+        await updateResumeConfig(
+          resumeId,
+          patch,
+          row.updated_at as string | null,
+        )
+      }
+
+      return patch
+    }
+  } finally {
+    manager.destroy()
   }
+}
+
+function pendingSuggestionChanges(source: object, suggestions: Suggestion[]) {
+  return suggestions.filter(({ locate, before, after }) => {
+    const current = get(source, toPath(locate.path)) ?? null
+
+    if (deepEqual(current, after)) return false
+    if (!deepEqual(current, before))
+      throw new Error('要修改的字段已发生变化，请重新检测后再应用')
+
+    return true
+  })
 }
 
 export async function replaceAutomergeDocumentSnapshot(

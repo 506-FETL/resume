@@ -1,27 +1,44 @@
 import type { StoreApi } from 'zustand'
 import type { AtsEvaluationResult } from '../types'
-import type { AtsReportSummary } from '@/lib/supabase/resume/ats'
+import type { AtsResumeLabel } from '@/lib/supabase/resume/ats'
+import type { AtsResumeOption, ResumeSource } from './picker-queries'
+import type { createAtsResumeOptions } from './resume-options'
 import { toast } from 'sonner'
-import { ensureAtsFindingsHaveSuggestions } from '@/lib/ats'
+import { ensureAtsFindingsHaveSuggestions } from '@/lib/ats/result/persisted-findings'
 import {
   getAtsReport,
-  getLatestAtsReport,
-  listLatestAtsReportSummaries,
+  readLatestAtsSelection,
   updateFixChecklist,
 } from '@/lib/supabase/resume/ats'
 import useUserStore from '@/store/user'
-import { getErrorMessage } from '@/utils'
+import { getErrorMessage } from '@/utils/error'
 
-export interface AtsReportsState {
-  atsConfigs: AtsReportSummary[] | null
+export interface AtsReportsState extends Pick<
+  ReturnType<typeof createAtsResumeOptions>,
+  | 'findResumeOption'
+  | 'rememberOptionScore'
+  | 'selectedResumeOption'
+  | 'selectedResumeRevision'
+  | 'loadSelectedResumeOption'
+> {
   currentAtsConfig: AtsEvaluationResult | null
   loading: boolean
   loadError: string | null
-  summariesLoading: boolean
-  summariesError: string | null
   selectedResumeId: string | null
-  selectedResumeType: 'online' | 'offline' | null
+  selectedResumeType: ResumeSource | null
   analysisError: string | null
+}
+
+interface Selection {
+  report: AtsEvaluationResult | null
+  resume: AtsResumeLabel | null
+}
+
+function normalizeReport(report: AtsEvaluationResult) {
+  return {
+    ...report,
+    findings: ensureAtsFindingsHaveSuggestions(report.findings),
+  }
 }
 
 export function createAtsReports(
@@ -29,310 +46,213 @@ export function createAtsReports(
   get: StoreApi<AtsReportsState>['getState'],
 ) {
   let generation = 0
-  let selectionRequest = 0
-  let reportRevision = 0
-  let summaryRevision = 0
-  let initRequest: Promise<void> | null = null
-  let summariesRequest: Promise<void> | null = null
+  let selectionRevision = 0
+  const reports = new Map<number, AtsEvaluationResult>()
+  const requests = new Map<string, Promise<Selection>>()
 
-  let currentRequest: {
-    resumeId: string | null
-    promise: Promise<void>
-  } | null = null
+  let currentRequest: { id: string | null; task: Promise<void> } | null = null
 
-  const reports = new Map<AtsEvaluationResult['id'], AtsEvaluationResult>()
+  const select = (
+    id: string | null,
+    source: ResumeSource | null,
+    latest = false,
+  ): Promise<void> => {
+    if (currentRequest?.id === id) return currentRequest.task
 
-  const requests = new Map<
-    AtsEvaluationResult['id'],
-    Promise<AtsEvaluationResult>
-  >()
+    const revision = ++selectionRevision
+    const known = id && source ? get().findResumeOption(id, source) : undefined
 
-  const readReport = (id: AtsEvaluationResult['id']) => {
-    const cached = reports.get(id)
+    const { currentAtsConfig, selectedResumeOption, selectedResumeRevision } =
+      get()
 
-    if (cached) return Promise.resolve(cached)
+    const selected =
+      known ??
+      (selectedResumeOption?.resume_id === id ? selectedResumeOption : null)
 
-    const pending = requests.get(id)
+    const score = latest ? undefined : known?.report
+    const cached = score ? reports.get(score.id) : undefined
 
-    if (pending) return pending
-
-    const scope = generation
-    const revision = reportRevision
-
-    const request = getAtsReport(id)
-      .then((report) => {
-        const normalized = {
-          ...report,
-          findings: ensureAtsFindingsHaveSuggestions(report.findings),
-        }
-
-        if (scope === generation && revision === reportRevision)
-          reports.set(id, normalized)
-
-        return normalized
-      })
-      .finally(() => {
-        if (requests.get(id) === request) requests.delete(id)
-      })
-
-    requests.set(id, request)
-
-    return request
-  }
-
-  const selectReport = (latest = false): Promise<void> => {
-    const {
-      selectedResumeId,
-      selectedResumeType,
-      atsConfigs,
-      currentAtsConfig,
-    } = get()
-
-    if (currentRequest?.resumeId === selectedResumeId && !latest)
-      return currentRequest.promise
-
-    const requestId = ++selectionRequest
-    const scope = generation
+    const retained =
+      !id || currentAtsConfig?.resume_id === id ? currentAtsConfig : null
 
     currentRequest = null
 
-    const summary = selectedResumeId
-      ? atsConfigs?.find((row) => row.resume_id === selectedResumeId)
-      : atsConfigs?.[0]
-
-    if (
-      selectedResumeType === 'offline' ||
-      (!summary && atsConfigs !== null && !latest)
-    ) {
-      set({ currentAtsConfig: null, loading: false, loadError: null })
-
-      return Promise.resolve()
-    }
-
-    const cached = latest
-      ? null
-      : summary
-        ? reports.get(summary.id)
-        : atsConfigs === null &&
-            currentAtsConfig &&
-            (!selectedResumeId ||
-              currentAtsConfig.resume_id === selectedResumeId)
-          ? currentAtsConfig
-          : null
-
-    if (cached) {
-      set({ currentAtsConfig: cached, loading: false, loadError: null })
-
-      return Promise.resolve()
-    }
-
     set({
+      selectedResumeId: id,
+      selectedResumeType: source,
+      selectedResumeOption: selected,
       currentAtsConfig:
-        !selectedResumeId || currentAtsConfig?.resume_id === selectedResumeId
-          ? currentAtsConfig
-          : null,
-      loading: true,
+        cached ?? (score === null || source === 'offline' ? null : retained),
       loadError: null,
+      analysisError: null,
+      loading: !cached && score !== null && source !== 'offline',
     })
 
-    const task = (async () => {
-      try {
-        const report =
-          summary && !latest
-            ? await readReport(summary.id)
-            : await getLatestAtsReport(selectedResumeId)
+    if (source === 'offline' || score === null || cached) {
+      if (id && source === 'offline' && !selected)
+        return get().loadSelectedResumeOption(
+          id,
+          source,
+          useUserStore.getState().currentUser?.id ?? null,
+        )
 
-        if (scope !== generation || requestId !== selectionRequest) return
+      return Promise.resolve()
+    }
 
-        const normalized = report
-          ? {
-              ...report,
-              findings: ensureAtsFindingsHaveSuggestions(report.findings),
-            }
-          : null
+    const key = score ? `report:${score.id}` : `latest:${id ?? ''}`
+    let pending = requests.get(key)
 
-        if (normalized) reports.set(normalized.id, normalized)
+    if (!pending) {
+      const query = score
+        ? getAtsReport(score.id).then((report) => ({
+            report,
+            resume: selected,
+          }))
+        : readLatestAtsSelection(id)
+
+      const request = query
+        .then(({ report, resume }) => {
+          const normalized = report ? normalizeReport(report) : null
+
+          if (normalized && requests.get(key) === request)
+            reports.set(normalized.id, normalized)
+
+          return { report: normalized, resume }
+        })
+        .finally(() => {
+          if (requests.get(key) === request) requests.delete(key)
+        })
+
+      pending = request
+      requests.set(key, request)
+    }
+
+    const task = pending
+      .then(({ report, resume }) => {
+        if (revision !== selectionRevision) return
+
+        const current = get()
 
         set({
-          currentAtsConfig: normalized,
+          currentAtsConfig: report,
+          ...(resume &&
+          selectedResumeRevision === current.selectedResumeRevision &&
+          selected === current.selectedResumeOption
+            ? { selectedResumeOption: resume }
+            : {}),
           loading: false,
-          ...(!selectedResumeId && normalized
+          ...(!id && report
             ? {
-                selectedResumeId: normalized.resume_id,
+                selectedResumeId: report.resume_id,
                 selectedResumeType: 'online' as const,
               }
             : {}),
         })
-      } catch (error) {
-        if (scope === generation && requestId === selectionRequest)
+      })
+      .catch((error) => {
+        if (revision === selectionRevision)
           set({
             loading: false,
             loadError: getErrorMessage(error, '报告加载失败，请重试'),
           })
-      }
-    })().finally(() => {
-      if (currentRequest?.promise !== task) return
-
-      currentRequest = null
-
-      if (
-        scope === generation &&
-        requestId === selectionRequest &&
-        get().atsConfigs !== atsConfigs
-      )
-        return reconcileReport()
-    })
-
-    currentRequest = { resumeId: selectedResumeId, promise: task }
-
-    return task
-  }
-
-  const reconcileReport = () => {
-    const { atsConfigs, selectedResumeId, currentAtsConfig, loadError } = get()
-
-    if (atsConfigs === null || currentRequest || loadError) return
-
-    const target = selectedResumeId
-      ? atsConfigs.find((row) => row.resume_id === selectedResumeId)
-      : atsConfigs[0]
-
-    if ((target?.id ?? null) !== (currentAtsConfig?.id ?? null))
-      return selectReport()
-  }
-
-  const loadSummaries = (): Promise<void> => {
-    if (summariesRequest) return summariesRequest
-
-    const scope = generation
-    const revision = summaryRevision
-
-    set({ summariesLoading: true, summariesError: null })
-
-    const task = listLatestAtsReportSummaries()
-      .then((summaries) => {
-        if (scope !== generation || revision !== summaryRevision) return
-
-        const ids = new Set(summaries.map((row) => row.id))
-
-        for (const id of reports.keys()) {
-          if (!ids.has(id)) reports.delete(id)
-        }
-
-        set({ atsConfigs: summaries, summariesLoading: false })
-
-        reconcileReport()
-      })
-      .catch((error: unknown) => {
-        if (scope === generation && revision === summaryRevision)
-          set({
-            summariesLoading: false,
-            summariesError: getErrorMessage(error, '检测记录加载失败，请重试'),
-          })
       })
       .finally(() => {
-        if (summariesRequest === task) summariesRequest = null
+        if (currentRequest?.task === task) currentRequest = null
       })
 
-    summariesRequest = task
+    currentRequest = { id, task }
 
     return task
   }
 
   const acceptReport = (report: AtsEvaluationResult) => {
-    const normalized = {
-      ...report,
-      findings: ensureAtsFindingsHaveSuggestions(report.findings),
-    }
+    const normalized = normalizeReport(report)
 
-    summaryRevision += 1
+    requests.delete(`latest:${report.resume_id}`)
+    requests.delete('latest:')
     reports.set(report.id, normalized)
 
-    selectionRequest += 1
+    get().rememberOptionScore(report.resume_id, {
+      id: report.id,
+      overall_score: report.summary.overall_score,
+    })
+
+    if (get().selectedResumeId !== report.resume_id) return
+
+    selectionRevision += 1
     currentRequest = null
-
-    const pending = summariesRequest
-
-    summariesRequest = null
-
-    set((state) => ({
-      summariesLoading: false,
-      summariesError: null,
-      ...(state.selectedResumeId === report.resume_id
-        ? { currentAtsConfig: normalized, loading: false, loadError: null }
-        : {}),
-      atsConfigs: state.atsConfigs && [
-        {
-          id: report.id,
-          resume_id: report.resume_id,
-          created_at: report.created_at,
-          overall_score: report.summary.overall_score,
-        },
-        ...state.atsConfigs.filter((row) => row.resume_id !== report.resume_id),
-      ],
-    }))
-
-    if (pending) loadSummaries()
-    if (get().selectedResumeId !== report.resume_id) selectReport()
+    set({ currentAtsConfig: normalized, loading: false, loadError: null })
   }
 
   const update = <K extends keyof AtsEvaluationResult>(
     key: K,
     value: AtsEvaluationResult[K],
+    reportId = get().currentAtsConfig?.id,
   ) => {
-    const current = get().currentAtsConfig
+    if (reportId === undefined) return
+
+    const visible = get().currentAtsConfig
+    const current = visible?.id === reportId ? visible : reports.get(reportId)
 
     if (!current) return
 
     const next = { ...current, [key]: value }
 
-    reports.set(current.id, next)
+    reports.set(reportId, next)
 
-    set((state) => ({
-      currentAtsConfig: next,
-      atsConfigs:
-        state.atsConfigs?.map((row) =>
-          row.id === current.id
-            ? { ...row, overall_score: next.summary.overall_score }
-            : row,
-        ) ?? null,
-    }))
+    if (key === 'summary')
+      get().rememberOptionScore(current.resume_id, {
+        id: reportId,
+        overall_score: next.summary.overall_score,
+      })
+    if (get().currentAtsConfig?.id === reportId) set({ currentAtsConfig: next })
   }
 
   return {
-    init: (force = false): Promise<void> => {
-      if (initRequest) return initRequest
-
+    init: (force = false, resumeId?: string | null) => {
       if (force) {
-        reportRevision += 1
-        selectionRequest += 1
-        currentRequest = null
         reports.clear()
         requests.clear()
+        currentRequest = null
       }
 
-      const request = (
-        currentRequest?.resumeId === get().selectedResumeId
-          ? currentRequest.promise
-          : selectReport(true)
-      ).finally(() => {
-        if (initRequest === request) initRequest = null
-      })
+      const { selectedResumeId, selectedResumeType } = get()
 
-      initRequest = request
-
-      return request
+      return select(
+        resumeId ?? selectedResumeId,
+        resumeId ? 'online' : selectedResumeType,
+        true,
+      )
     },
-    reloadSummaries: loadSummaries,
-    reloadCurrentReport: () => selectReport(true),
-    setSelectedResume: (id: string, type: 'online' | 'offline') => {
+    reloadCurrentReport: () =>
+      select(get().selectedResumeId, get().selectedResumeType, true),
+    setSelectedResume: (id: string, type: ResumeSource) => select(id, type),
+    selectUploadedResume: (resume: AtsResumeLabel) => {
+      selectionRevision += 1
+      currentRequest = null
+
       set({
-        selectedResumeId: id,
-        selectedResumeType: type,
+        selectedResumeId: resume.resume_id,
+        selectedResumeType: 'online',
+        selectedResumeOption: resume,
+        currentAtsConfig: null,
+        loading: false,
+        loadError: null,
         analysisError: null,
       })
+    },
+    reconcileOptionReport: (option: AtsResumeOption) => {
+      const { selectedResumeId, currentAtsConfig, loading, loadError } = get()
 
-      selectReport()
+      if (
+        loading ||
+        loadError ||
+        option.report === undefined ||
+        option.resume_id !== selectedResumeId
+      )
+        return
+      if ((option.report?.id ?? null) !== (currentAtsConfig?.id ?? null))
+        return select(selectedResumeId, 'online')
     },
     acceptReport,
     update,
@@ -346,39 +266,30 @@ export function createAtsReports(
         item.id === id ? { ...item, isDone: !item.isDone } : item,
       )
 
-      update('fixChecklist', checklist)
+      update('fixChecklist', checklist, current.id)
 
       try {
         await updateFixChecklist(checklist, current.id)
       } catch (error) {
         if (scope !== generation) return
 
-        reports.set(current.id, current)
-
-        if (get().currentAtsConfig?.id === current.id)
-          set({ currentAtsConfig: current })
-
+        update('fixChecklist', current.fixChecklist, current.id)
         toast.error(getErrorMessage(error, '操作失败'))
       }
     },
     resetReports: () => {
       generation += 1
-      selectionRequest += 1
-      initRequest = null
-      summariesRequest = null
+      selectionRevision += 1
       currentRequest = null
       reports.clear()
       requests.clear()
 
       set({
-        atsConfigs: null,
         currentAtsConfig: null,
         selectedResumeId: null,
         selectedResumeType: null,
         loading: true,
         loadError: null,
-        summariesLoading: false,
-        summariesError: null,
         analysisError: null,
       })
     },

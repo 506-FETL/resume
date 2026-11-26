@@ -44,7 +44,7 @@ export function useJobPreparation(loading: boolean) {
     handledJobActionRef.current = key
 
     if (routeAction === 'customize') {
-      if (!jobContext.jdText.trim()) toast.info('请先返回岗位补充 JD 原文')
+      if (!jobContext.jdText?.trim()) toast.info('请先返回岗位补充 JD 原文')
       else openDeriveFor(jobContext.resumeId)
     }
     if (routeAction === 'share')

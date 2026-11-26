@@ -1,4 +1,4 @@
-import type { ReactElement } from 'react'
+import type { ComponentProps, ReactElement } from 'react'
 import type { Severity } from '@/pages/optimize/types'
 import { Wand2 } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -29,13 +29,15 @@ import {
 import { Spinner } from '@/components/ui/spinner'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { hasUnresolvedSuggestionInput } from '@/lib/ats'
-import { syncAutomergeDocument } from '@/lib/automerge'
-import { updateAtsConfig } from '@/lib/supabase/resume'
 import { cn } from '@/lib/utils'
 import { severityConfig } from '@/pages/optimize/const'
 import useAtsStore from '@/pages/optimize/store'
-import { startConfetti } from '@/utils'
-import Content from './content'
+import { getErrorMessage } from '@/utils/error'
+import { createDeferredComponent } from '@/components/deferred-content'
+
+const Content = createDeferredComponent<
+  ComponentProps<typeof import('./content').default>
+>(() => import('./content'), '修复详情')
 
 interface IssueFixProps {
   children: ReactElement
@@ -46,16 +48,17 @@ interface IssueFixProps {
 function IssueFix({ id, severity, children }: IssueFixProps) {
   const config = severityConfig[severity]
   const [open, setOpen] = useState(false)
+  const [contentReady, setContentReady] = useState(false)
   const [isFixing, setIsFixing] = useState(false)
   const isMobile = useIsMobile()
   const reduceMotion = useReducedMotion()
   const update = useAtsStore((s) => s.update)
-  const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
-  const triger = useRef<HTMLButtonElement | null>(null)
 
-  const finding = currentAtsConfig?.findings?.[severity]?.find(
-    (f) => f.id === id,
+  const finding = useAtsStore((s) =>
+    s.currentAtsConfig?.findings[severity].find((item) => item.id === id),
   )
+
+  const triggerRef = useRef<HTMLButtonElement | null>(null)
 
   const allFixed = finding?.fix.suggestions?.length
     ? finding.fix.suggestions.every((s) => s.fixed)
@@ -66,13 +69,17 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
   )
 
   const handleConfirm = async () => {
+    const { currentAtsConfig, isReportAccountCurrent } = useAtsStore.getState()
+    const isCurrent = isReportAccountCurrent()
+
     if (!currentAtsConfig) {
       return
     }
 
     const updatedSuggestions =
-      currentAtsConfig.findings[severity].find((f) => f.id === id)?.fix
-        .suggestions ?? []
+      currentAtsConfig.findings[severity]
+        .find((f) => f.id === id)
+        ?.fix.suggestions?.filter((item) => !item.fixed) ?? []
 
     if (updatedSuggestions.length === 0) {
       toast.error('当前修复建议不完整，请重新运行 ATS 检测')
@@ -106,9 +113,18 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
     })
 
     try {
-      await updateAtsConfig(currentAtsConfig.id, {
-        findings: { ...currentAtsConfig.findings, [severity]: updatedFinding },
-      })
+      const [{ syncAutomergeDocument }, { updateAtsConfig }] =
+        await Promise.all([
+          import('@/lib/automerge/document/sync'),
+          import('@/lib/supabase/resume/ats'),
+        ])
+
+      if (!isCurrent()) return
+
+      const nextFindings = {
+        ...currentAtsConfig.findings,
+        [severity]: updatedFinding,
+      }
 
       await syncAutomergeDocument(
         currentAtsConfig.resume_id,
@@ -116,14 +132,22 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
         { syncToResumeConfig: true },
       )
 
-      update('findings', {
-        ...currentAtsConfig.findings,
-        [severity]: updatedFinding,
-      })
+      if (!isCurrent()) return
 
-      if (!reduceMotion) startConfetti(triger)
+      await updateAtsConfig(currentAtsConfig.id, { findings: nextFindings })
+
+      if (!isCurrent()) return
+
+      update('findings', nextFindings, currentAtsConfig.id)
+
+      if (!reduceMotion)
+        import('@/utils/confetti')
+          .then(({ startConfetti }) => startConfetti(triggerRef))
+          .catch(() => {})
     } catch (error) {
-      toast.error('应用修改失败，请稍后重试')
+      if (!isCurrent()) return
+
+      toast.error(getErrorMessage(error, '应用修改失败，请稍后重试'))
       console.error(error)
     } finally {
       setIsFixing(false)
@@ -161,16 +185,20 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
             </DialogDescription>
           </DialogHeader>
 
-          <Content id={id} severity={severity} />
+          <Content
+            id={id}
+            severity={severity}
+            onReadyChange={setContentReady}
+          />
 
           <DialogFooter className='shrink-0 border-t bg-muted/30 px-4 py-3'>
             <DialogClose asChild>
               <Button variant='outline'>取消</Button>
             </DialogClose>
             <Button
-              ref={triger}
+              ref={triggerRef}
               onClick={handleConfirm}
-              disabled={isFixing || allFixed}
+              disabled={!contentReady || isFixing || allFixed}
             >
               {allFixed ? '已修复' : needsUserInput ? '补充后应用' : '确认修复'}
               {isFixing ? <Spinner /> : null}
@@ -209,14 +237,14 @@ function IssueFix({ id, severity, children }: IssueFixProps) {
           </DrawerDescription>
         </DrawerHeader>
 
-        <Content id={id} severity={severity} />
+        <Content id={id} severity={severity} onReadyChange={setContentReady} />
 
         <DrawerFooter className='shrink-0 border-t bg-muted/30 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] md:flex md:flex-row md:justify-end md:gap-2'>
           <DrawerClose render={<Button variant='outline' />}>取消</DrawerClose>
           <Button
-            ref={triger}
+            ref={triggerRef}
             onClick={handleConfirm}
-            disabled={isFixing || allFixed}
+            disabled={!contentReady || isFixing || allFixed}
           >
             {allFixed ? '已修复' : needsUserInput ? '补充后应用' : '确认修复'}
             {isFixing && <Spinner />}

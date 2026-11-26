@@ -1,27 +1,38 @@
 import type { AdvancedToolKey } from './shared/types'
 import { DialogClose } from '@radix-ui/react-dialog'
-import { useMemo, useRef } from 'react'
+import { useRef, useState } from 'react'
 import { toast } from 'sonner'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Skeleton } from '@/components/ui/skeleton'
 import { ContentSkeleton } from '@/components/loading-skeleton'
 import { DialogFooter } from '@/components/ui/dialog'
 import { DrawerClose, DrawerFooter } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/use-mobile'
 import useAtsStore from '../../store'
-import AtsPreviewTool from './ats-preview'
-import BenchmarkTool from './benchmark'
-import FormatterTool from './formatter'
-import JobDescriptionTool from './job-description'
 import {
   formatToolError,
   getToolDefinition,
   TOOL_DEFINITIONS,
 } from './shared/config'
 import { AdvancedToolsModal } from './shared/modal'
-import { getAdvancedToolResumeSummary } from './shared/resume'
+import { useJobContextStore } from '@/lib/job-context-store'
+import {
+  AtsPreviewTool,
+  BenchmarkTool,
+  FormatterTool,
+  JobDescriptionTool,
+  ToolMeta,
+} from './tool-modules'
 import { ToolCard } from './shared/tool-card'
+
+const toolContents = {
+  'ats-preview': AtsPreviewTool,
+  benchmark: BenchmarkTool,
+  formatter: FormatterTool,
+  'job-description': JobDescriptionTool,
+}
 
 function AdvancedTools() {
   const currentAtsConfig = useAtsStore((s) => s.currentAtsConfig)
@@ -49,121 +60,75 @@ function AdvancedTools() {
 
   const hasSelectedResume = Boolean(selectedResumeId && selectedResumeType)
 
-  const selectedAtsConfig = useMemo(() => {
-    if (!selectedResumeId) {
-      return null
+  const selectedAtsConfig =
+    currentAtsConfig?.resume_id === selectedResumeId ? currentAtsConfig : null
+
+  const activeToolDefinition = getToolDefinition(activeTool)
+
+  const matchesResume =
+    resumeContext?.resumeId === selectedResumeId &&
+    resumeContext?.resumeType === selectedResumeType
+
+  const canReuseResumeContext =
+    matchesResume &&
+    Boolean(sourceUpdatedAt) &&
+    contextSource === sourceUpdatedAt &&
+    resumeContext?.atsConfig === selectedAtsConfig
+
+  const [error, setError] = useState<string | null>(null)
+  const [initialJd, setInitialJd] = useState<Promise<string>>()
+
+  async function loadContext(force = false) {
+    const requestId = ++requestIdRef.current
+
+    setError(null)
+    setLoadingContext(true)
+
+    try {
+      await useAtsStore
+        .getState()
+        .loadAdvancedToolContext(sourceUpdatedAt, force)
+    } catch (error) {
+      if (requestId === requestIdRef.current) setError(formatToolError(error))
+    } finally {
+      if (requestId === requestIdRef.current) setLoadingContext(false)
     }
-
-    if (currentAtsConfig?.resume_id === selectedResumeId) {
-      return currentAtsConfig
-    }
-
-    return null
-  }, [currentAtsConfig, selectedResumeId])
-
-  const activeToolDefinition = useMemo(
-    () => getToolDefinition(activeTool),
-    [activeTool],
-  )
-
-  const resumeSummary = useMemo(
-    () =>
-      resumeContext ? getAdvancedToolResumeSummary(resumeContext.resume) : null,
-    [resumeContext],
-  )
-
-  const canReuseResumeContext = useMemo(() => {
-    if (!resumeContext || !selectedResumeId || !selectedResumeType) {
-      return false
-    }
-
-    return (
-      Boolean(sourceUpdatedAt) &&
-      contextSource === sourceUpdatedAt &&
-      resumeContext.resumeId === selectedResumeId &&
-      resumeContext.resumeType === selectedResumeType &&
-      (resumeContext.atsConfig?.id ?? null) === (selectedAtsConfig?.id ?? null)
-    )
-  }, [
-    resumeContext,
-    selectedAtsConfig,
-    selectedResumeId,
-    selectedResumeType,
-    contextSource,
-    sourceUpdatedAt,
-  ])
-
-  function loadContext(force = false) {
-    return useAtsStore
-      .getState()
-      .loadAdvancedToolContext(sourceUpdatedAt, force)
   }
 
-  async function handleOpenTool(tool: AdvancedToolKey) {
+  function handleOpenTool(tool: AdvancedToolKey) {
     if (!hasSelectedResume) {
       toast.error('请先在上方选择要分析的简历')
 
       return
     }
 
+    toolContents[tool].preload().catch(() => {})
+    ToolMeta.preload().catch(() => {})
+
+    const job = useJobContextStore.getState().context
+
+    if (
+      tool === 'job-description' &&
+      job &&
+      job.id === new URLSearchParams(window.location.search).get('jobId') &&
+      job.resumeId === selectedResumeId &&
+      job.jdText === undefined
+    ) {
+      const description = import('@/lib/job-context').then(
+        ({ readJobContextDescription }) => readJobContextDescription(job),
+      )
+
+      description.catch(() => {})
+      setInitialJd(description)
+    } else {
+      setInitialJd(undefined)
+    }
+
     setActiveTool(tool)
     setOpen(true)
+    setError(null)
 
-    if (canReuseResumeContext) {
-      setLoadingContext(false)
-
-      return
-    }
-
-    const requestId = ++requestIdRef.current
-
-    setLoadingContext(true)
-
-    try {
-      const nextContext = await loadContext()
-
-      if (requestId !== requestIdRef.current || !nextContext) {
-        return
-      }
-
-      setResumeContext(nextContext)
-    } catch (error) {
-      if (requestId === requestIdRef.current) {
-        toast.error(formatToolError(error))
-      }
-    } finally {
-      if (requestId === requestIdRef.current) {
-        setLoadingContext(false)
-      }
-    }
-  }
-
-  async function handleRefreshContext() {
-    if (!open || !activeTool) {
-      return
-    }
-
-    const requestId = ++requestIdRef.current
-
-    setLoadingContext(true)
-
-    try {
-      const nextContext = await loadContext(true)
-
-      if (requestId !== requestIdRef.current || !nextContext) {
-        return
-      }
-
-      setResumeContext(nextContext)
-    } catch (error) {
-      if (requestId === requestIdRef.current) {
-        toast.error(formatToolError(error))
-      }
-    } finally {
-      if (requestId === requestIdRef.current) {
-        setLoadingContext(false)
-      }
-    }
+    if (!canReuseResumeContext) loadContext()
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -176,7 +141,26 @@ function AdvancedTools() {
   }
 
   function renderToolContent() {
-    if (loadingContext) {
+    if (
+      activeTool === 'job-description' &&
+      selectedResumeId &&
+      selectedResumeType
+    ) {
+      const ready =
+        matchesResume && (canReuseResumeContext || (!loadingContext && !error))
+
+      return (
+        <JobDescriptionTool
+          key={`${selectedResumeType}-${selectedResumeId}`}
+          initialJobDescription={initialJd}
+          resumeId={selectedResumeId}
+          resumeType={selectedResumeType}
+          resume={ready ? resumeContext?.resume : undefined}
+        />
+      )
+    }
+
+    if (loadingContext && !canReuseResumeContext) {
       return (
         <ContentSkeleton
           label='正在读取简历与工具结果'
@@ -186,20 +170,13 @@ function AdvancedTools() {
       )
     }
 
-    if (!resumeContext || !activeTool) {
+    if (error && !canReuseResumeContext) return null
+
+    if (!resumeContext || !matchesResume || !activeTool) {
       return (
         <div className='flex min-h-48 flex-col items-center justify-center gap-2 py-10 text-center text-muted-foreground'>
           <p className='text-sm'>请先选择简历，再打开工具箱。</p>
         </div>
-      )
-    }
-
-    if (activeTool === 'job-description') {
-      return (
-        <JobDescriptionTool
-          key={`${resumeContext.resumeId}-${resumeContext.resumeType}`}
-          resumeContext={resumeContext}
-        />
       )
     }
 
@@ -265,70 +242,67 @@ function AdvancedTools() {
         </div>
       </section>
 
-      <AdvancedToolsModal
-        description={activeToolDefinition?.description}
-        footer={
-          isMobile ? (
-            <DrawerFooter className='shrink-0 border-t bg-muted/30 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] md:flex md:flex-row md:justify-end md:gap-2'>
-              <DrawerClose render={<Button variant='outline' />}>
-                取消
-              </DrawerClose>
-              <Button
-                onClick={handleRefreshContext}
-                disabled={!activeTool || loadingContext}
-              >
-                刷新数据
-              </Button>
-            </DrawerFooter>
-          ) : (
-            <DialogFooter className='px-4 py-3 shrink-0 border-t bg-muted/30'>
-              <DialogClose asChild>
-                <Button variant='outline'>取消</Button>
-              </DialogClose>
-              <Button
-                onClick={handleRefreshContext}
-                disabled={!activeTool || loadingContext}
-              >
-                刷新数据
-              </Button>
-            </DialogFooter>
-          )
-        }
-        onOpenChange={handleOpenChange}
-        open={open}
-        meta={
-          resumeSummary ? (
-            <div className='flex min-w-0 flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground'>
-              <span className='max-w-64 truncate font-medium text-foreground'>
-                {resumeSummary.title}
-              </span>
-              <span>{resumeSummary.jobIntent}</span>
-              <span>
-                {resumeSummary.evidenceCount}
-                {' 条经历'}
-              </span>
-              <span>
-                {resumeContext?.resumeType === 'offline'
-                  ? '本地简历'
-                  : '云端简历'}
-              </span>
-            </div>
-          ) : undefined
-        }
-        title={activeToolDefinition?.title || '高级工具箱'}
-      >
-        <AnimatedContent
-          animationKey={
-            loadingContext
-              ? 'loading'
-              : resumeContext && activeTool
-                ? activeTool
-                : 'empty'
+      {activeTool && (
+        <AdvancedToolsModal
+          description={activeToolDefinition?.description}
+          footer={
+            isMobile ? (
+              <DrawerFooter className='shrink-0 border-t bg-muted/30 px-4 pt-3 pb-[max(env(safe-area-inset-bottom),0.75rem)] md:flex md:flex-row md:justify-end md:gap-2'>
+                <DrawerClose render={<Button variant='outline' />}>
+                  取消
+                </DrawerClose>
+                <Button
+                  onClick={() => loadContext(true)}
+                  disabled={!activeTool || loadingContext}
+                >
+                  刷新数据
+                </Button>
+              </DrawerFooter>
+            ) : (
+              <DialogFooter className='px-4 py-3 shrink-0 border-t bg-muted/30'>
+                <DialogClose asChild>
+                  <Button variant='outline'>取消</Button>
+                </DialogClose>
+                <Button
+                  onClick={() => loadContext(true)}
+                  disabled={!activeTool || loadingContext}
+                >
+                  刷新数据
+                </Button>
+              </DialogFooter>
+            )
           }
+          onOpenChange={handleOpenChange}
+          open={open}
+          meta={
+            matchesResume && resumeContext ? (
+              <ToolMeta context={resumeContext} />
+            ) : loadingContext ? (
+              <Skeleton className='h-4 w-48' aria-label='正在读取简历信息' />
+            ) : undefined
+          }
+          title={activeToolDefinition?.title || '高级工具箱'}
         >
-          {renderToolContent()}
-        </AnimatedContent>
-      </AdvancedToolsModal>
+          {error && (
+            <p role='alert' className='text-sm text-destructive'>
+              {error}
+            </p>
+          )}
+          <AnimatedContent
+            animationKey={
+              activeTool === 'job-description'
+                ? activeTool
+                : loadingContext && !canReuseResumeContext
+                  ? 'loading'
+                  : resumeContext && activeTool
+                    ? activeTool
+                    : 'empty'
+            }
+          >
+            {renderToolContent()}
+          </AnimatedContent>
+        </AdvancedToolsModal>
+      )}
     </>
   )
 }
