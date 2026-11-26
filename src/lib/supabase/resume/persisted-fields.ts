@@ -1,4 +1,4 @@
-export const RESUME_PERSISTED_FIELDS = [
+const RENDER_FIELDS = [
   'basics',
   'job_intent',
   'application_info',
@@ -18,6 +18,12 @@ export const RESUME_PERSISTED_FIELDS = [
   'spacing',
   'font',
   'theme',
+] as const
+
+export const RESUME_RENDER_SELECTOR = RENDER_FIELDS.join(',')
+
+export const RESUME_PERSISTED_FIELDS = [
+  ...RENDER_FIELDS,
   'parent_resume_id',
   'linked_jd_text',
   'derived_metadata',

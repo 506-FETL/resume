@@ -1,18 +1,13 @@
 import useUserStore from '@/store/user'
 import { createResumePreviewStore } from './preview-cache-state'
+import { readResumePreviewSource } from './preview-source'
 
 export { createResumePreviewStore } from './preview-cache-state'
 
 export const useResumePreviewStore = createResumePreviewStore(
   async (request, signal, retry) => {
-    const sourcePromise = import('@/lib/resume-access').then((module) => {
-      signal.throwIfAborted()
-
-      return module.getAccessibleResumeById(request.resumeId)
-    })
-
     const [source, { prepareResumePreview }] = await Promise.all([
-      sourcePromise,
+      readResumePreviewSource(request, signal),
       import('../components/resume-card/resume-focus-preview/generate-preview'),
     ])
 

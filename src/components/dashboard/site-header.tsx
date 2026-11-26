@@ -120,16 +120,18 @@ export function SiteHeader() {
         </AnimatePresence>
       </Suspense>
 
-      <div
-        className={cn(
-          'ml-auto flex shrink-0 items-center gap-2',
-          isResumeEditor && '[&>div:first-child]:hidden',
-        )}
-      >
+      <div className='ml-auto flex shrink-0 items-center gap-2'>
         {hasShownStars && (
-          <GithubStars>
-            <GithubRepositoryLink />
-          </GithubStars>
+          <div
+            className={cn(
+              'flex min-w-12 justify-end',
+              isResumeEditor && 'hidden',
+            )}
+          >
+            <GithubStars>
+              <GithubRepositoryLink />
+            </GithubStars>
+          </div>
         )}
         <AnimatedThemeToggler />
       </div>

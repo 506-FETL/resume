@@ -39,13 +39,12 @@ import {
 
 export function DashboardPriorityContentSkeleton({ title }: { title: string }) {
   return (
-    <LoadingRegion label={`正在加载${title}`} className='space-y-4 py-2'>
-      {[0, 1].map((item) => (
-        <div key={item} className='space-y-2'>
-          <Skeleton className='h-4 w-3/5' />
-          <Skeleton className='h-3 w-4/5' />
-        </div>
-      ))}
+    <LoadingRegion
+      label={`正在加载${title}`}
+      className='flex h-13 flex-col justify-center gap-1 px-2'
+    >
+      <Skeleton className='h-4 w-3/5' />
+      <Skeleton className='h-3 w-4/5' />
     </LoadingRegion>
   )
 }

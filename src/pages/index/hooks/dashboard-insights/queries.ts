@@ -3,7 +3,6 @@ import {
   SUGGESTION_KINDS,
 } from '@/lib/ats/result/values'
 import type { ResumeHistoryVersionSummaryRecord } from '@/lib/supabase/resume/history/types'
-import supabase from '@/lib/supabase/client'
 import { dashboardDayStarts } from '../../utils'
 
 type AtsSummaryRow = {
@@ -21,6 +20,8 @@ type ActivityVersion = Pick<
 > & { resume: { display_name: string | null } }
 
 export async function getDashboardAtsSummary(owner: string) {
+  const { default: supabase } = await import('@/lib/supabase/client')
+
   const { data, error } = await supabase
     .rpc('get_dashboard_ats_summary', {
       p_owner_id: owner,
@@ -43,6 +44,8 @@ export async function getDashboardAtsSummary(owner: string) {
 }
 
 export async function listDashboardTrend(owner: string) {
+  const { default: supabase } = await import('@/lib/supabase/client')
+
   const { data, error } = await supabase.rpc('get_dashboard_ats_trend', {
     p_owner_id: owner,
   })
@@ -54,6 +57,8 @@ export async function listDashboardTrend(owner: string) {
 }
 
 export async function listDashboardVersions(owner: string) {
+  const { default: supabase } = await import('@/lib/supabase/client')
+
   const { data, error } = await supabase
     .from('resume_config_versions')
     .select(
@@ -72,6 +77,8 @@ export async function listDashboardVersions(owner: string) {
 }
 
 export async function loadDashboardWeeklyEdits(owner: string) {
+  const { default: supabase } = await import('@/lib/supabase/client')
+
   const starts = dashboardDayStarts().map((date) => date.toISOString())
 
   const { data, error } = await supabase.rpc('get_dashboard_version_edits', {

@@ -30,6 +30,11 @@ import {
   useDashboardTimeline,
 } from './insights'
 import useIndexStore from './store'
+import {
+  selectWorkspaceData,
+  isWorkspaceHome,
+} from '@/lib/workspace-data-route'
+import { hasAuthCallback } from '@/lib/auth/recovery-callback'
 
 const EMPTY_RESUMES: Resume[] = []
 
@@ -45,7 +50,6 @@ export default function DashboardPage() {
     setCreateOpen(true)
   }
 
-  const loadData = useIndexStore((s) => s.loadData)
   const retrySource = useIndexStore((s) => s.retrySource)
   const accountId = useIndexStore((s) => s.accountId)
   const cloudState = useIndexStore((s) => s.cloud)
@@ -79,11 +83,7 @@ export default function DashboardPage() {
     (cloudState.loading && !cloudState.hasLoaded) ||
     (localState.loading && !localState.hasLoaded)
 
-  const resources = useDashboardResources(
-    authStatus !== 'unknown',
-    isOnline,
-    user?.id,
-  )
+  const resources = useDashboardResources()
 
   const insights = useDashboardInsights(
     cloudHasLoaded ? cloudState.total : undefined,
@@ -119,21 +119,23 @@ export default function DashboardPage() {
     Boolean(resumeError)
 
   useEffect(() => {
-    if (authStatus === 'unknown') return
-
-    loadData()
-
-    return useIndexStore.getState().leavePage
-  }, [loadData, user?.id, authStatus])
+    // 恢复链接等待会话门禁通过后，才从实际首页启动读取。
+    if (hasAuthCallback && isWorkspaceHome(window.location.pathname))
+      selectWorkspaceData(true)
+  }, [])
 
   return (
     <PageLayout>
-      <div className='flex min-w-0 flex-col gap-8'>
+      <div className='relative flex min-w-0 flex-col gap-8'>
         <div>
           <Header onCreate={openCreate} createDisabled={mode === 'pending'} />
         </div>
 
-        <AnimatedContent key={user?.id ?? 'guest'} animationKey={mode}>
+        <AnimatedContent
+          key={user?.id ?? 'guest'}
+          animationKey={mode}
+          mode='popLayout'
+        >
           <div className='flex min-w-0 flex-col gap-8'>
             {mode === 'pending' ? (
               <DashboardPageSkeleton contentOnly />
@@ -167,34 +169,37 @@ export default function DashboardPage() {
                         查看全部
                       </Button>
                     </div>
-                    <AnimatedContent
-                      animationKey={
-                        recentResumes.length
-                          ? 'resumes'
-                          : resumesLoading
-                            ? 'loading'
-                            : 'empty'
-                      }
-                    >
-                      {resumesLoading && recentResumes.length === 0 ? (
-                        <RecentResumesSkeleton />
-                      ) : recentResumes.length === 0 ? (
-                        <p className='rounded-lg border p-4 text-sm text-muted-foreground'>
-                          {resumeError
-                            ? '暂时无法加载简历'
-                            : '还没有简历，点击“创建简历”开始填写。'}
-                        </p>
-                      ) : (
-                        <div className='grid gap-3 md:grid-cols-2'>
-                          {recentResumes.map((resume) => (
-                            <RecentResumeCard
-                              key={`${accountId ?? 'guest'}:${resume.isOffline ? 'local' : 'cloud'}:${resume.resume_id}:${resume.updated_at}`}
-                              resume={resume}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </AnimatedContent>
+                    <div className='relative'>
+                      <AnimatedContent
+                        mode='popLayout'
+                        animationKey={
+                          recentResumes.length
+                            ? 'resumes'
+                            : resumesLoading
+                              ? 'loading'
+                              : 'empty'
+                        }
+                      >
+                        {resumesLoading && recentResumes.length === 0 ? (
+                          <RecentResumesSkeleton />
+                        ) : recentResumes.length === 0 ? (
+                          <p className='rounded-lg border p-4 text-sm text-muted-foreground'>
+                            {resumeError
+                              ? '暂时无法加载简历'
+                              : '还没有简历，点击“创建简历”开始填写。'}
+                          </p>
+                        ) : (
+                          <div className='grid gap-3 md:grid-cols-2'>
+                            {recentResumes.map((resume) => (
+                              <RecentResumeCard
+                                key={`${accountId ?? 'guest'}:${resume.isOffline ? 'local' : 'cloud'}:${resume.resume_id}:${resume.updated_at}`}
+                                resume={resume}
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </AnimatedContent>
+                    </div>
                     {accountMatches && cloudState.error && (
                       <ResourceError
                         label='云端简历'

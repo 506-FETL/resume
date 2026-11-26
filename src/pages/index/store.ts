@@ -1,4 +1,9 @@
 import { create } from 'zustand'
+import { getDashboardCloudResumes } from '@/lib/supabase/resume/dashboard-cards'
+import {
+  loadDashboardInsights,
+  disconnectDashboardInsights,
+} from './hooks/dashboard-insights/resources'
 import { getDashboardOfflineResumes } from '@/lib/offline-resume-manager/dashboard'
 import useUserStore from '@/store/user'
 import type { Resume } from './types'
@@ -17,7 +22,7 @@ interface IndexStore {
   accountId: string | null
   cloud: ResumeResource
   local: ResumeResource
-  loadData: () => Promise<void>
+  openPage: () => void
   leavePage: () => void
   retrySource: (source: ResumeSource) => Promise<void>
 }
@@ -85,43 +90,54 @@ const useIndexStore = create<IndexStore>()((set, get) => {
     accountId: useUserStore.getState().currentUser?.id ?? null,
     cloud: initialResource,
     local: initialResource,
-    async loadData() {
-      pageOpen = true
+    openPage() {
+      if (pageOpen) return
 
-      await Promise.all([loadSource('cloud'), loadSource('local')])
+      pageOpen = true
+      loadPageData()
     },
     leavePage() {
       pageOpen = false
-
-      // 同轮重挂可以复用请求，实际离开后不能让写入前的响应污染下次访问。
-      queueMicrotask(() => {
-        if (!pageOpen) pending.clear()
-      })
+      pending.clear()
+      disconnectDashboardInsights(false)
     },
     retrySource: loadSource,
   }
 })
 
+function loadPageData() {
+  const { currentUser, authStatus } = useUserStore.getState()
+
+  if (!pageOpen || authStatus === 'unknown') return
+
+  const { retrySource } = useIndexStore.getState()
+
+  retrySource('cloud')
+  retrySource('local')
+  loadDashboardInsights(currentUser?.id ?? null)
+}
+
 useUserStore.subscribe((state, previous) => {
   const accountId = state.currentUser?.id ?? null
+  const changedAccount = accountId !== (previous.currentUser?.id ?? null)
 
-  if (accountId === (previous.currentUser?.id ?? null)) return
+  if (!changedAccount && state.authStatus === previous.authStatus) return
 
   pending.clear()
+  disconnectDashboardInsights(true)
 
   useIndexStore.setState({
     accountId,
     cloud: initialResource,
     local: initialResource,
   })
+
+  loadPageData()
 })
 
 async function readSource(source: ResumeSource, accountId: string | null) {
   if (source === 'local') return getDashboardOfflineResumes()
   if (!accountId) return { items: [], total: 0 }
-
-  const { getDashboardCloudResumes } =
-    await import('@/lib/supabase/resume/summaries')
 
   return getDashboardCloudResumes(accountId)
 }

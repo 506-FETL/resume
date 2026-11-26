@@ -2,6 +2,10 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
 import { WORKSPACE_PATH } from '@/lib/workspace-path'
+import {
+  isWorkspaceHome,
+  selectWorkspaceData,
+} from '@/lib/workspace-data-route'
 
 const { pathname, search, hash } = window.location
 const isPublicHome = pathname === '/' && !hasAuthCallback
@@ -16,7 +20,13 @@ if (pathname === '/' && hasAuthCallback) {
 }
 
 // 认证与界面并行加载；模块失败仍交给 App 的错误边界。
-if (!isPublicHome) {
+if (isWorkspaceHome(pathname) && !hasAuthCallback) {
+  import('./components/auth-session/subscription')
+    .then(({ startAuthSession }) => startAuthSession())
+    .catch(() => {})
+
+  selectWorkspaceData(true)
+} else if (!isPublicHome) {
   import('./components/auth-session').catch(() => {})
 }
 
@@ -24,7 +34,7 @@ if (!isPublicHome) {
 if (!isPublicHome && !pathname.startsWith('/share/view/')) {
   import('./components/layout/dashboard-shell').catch(() => {})
 }
-if (pathname === WORKSPACE_PATH) {
+if (isWorkspaceHome(pathname)) {
   import('./pages/index').catch(() => {})
 }
 

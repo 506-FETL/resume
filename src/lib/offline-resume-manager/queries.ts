@@ -214,9 +214,4 @@ export async function getOfflineResumeProjection(
   return Object.fromEntries(keys.map((key) => [key, source[key]]))
 }
 
-/**
- * 检查是否为离线简历 ID
- */
-export function isOfflineResumeId(resumeId: string): boolean {
-  return resumeId.startsWith('local-')
-}
+export { isOfflineResumeId } from '@/lib/resume-id'

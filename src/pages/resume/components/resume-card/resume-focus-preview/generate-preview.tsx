@@ -3,7 +3,6 @@ import type {
   ResumePreviewPaper,
   RenderResumePreview,
 } from '../../../store/preview-types'
-import type { AccessibleResumeRecord } from '@/lib/resume-access'
 import type { PersistedResumeSnapshot } from '@/lib/schema/resume/persisted'
 import { createRoot } from 'react-dom/client'
 import { ErrorBoundary } from 'react-error-boundary'
@@ -15,7 +14,7 @@ import { releasePreviewPaper } from '../../../store/preview-types'
 import PreviewGenerator from './preview-generator'
 
 export async function prepareResumePreview(
-  source: AccessibleResumeRecord,
+  source: Record<string, unknown>,
   request: ResumePreviewRequest,
   signal: AbortSignal,
   retry: boolean,

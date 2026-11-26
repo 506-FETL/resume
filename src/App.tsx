@@ -6,6 +6,7 @@ import routes from '~react-pages'
 import { AuthRequired } from '@/components/auth-required'
 import { PresencePage } from '@/components/motion/presence-item'
 import { MotionProvider } from '@/components/motion/motion-provider'
+import { DashboardOpening } from '@/components/layout/dashboard-opening'
 import { PageLoading } from '@/components/page-loading'
 import { RouteSkeleton } from '@/components/route-skeleton'
 import { ThemeProvider } from '@/components/theme-provider'
@@ -14,6 +15,10 @@ import { DURATION, EASE } from '@/lib/motion'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
 import useUpgradeDialogStore from '@/store/upgrade-dialog'
 import useUserStore from '@/store/user'
+import {
+  isWorkspaceHome,
+  selectWorkspaceData,
+} from '@/lib/workspace-data-route'
 
 const DashboardShell = lazy(() =>
   import('@/components/layout/dashboard-shell').then((module) => ({
@@ -81,6 +86,12 @@ function App() {
 
   const authStatus = useUserStore((state) => state.authStatus)
 
+  useEffect(() => {
+    const home = isWorkspaceHome(location.pathname)
+
+    if (!home || !hasAuthCallback) selectWorkspaceData(home)
+  }, [location.pathname])
+
   const isAssistantRoute =
     location.pathname === '/assistant' ||
     location.pathname.startsWith('/assistant/')
@@ -146,7 +157,15 @@ function App() {
                   {guardedPage}
                 </Suspense>
               ) : (
-                <Suspense fallback={<PageLoading label='正在打开工作台' />}>
+                <Suspense
+                  fallback={
+                    isWorkspaceHome(location.pathname) ? (
+                      <DashboardOpening guest={authStatus === 'anonymous'} />
+                    ) : (
+                      <PageLoading label='正在打开工作台' />
+                    )
+                  }
+                >
                   <DashboardShell
                     routeKey={location.pathname}
                     fullBleed={isAssistantRoute && authStatus !== 'anonymous'}

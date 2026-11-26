@@ -9,6 +9,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { WORKSPACE_PATH } from '@/lib/workspace-path'
+import { DASHBOARD_SIDEBAR_WIDTH, readSidebarOpen } from './sidebar-preference'
 
 interface DashboardShellProps {
   children: React.ReactNode
@@ -41,18 +42,14 @@ export function DashboardShell({
     '/reset-password',
   ].includes(routeKey.replace(/\/$/, ''))
 
-  const [sidebarOpen, setSidebarOpen] = useState(() => {
-    try {
-      return localStorage.getItem('sidebarOpen') !== 'false'
-    } catch {
-      return true
-    }
-  })
+  const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen)
 
   return (
     <SidebarProvider
       className='h-full min-h-0 overflow-hidden'
-      style={{ '--sidebar-width': '14rem' } as React.CSSProperties}
+      style={
+        { '--sidebar-width': DASHBOARD_SIDEBAR_WIDTH } as React.CSSProperties
+      }
       defaultOpen={sidebarOpen}
       open={sidebarOpen}
       onOpenChange={(open) => {

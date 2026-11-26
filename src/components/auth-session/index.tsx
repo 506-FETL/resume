@@ -1,14 +1,11 @@
 import { useEffect } from 'react'
-import supabase from '@/lib/supabase/client'
-import useUserStore from '@/store/user'
+import { startAuthSession, stopAuthSession } from './subscription'
 
 export default function AuthSession() {
   useEffect(() => {
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      useUserStore.getState().setCurrentUser(session?.user ?? null)
-    })
+    startAuthSession()
 
-    return () => data.subscription.unsubscribe()
+    return stopAuthSession
   }, [])
 
   return null

@@ -1,68 +1,11 @@
 import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
 import { resolveDefaultTemplateBinding } from '@/lib/resume-template/runtime/default-selection'
-import type {
-  PersistedResumeSnapshot,
-  ResumeAppearanceConfig,
-} from '@/lib/schema'
-import {
-  DEFAULT_RESUME_APPEARANCE,
-  normalizeResumeAppearance,
-} from '@/lib/schema'
 import type { IDBPDatabase } from 'idb'
 import type { OfflineResumeRecord, ResumeDB } from './database'
 
-export const LEGACY_STORAGE_KEY = 'resume-config-storage'
+import { hasPersistedAppearance, hydrateOfflineResumeData } from './appearance'
 
-export function hasPersistedAppearance(
-  data: unknown,
-): data is Partial<ResumeAppearanceConfig> {
-  if (!data || typeof data !== 'object' || Array.isArray(data)) {
-    return false
-  }
-
-  const record = data as Record<string, unknown>
-
-  return (
-    record.spacing !== undefined ||
-    record.font !== undefined ||
-    record.theme !== undefined
-  )
-}
-
-export function readLegacyLocalAppearance(): ResumeAppearanceConfig | null {
-  if (typeof window === 'undefined' || !window.localStorage) {
-    return null
-  }
-
-  const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY)
-
-  if (!raw) {
-    return null
-  }
-
-  try {
-    const parsed = JSON.parse(raw)
-
-    return normalizeResumeAppearance(parsed?.state)
-  } catch {
-    return null
-  }
-}
-
-export function hydrateOfflineResumeData(
-  data: Partial<PersistedResumeSnapshot> | undefined,
-): Partial<PersistedResumeSnapshot> {
-  if (hasPersistedAppearance(data)) {
-    return data
-  }
-
-  const appearance = readLegacyLocalAppearance() ?? DEFAULT_RESUME_APPEARANCE
-
-  return {
-    ...(data ?? {}),
-    ...appearance,
-  }
-}
+export * from './appearance'
 
 export async function hydrateOfflineResumeRecord(
   db: IDBPDatabase<ResumeDB>,

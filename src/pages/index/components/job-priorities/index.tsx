@@ -128,8 +128,9 @@ function PriorityCard({
           </Link>
         </Button>
       </CardHeader>
-      <CardContent className='px-5 pt-0'>
+      <CardContent className='relative min-h-13 px-5 pt-0'>
         <AnimatedContent
+          mode='popLayout'
           animationKey={
             pending
               ? 'loading'
@@ -143,11 +144,11 @@ function PriorityCard({
           {pending ? (
             <DashboardPriorityContentSkeleton title={title} />
           ) : unavailable ? (
-            <p className='py-2 text-sm text-muted-foreground'>
+            <p className='flex min-h-13 items-center py-2 text-sm text-muted-foreground'>
               暂时无法读取{title}
             </p>
           ) : items.length === 0 ? (
-            <div className='py-2 text-muted-foreground'>
+            <div className='flex min-h-13 flex-col justify-center py-2 text-muted-foreground'>
               <p className='text-sm'>{empty}</p>
               {emptyHint && <p className='mt-1 text-xs'>{emptyHint}</p>}
             </div>

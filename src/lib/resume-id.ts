@@ -25,3 +25,7 @@ export function isResumeNotFoundError(
       (error as { code?: unknown }).code === 'RESUME_NOT_FOUND')
   )
 }
+
+export function isOfflineResumeId(resumeId: string): boolean {
+  return resumeId.startsWith('local-')
+}

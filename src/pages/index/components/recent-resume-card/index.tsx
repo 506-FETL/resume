@@ -6,11 +6,8 @@ import {
   HardDrive,
 } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { lazy, Suspense, useRef } from 'react'
-import { useInView } from 'motion/react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { PaperSkeleton } from '@/components/loading-skeleton'
 import { cn } from '@/lib/utils'
 import useUserStore from '@/store/user'
 import useCurrentResumeStore from '@/store/resume/current'
@@ -19,14 +16,11 @@ import {
   RESUME_CARD_APPEARANCE,
 } from '@/pages/resume/components/resume-card/const'
 import type { Resume } from '../../types'
-
-const ResumeThumbnail = lazy(() => import('./resume-thumbnail'))
+import ResumeThumbnail from './resume-thumbnail'
 
 export default function RecentResumeCard({ resume }: { resume: Resume }) {
   const navigate = useNavigate()
   const accountId = useUserStore((state) => state.currentUser?.id ?? null)
-  const previewRef = useRef<HTMLDivElement>(null)
-  const previewVisible = useInView(previewRef, { once: true })
 
   const tone = resume.parent_resume_id
     ? 'variant'
@@ -51,23 +45,14 @@ export default function RecentResumeCard({ resume }: { resume: Resume }) {
 
   return (
     <article className='grid min-w-0 grid-cols-[88px_minmax(0,1fr)] overflow-hidden rounded-lg border bg-card sm:grid-cols-[120px_minmax(0,1fr)]'>
-      <div
-        ref={previewRef}
-        className='flex min-w-0 items-center justify-center bg-muted/25 px-2.5 py-3 sm:px-3.5'
-      >
+      <div className='flex min-w-0 items-center justify-center bg-muted/25 px-2.5 py-3 sm:px-3.5'>
         <div className='relative aspect-[210/297] w-full overflow-hidden rounded-sm bg-white shadow-sm'>
-          <Suspense fallback={<PreviewLoading />}>
-            {previewVisible ? (
-              <ResumeThumbnail
-                accountId={accountId}
-                resumeId={resume.resume_id}
-                updatedAt={updatedAt}
-                templateBinding={resume.templateBinding}
-              />
-            ) : (
-              <PreviewLoading />
-            )}
-          </Suspense>
+          <ResumeThumbnail
+            accountId={accountId}
+            resumeId={resume.resume_id}
+            updatedAt={updatedAt}
+            templateBinding={resume.templateBinding}
+          />
         </div>
       </div>
       <div className='flex min-w-0 flex-col gap-3 p-3 sm:p-4'>
@@ -110,8 +95,4 @@ export default function RecentResumeCard({ resume }: { resume: Resume }) {
       </div>
     </article>
   )
-}
-
-function PreviewLoading() {
-  return <PaperSkeleton label='正在加载简历预览' compact className='h-full' />
 }

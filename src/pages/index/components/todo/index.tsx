@@ -75,8 +75,9 @@ export function TodoCard({
   return (
     <Card className='h-full gap-0 overflow-hidden rounded-t-lg rounded-b-none border-x border-t border-foreground/10 bg-transparent py-5 shadow-none ring-0'>
       <TodoHeader />
-      <CardContent className='px-5 pt-0'>
+      <CardContent className='relative px-5 pt-0'>
         <AnimatedContent
+          mode='popLayout'
           animationKey={
             actions.length ? 'ready' : unavailable ? 'error' : 'loading'
           }
