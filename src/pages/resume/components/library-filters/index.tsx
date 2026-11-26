@@ -3,9 +3,11 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import useResumeListStore from '../../store'
 
 export function LibraryFilters({
+  disabled,
   resultsId,
   allTriggerRef,
 }: {
+  disabled: boolean
   resultsId: string
   allTriggerRef: Ref<HTMLButtonElement>
 }) {
@@ -22,6 +24,7 @@ export function LibraryFilters({
     >
       <TabsList className='max-w-full' aria-label='简历分类'>
         <TabsTrigger
+          disabled={disabled}
           ref={allTriggerRef}
           value='all'
           id={`${resultsId}-all`}
@@ -30,6 +33,7 @@ export function LibraryFilters({
           全部
         </TabsTrigger>
         <TabsTrigger
+          disabled={disabled}
           value='roots'
           id={`${resultsId}-roots`}
           aria-controls={resultsId}
@@ -37,6 +41,7 @@ export function LibraryFilters({
           原始简历
         </TabsTrigger>
         <TabsTrigger
+          disabled={disabled}
           value='variants'
           id={`${resultsId}-variants`}
           aria-controls={resultsId}

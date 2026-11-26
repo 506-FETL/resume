@@ -13,6 +13,7 @@ import {
 } from '@/components/ui/drawer'
 
 interface ShareDrawerProps {
+  returnFocusTo?: HTMLElement | null
   open: boolean
   busy?: boolean
   title: ReactNode
@@ -26,6 +27,7 @@ interface ShareDrawerProps {
 export default function ShareDrawer({
   open,
   busy = false,
+  returnFocusTo,
   title,
   description,
   children,
@@ -80,7 +82,11 @@ export default function ShareDrawer({
             return closeButtonRef.current
           }}
           finalFocus={() =>
-            returnFocusRef.current?.isConnected ? returnFocusRef.current : true
+            returnFocusTo?.isConnected
+              ? returnFocusTo
+              : returnFocusRef.current?.isConnected
+                ? returnFocusRef.current
+                : true
           }
           className='min-w-0 overflow-clip p-0'
           style={

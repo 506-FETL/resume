@@ -24,6 +24,7 @@ export function useDerivedTasks(
 ) {
   const list = useResumeListStore()
   const { openDeriveFor } = list
+  const auxiliaryRevision = list.libraryAuxiliaryRevision
   const resumes = list.libraryActive ? list.libraryPendingItems : list.resumes
   const loading = list.libraryActive ? list.libraryPendingLoading : list.loading
 
@@ -41,12 +42,31 @@ export function useDerivedTasks(
 
   useEffect(() => {
     if (open) loadPending()
-  }, [open, loadPending])
+  }, [open, loadPending, auxiliaryRevision])
 
   const tasks = useJdVariantStore((s) => s.tasks)
   const discardTask = useJdVariantStore((s) => s.discardTask)
   const runningTabRef = useRef<HTMLButtonElement>(null)
   const [pendingId, setPendingId] = useState<string | null>(null)
+
+  const loadParents = list.loadLibraryParents
+
+  useEffect(() => {
+    if (!open || !list.libraryActive) return
+
+    const activeIds = Object.values(tasks)
+      .filter((task) => task.phase === 'parsing' || task.phase === 'rewriting')
+      .map((task) => task.parentResumeId)
+
+    const storedIds = resumes.flatMap((resume) =>
+      resume.derived_status === 'generating' && resume.parent_resume_id
+        ? [resume.parent_resume_id]
+        : [],
+    )
+
+    if (activeIds.length || storedIds.length)
+      loadParents([...activeIds, ...storedIds])
+  }, [open, list.libraryActive, resumes, tasks, loadParents, auxiliaryRevision])
 
   const runningItems = useMemo<RunningItem[]>(() => {
     const resumeNameById = new Map(
@@ -58,11 +78,20 @@ export function useDerivedTasks(
         .map((resume) => [resume.resume_id, resume.display_name]),
     )
 
+    function parentName(id: string) {
+      if (resumeNameById.has(id)) return resumeNameById.get(id) || '未命名简历'
+      if (!list.libraryActive) return '未命名简历'
+      if (list.libraryParentErrors[id]) return '来源名称读取失败'
+      if (list.libraryParents[id] === null) return '来源简历已删除'
+
+      return '正在读取来源名称'
+    }
+
     const storeRunning: RunningItem[] = Object.values(tasks)
       .filter((t) => t.phase === 'parsing' || t.phase === 'rewriting')
       .map((t) => ({
         parentResumeId: t.parentResumeId,
-        parentName: resumeNameById.get(t.parentResumeId) ?? '未命名简历',
+        parentName: parentName(t.parentResumeId),
         source: 'store',
       }))
 
@@ -85,15 +114,20 @@ export function useDerivedTasks(
 
       dbRunning.push({
         parentResumeId: parentId,
-        parentName:
-          resumeNameById.get(r.parent_resume_id ?? '') ?? '未命名简历',
+        parentName: parentName(parentId),
         source: 'db',
         dbResumeId: r.resume_id,
       })
     }
 
     return [...storeRunning, ...dbRunning]
-  }, [tasks, resumes, list.libraryActive, list.libraryParents])
+  }, [
+    tasks,
+    resumes,
+    list.libraryActive,
+    list.libraryParents,
+    list.libraryParentErrors,
+  ])
 
   const failed = useMemo(
     () => resumes.filter((r) => r.derived_status === 'failed'),
@@ -156,6 +190,8 @@ export function useDerivedTasks(
     runningTabRef,
     pendingId,
     runningItems,
+    parentErrors: list.libraryActive ? list.libraryParentErrors : {},
+    loadParents,
     failed,
     tasks,
     discardRunning,

@@ -6,12 +6,17 @@ import routes from '~react-pages'
 import { AuthRequired } from '@/components/auth-required'
 import { PresencePage } from '@/components/motion/presence-item'
 import { MotionProvider } from '@/components/motion/motion-provider'
+import { dashboardShell } from '@/components/layout/load-dashboard-shell'
 import { DashboardOpening } from '@/components/layout/dashboard-opening'
 import { PageLoading } from '@/components/page-loading'
 import { RouteSkeleton } from '@/components/route-skeleton'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
 import { DURATION, EASE } from '@/lib/motion'
+import {
+  isResumeLibrary,
+  selectResumeLibrary,
+} from '@/lib/resume-library-route'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
 import useUpgradeDialogStore from '@/store/upgrade-dialog'
 import useUserStore from '@/store/user'
@@ -20,11 +25,7 @@ import {
   selectWorkspaceData,
 } from '@/lib/workspace-data-route'
 
-const DashboardShell = lazy(() =>
-  import('@/components/layout/dashboard-shell').then((module) => ({
-    default: module.DashboardShell,
-  })),
-)
+const DeferredDashboardShell = lazy(dashboardShell.load)
 
 const JobContextGate = lazy(() =>
   import('@/components/job-context').then((module) => ({
@@ -71,6 +72,10 @@ const ACCOUNT_PAGES: Record<string, { title: string; description: string }> = {
 }
 
 function App() {
+  const [DashboardShell] = useState(
+    () => dashboardShell.ready ?? DeferredDashboardShell,
+  )
+
   const [AuthSession] = useState(() => lazy(loadAuthSession))
   const [RecoveryGate] = useState(() => lazy(loadRecoveryGate))
 
@@ -91,6 +96,16 @@ function App() {
 
     if (!home || !hasAuthCallback) selectWorkspaceData(home)
   }, [location.pathname])
+
+  useEffect(() => {
+    const library = isResumeLibrary(location.pathname)
+
+    selectResumeLibrary(
+      library &&
+        !hasAuthCallback &&
+        !new URLSearchParams(location.search).get('jobId'),
+    )
+  }, [location.pathname, location.search])
 
   const isAssistantRoute =
     location.pathname === '/assistant' ||
@@ -159,8 +174,14 @@ function App() {
               ) : (
                 <Suspense
                   fallback={
-                    isWorkspaceHome(location.pathname) ? (
-                      <DashboardOpening guest={authStatus === 'anonymous'} />
+                    isWorkspaceHome(location.pathname) ||
+                    isResumeLibrary(location.pathname) ? (
+                      <DashboardOpening>
+                        <RouteSkeleton
+                          pathname={location.pathname}
+                          guest={authStatus === 'anonymous'}
+                        />
+                      </DashboardOpening>
                     ) : (
                       <PageLoading label='正在打开工作台' />
                     )

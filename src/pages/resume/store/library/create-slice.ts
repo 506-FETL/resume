@@ -1,11 +1,13 @@
 import { normalizeResumeLibraryQuery } from '@/lib/resume-library-search'
 import { getCurrentUser } from '@/lib/supabase/user'
+import useUserStore from '@/store/user'
 import { getErrorMessage } from '@/utils'
 import { getFilterTotal, getLibraryPageNumber } from '../../utils'
 import { readCachedLibraryItems } from '../library-cache'
-import { createAuxiliaryActions, loadAuxiliary } from './auxiliary'
+import { createAuxiliaryActions } from './auxiliary'
 import { clearCache, getQueryCache, readIndex } from './cache'
 import { readQueryPage } from './read-page'
+import { loadLibraryParents, rememberLibraryItems } from './parents'
 import type {
   LibraryGet,
   LibraryRuntime,
@@ -17,10 +19,13 @@ export function createResumeLibrarySlice(
   set: LibrarySet,
   get: LibraryGet,
 ): ResumeLibrarySlice {
+  const updateVersions = new Map<string, string>()
+
   const runtime: LibraryRuntime = {
     requestId: 0,
     revision: 0,
     queries: new Map(),
+    parentRequests: new Map(),
     optionsLoaded: false,
     pendingLoaded: false,
     optionsRequest: 0,
@@ -30,19 +35,48 @@ export function createResumeLibrarySlice(
     countsRequest: null,
   }
 
+  function prepareParents(items: ResumeLibrarySlice['libraryItems']) {
+    rememberLibraryItems(set, get, items)
+
+    const ids = items.flatMap((item) =>
+      item.parent_resume_id ? [item.parent_resume_id] : [],
+    )
+
+    if (ids.length) get().loadLibraryParents(ids)
+  }
+
+  function invalidateData() {
+    clearCache(runtime)
+
+    set((state) => ({
+      libraryTotal: null,
+      libraryCountsError: null,
+      libraryParents: {},
+      libraryParentErrors: {},
+      libraryAuxiliaryRevision: state.libraryAuxiliaryRevision + 1,
+      libraryOptionsLoading: false,
+      libraryPendingLoading: false,
+      libraryOfflineLoading: false,
+    }))
+  }
+
   return {
     libraryActive: false,
     libraryGeneration: 0,
     libraryAccountId: null,
     libraryItems: [],
     libraryParents: {},
+    libraryParentErrors: {},
     libraryLoading: true,
     libraryError: null,
     libraryHasLoaded: false,
+    libraryHasNextPage: false,
     libraryCountsLoading: true,
     libraryCountsError: null,
     libraryPage: 1,
     libraryTotal: null,
+    librarySearchCountError: null,
+    libraryAuxiliaryRevision: 0,
     libraryCounts: null,
     librarySearchInput: '',
     libraryQuery: '',
@@ -54,8 +88,14 @@ export function createResumeLibrarySlice(
     libraryPendingError: null,
     libraryOfflineLoading: false,
     libraryOfflineError: null,
+    loadLibraryParents: (ids) => loadLibraryParents(runtime, set, get, ids),
     loadLibraryCounts: () => {
       if (runtime.countsRequest) return runtime.countsRequest
+
+      const cached = runtime.queries.get('')?.index
+
+      if (cached && get().libraryCounts === cached.counts)
+        return Promise.resolve()
 
       const currentRevision = runtime.revision
       const ownerId = get().libraryAccountId
@@ -68,7 +108,14 @@ export function createResumeLibrarySlice(
 
       const request = readIndex(runtime, ownerId)
         .then((data) => {
-          if (current()) set({ libraryCounts: data.counts })
+          if (!current()) return
+
+          set((state) => ({
+            libraryCounts: data.counts,
+            ...(!state.libraryQuery && {
+              libraryTotal: getFilterTotal(data.counts, state.filterMode),
+            }),
+          }))
         })
         .catch((error: unknown) => {
           if (current()) set({ libraryCountsError: getErrorMessage(error) })
@@ -92,42 +139,15 @@ export function createResumeLibrarySlice(
       const current = () =>
         request === runtime.requestId && currentRevision === runtime.revision
 
-      const cachedPageNumber = cache.index
-        ? getLibraryPageNumber(
-            requestedPage,
-            getFilterTotal(cache.index.counts, filter),
-          )
-        : requestedPage
-
-      const cachedItems = readCachedLibraryItems(
-        cache,
-        filter,
-        cachedPageNumber,
-      )
-
-      // 账户切换和数据变更会清空缓存；父简历信息补齐后才可直接展示。
-      if (cache.index && cachedItems) {
-        set({
-          libraryActive: true,
-          libraryLoading: false,
-          libraryError: null,
-          libraryItems: cachedItems,
-          libraryHasLoaded: true,
-          libraryPage: cachedPageNumber,
-          libraryTotal: getFilterTotal(cache.index.counts, filter),
-        })
-
-        return
-      }
-
-      set({ libraryActive: true, libraryLoading: true, libraryError: null })
-
       try {
-        const user = await getCurrentUser()
+        const identity = useUserStore.getState()
+
+        const ownerId =
+          identity.authStatus === 'unknown'
+            ? ((await getCurrentUser())?.id ?? null)
+            : (identity.currentUser?.id ?? null)
 
         if (!current()) return
-
-        const ownerId = user?.id ?? null
 
         if (get().libraryAccountId !== ownerId) {
           get().resetLibraryAccount(ownerId)
@@ -135,27 +155,72 @@ export function createResumeLibrarySlice(
           return get().loadLibraryPage(1)
         }
 
-        get().loadLibraryCounts()
+        if (!get().libraryCountsError) get().loadLibraryCounts()
+
+        if (query && !cache.index) {
+          readIndex(runtime, ownerId, query).then(
+            (index) => {
+              if (current())
+                set({ libraryTotal: getFilterTotal(index.counts, filter) })
+            },
+            (error: unknown) => {
+              if (current())
+                set({ librarySearchCountError: getErrorMessage(error) })
+            },
+          )
+        }
+
+        const total = cache.index
+          ? getFilterTotal(cache.index.counts, filter)
+          : null
+
+        const page =
+          total === null
+            ? Math.max(1, requestedPage)
+            : getLibraryPageNumber(requestedPage, total)
+
+        const cached = readCachedLibraryItems(cache, filter, page)
+
+        set({
+          libraryActive: true,
+          libraryLoading: !cached,
+          libraryError: null,
+          librarySearchCountError: null,
+          libraryTotal: total,
+          isOnline: Boolean(ownerId),
+          ...(cached && {
+            libraryItems: cached,
+            libraryHasLoaded: true,
+            libraryPage: page,
+            libraryHasNextPage:
+              cache.pages.get(filter)?.get(page)?.hasNext ?? false,
+          }),
+        })
+
+        if (cached) {
+          prepareParents(cached)
+
+          return
+        }
 
         const result = await readQueryPage(
           runtime,
-          set,
-          get,
           ownerId,
           query,
           filter,
-          requestedPage,
+          page,
           cache,
         )
 
         if (!current() || !result) return
 
+        prepareParents(result.items)
+
         set({
           libraryItems: result.items,
           libraryHasLoaded: true,
           libraryPage: result.page,
-          libraryTotal: result.total,
-          isOnline: Boolean(user),
+          libraryHasNextPage: result.hasNext,
         })
       } catch (error) {
         if (current()) set({ libraryError: getErrorMessage(error) })
@@ -164,64 +229,54 @@ export function createResumeLibrarySlice(
       }
     },
     refreshLibrary: async () => {
-      const reloadOptions = runtime.optionsLoaded || get().libraryOptionsLoading
-      const reloadPending = runtime.pendingLoaded || get().libraryPendingLoading
-      const reloadOffline = runtime.offlineLoaded || get().libraryOfflineLoading
+      invalidateData()
 
-      clearCache(runtime)
+      await get().loadLibraryPage()
+    },
+    invalidateLibraryUpdate: async (id, updatedAt) => {
+      // REST 和 Realtime 对同一次数据库时间可使用不同的 UTC 后缀。
+      if (updatedAt) {
+        const version = updatedAt
+          .replace(' ', 'T')
+          .replace(/(?:Z|\+00(?::?00)?)$/u, '')
 
-      set({
-        libraryTotal: null,
-        libraryParents: {},
-        libraryOptionsLoading: false,
-        libraryPendingLoading: false,
-        libraryOfflineLoading: false,
-      })
+        if (updateVersions.get(id) === version) return
 
-      await Promise.all([
-        get().loadLibraryPage(),
-        reloadOptions
-          ? loadAuxiliary(runtime, set, get, 'options', true)
-          : Promise.resolve(),
-        reloadPending
-          ? loadAuxiliary(runtime, set, get, 'pending', true)
-          : Promise.resolve(),
-        reloadOffline
-          ? get().loadLibraryOfflineOptions(true)
-          : Promise.resolve(),
-      ])
+        updateVersions.set(id, version)
+      }
+
+      await get().invalidateLibrary()
     },
     invalidateLibrary: async () => {
       if (get().libraryActive) return get().refreshLibrary()
 
-      clearCache(runtime)
-      runtime.optionsLoaded = false
-      runtime.pendingLoaded = false
-      runtime.offlineLoaded = false
+      invalidateData()
     },
     cancelLibraryLoad: () => {
+      updateVersions.clear()
       runtime.requestId += 1
       set({ libraryActive: false, libraryLoading: false })
     },
     resetLibraryAccount: (accountId) => {
+      updateVersions.clear()
       clearCache(runtime)
-      runtime.optionsLoaded = false
-      runtime.pendingLoaded = false
-      runtime.offlineLoaded = false
 
       set((state) => ({
         libraryGeneration: state.libraryGeneration + 1,
         libraryAccountId: accountId,
         libraryItems: [],
         libraryParents: {},
+        libraryParentErrors: {},
         libraryLoading: true,
         libraryError: null,
         libraryHasLoaded: false,
+        libraryHasNextPage: false,
         libraryCountsLoading: true,
         libraryCountsError: null,
         libraryPage: 1,
         libraryTotal: null,
         libraryCounts: null,
+        librarySearchCountError: null,
         librarySearchInput: '',
         libraryQuery: '',
         libraryOptions: [],

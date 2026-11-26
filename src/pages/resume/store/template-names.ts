@@ -1,6 +1,5 @@
 import type { StoreApi } from 'zustand'
 import type { ResumeListState } from './types'
-import { resumeTemplateSource } from '@/lib/resume-template/source'
 
 export type TemplateNameState =
   | { status: 'loading' | 'error' }
@@ -34,6 +33,9 @@ export function createTemplateNamesSlice(
       update({ status: 'loading' })
 
       try {
+        const { resumeTemplateSource } =
+          await import('@/lib/resume-template/source')
+
         const name = await resumeTemplateSource.getTemplateName(templateId, {
           force,
         })

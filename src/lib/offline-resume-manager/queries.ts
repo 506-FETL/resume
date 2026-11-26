@@ -1,9 +1,13 @@
 import { ResumeNotFoundError } from '@/lib/resume-id'
 import { readResumeListTemplateBinding } from '@/lib/resume-template/list-binding'
 import type { ResumeListItem } from '@/lib/schema'
-import type { IDBPObjectStore } from 'idb'
-import type { OfflineResumeRecord, ResumeDB } from './database'
-import { getDB } from './database'
+import { getDB, type OfflineResumeRecord } from './database'
+import { getOrderedOfflineResumeIds } from './library-index'
+
+export {
+  getOfflineResumeLibraryIndex,
+  type OfflineResumeLibraryIndex,
+} from './library-index'
 
 /**
  * 获取所有离线简历
@@ -27,114 +31,6 @@ export async function getAllOfflineResumes() {
   )
 }
 
-export interface OfflineResumeLibraryIndex {
-  all: string[]
-  roots: string[]
-  variants: string[]
-  pending: string[]
-  variantCount: number
-}
-
-type ResumeStore = IDBPObjectStore<ResumeDB, ['resumes'], 'resumes', 'readonly'>
-
-function includeUndatedResumeIds(
-  updated: string[],
-  all: string[],
-  limit?: number,
-) {
-  if (updated.length === all.length)
-    return limit === undefined ? updated : updated.slice(0, limit)
-
-  // 缺少更新时间的旧简历排在有效时间之后，按主键倒序补齐。
-  const indexed = new Set(updated)
-  const missing = all.reverse().filter((id) => !indexed.has(id))
-
-  return updated.concat(missing).slice(0, limit)
-}
-
-async function readOrderedResumeIds(store: ResumeStore, limit?: number) {
-  const updatedIndex = store.index('updated_at')
-
-  if (limit === undefined || !Number.isInteger(limit) || limit < 0) {
-    const [updated, all] = await Promise.all([
-      updatedIndex.getAllKeys(),
-      store.getAllKeys(),
-    ])
-
-    return includeUndatedResumeIds(updated.reverse(), all, limit)
-  }
-
-  const ids: string[] = []
-
-  if (limit === 0) return ids
-
-  let cursor = await updatedIndex.openKeyCursor(null, 'prev')
-
-  while (cursor) {
-    ids.push(cursor.primaryKey)
-
-    if (ids.length === limit) return ids
-
-    cursor = await cursor.continue()
-  }
-
-  return includeUndatedResumeIds(ids, await store.getAllKeys(), limit)
-}
-
-async function findMatchingResumeIds(store: ResumeStore, search: string) {
-  if (!search) return null
-
-  const matching = new Set<string>()
-
-  await Promise.all(
-    (['display_name', 'description'] as const).map(async (field) => {
-      let cursor = await store.index(field).openKeyCursor()
-
-      while (cursor) {
-        if (cursor.key.toLowerCase().includes(search))
-          matching.add(cursor.primaryKey)
-
-        cursor = await cursor.continue()
-      }
-    }),
-  )
-
-  return matching
-}
-
-export async function getOfflineResumeLibraryIndex(
-  search = '',
-): Promise<OfflineResumeLibraryIndex> {
-  const db = await getDB()
-  const tx = db.transaction('resumes')
-  const statusIndex = tx.store.index('derived_status')
-
-  const [all, parentIds, readyIds, generatingIds, failedIds, matching] =
-    await Promise.all([
-      readOrderedResumeIds(tx.store),
-      tx.store.index('parent_resume_id').getAllKeys(),
-      statusIndex.getAllKeys('ready'),
-      statusIndex.getAllKeys('generating'),
-      statusIndex.getAllKeys('failed'),
-      findMatchingResumeIds(tx.store, search),
-    ])
-
-  await tx.done
-
-  const parents = new Set(parentIds)
-  const ready = new Set(readyIds)
-  const pending = new Set([...generatingIds, ...failedIds])
-  const visible = matching ? all.filter((id) => matching.has(id)) : all
-
-  return {
-    all: visible,
-    roots: visible.filter((id) => !parents.has(id)),
-    variants: visible.filter((id) => parents.has(id) && ready.has(id)),
-    pending: visible.filter((id) => pending.has(id)),
-    variantCount: visible.filter((id) => parents.has(id)).length,
-  }
-}
-
 export async function getOfflineResumeSummariesByIds(
   ids: string[],
 ): Promise<ResumeListItem[]> {
@@ -153,10 +49,12 @@ export async function getOfflineResumeSummariesByIds(
     for (const record of records) {
       if (!record) continue
 
-      const { data, ...summary } = record
+      const { data, linked_jd_text, derived_metadata, ...summary } = record
 
       summaries.push({
         ...summary,
+        linked_jd_excerpt: linked_jd_text?.slice(0, 80),
+        derived_match_rate: derived_metadata?.matchRate,
         isOffline: true,
         templateBinding: readResumeListTemplateBinding(data?.templateBinding),
       })
@@ -167,11 +65,7 @@ export async function getOfflineResumeSummariesByIds(
 }
 
 export async function getOfflineResumeSummaries(limit?: number) {
-  const db = await getDB()
-  const tx = db.transaction('resumes')
-  const ids = await readOrderedResumeIds(tx.store, limit)
-
-  await tx.done
+  const ids = await getOrderedOfflineResumeIds(limit)
 
   const summaries = await getOfflineResumeSummariesByIds(ids)
 

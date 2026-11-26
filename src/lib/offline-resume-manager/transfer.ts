@@ -9,11 +9,10 @@ import {
 import { notifyResumeReadChanged } from '@/lib/resume-read-events'
 import type { PersistedResumeSnapshot, ResumeType } from '@/lib/schema'
 import { getCurrentUser } from '@/lib/supabase/user'
-import type { OfflineResumeRecord } from './database'
 import { getDB } from './database'
 import { hydrateOfflineResumeData } from './hydrate'
 import { deleteOfflineResume, generateResumeId } from './mutations'
-import { getAllOfflineResumes, getOfflineResumeById } from './queries'
+import { getOfflineResumeById } from './queries'
 
 /**
  * 将本地简历迁移到云端
@@ -47,26 +46,33 @@ export async function migrateOfflineResumesToCloud(
 
   await assertOwner()
 
-  const offlineResumes = selectedIds?.length
-    ? (await Promise.all(selectedIds.map(getOfflineResumeById))).filter(
-        (resume): resume is OfflineResumeRecord => Boolean(resume),
-      )
-    : await getAllOfflineResumes()
+  const ids =
+    selectedIds ??
+    (await getDB().then(async (db) => {
+      const keys = await db.getAllKeysFromIndex('resumes', 'created_at')
 
-  if (offlineResumes.length === 0) {
-    return { success: 0, failed: 0, errors: [], successIds: [] }
-  }
+      return keys.reverse()
+    }))
 
   let success = 0
   let failed = 0
   const errors: string[] = []
   const successIds: string[] = []
 
-  for (const resume of offlineResumes) {
-    const snapshotSignature = JSON.stringify(resume)
+  for (const id of new Set(ids)) {
+    let displayName = '本地简历'
 
     try {
       await assertOwner()
+
+      const resume = await getOfflineResumeById(id)
+
+      if (!resume) continue
+
+      displayName = resume.display_name
+
+      const snapshotSignature = JSON.stringify(resume)
+
       await flushPendingEvidence(resume.resume_id, ownerId!)
       await flushPendingEvidence(resume.resume_id, null)
 
@@ -121,8 +127,8 @@ export async function migrateOfflineResumesToCloud(
 
       const errorMsg = error instanceof Error ? error.message : '未知错误'
 
-      errors.push(`${resume.display_name}: ${errorMsg}`)
-      console.error(`❌ 迁移简历失败: ${resume.display_name}`, error)
+      errors.push(`${displayName}: ${errorMsg}`)
+      console.error(`迁移简历失败: ${displayName}`, error)
     }
   }
 

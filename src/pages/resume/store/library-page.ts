@@ -1,12 +1,7 @@
 import type { ResumeItem } from '../types'
 import type { ResumeFilterMode } from './resume-ui'
-import type {
-  CachedPage,
-  LibraryIndex,
-  LibraryQueryCache,
-  PageCursor,
-} from './library-cache'
-import { getOfflineResumeSummariesByIds } from '@/lib/offline-resume-manager'
+import type { CachedPage, LibraryQueryCache, PageCursor } from './library-cache'
+import { getOfflineResumeSummariesByIds } from '@/lib/offline-resume-manager/queries'
 import {
   getResumeLibraryPage,
   RESUME_LIBRARY_PAGE_SIZE,
@@ -15,39 +10,37 @@ import { compareResumes } from '../utils'
 
 export async function buildLibraryPage({
   cache,
-  data,
+  localIds,
+  limited,
+  cloudTotal,
   ownerId,
   filter,
   query,
   page,
-  firstCloudBatch,
   current,
 }: {
   cache: LibraryQueryCache
-  data: LibraryIndex
+  localIds: Promise<string[]>
+  limited: boolean
+  cloudTotal: number | undefined
   ownerId: string | null
   filter: ResumeFilterMode
   query: string
   page: number
-  firstCloudBatch: ResumeItem[] | null
   current: () => boolean
 }) {
   const pages = cache.pages.get(filter) ?? new Map<number, CachedPage>()
-  const localIds = data.local[filter]
-
-  const cloudTotal =
-    filter === 'roots'
-      ? data.cloud.roots
-      : filter === 'variants'
-        ? data.cloud.readyVariants
-        : data.cloud.all
 
   cache.pages.set(filter, pages)
 
   for (let target = 1; target <= page; target += 1) {
+    const previousPage = pages.get(target - 1)
+
+    if (previousPage && !previousPage.hasNext)
+      return { items: previousPage.items, page: target - 1, hasNext: false }
     if (pages.has(target)) continue
 
-    const previous = pages.get(target - 1)?.next
+    const previous = previousPage?.next
 
     const cursor: PageCursor = previous
       ? {
@@ -60,35 +53,48 @@ export async function buildLibraryPage({
     const remaining = RESUME_LIBRARY_PAGE_SIZE - cursor.buffer.length
     const localRemaining = RESUME_LIBRARY_PAGE_SIZE - cursor.localBuffer.length
 
-    const ids =
-      localRemaining > 0
-        ? localIds.slice(
-            cursor.localOffset,
-            cursor.localOffset + localRemaining,
+    const [cloudBatch, local] = await Promise.all([
+      ownerId &&
+      !cursor.cloudDone &&
+      remaining > 0 &&
+      (cloudTotal === undefined || cursor.cloudOffset < cloudTotal)
+        ? getResumeLibraryPage(
+            ownerId,
+            filter,
+            cursor.cloudOffset,
+            remaining,
+            query,
           )
-        : []
+        : [],
+      localIds.then(async (ordered) => {
+        const ids = ordered.slice(
+          cursor.localOffset,
+          cursor.localOffset + localRemaining,
+        )
 
-    const [cloudBatch, localBatch] = await Promise.all([
-      target === 1 && firstCloudBatch
-        ? firstCloudBatch
-        : ownerId && remaining > 0 && cursor.cloudOffset < cloudTotal
-          ? getResumeLibraryPage(
-              ownerId,
-              filter,
-              cursor.cloudOffset,
-              remaining,
-              query,
-            )
-          : [],
-      ids.length ? getOfflineResumeSummariesByIds(ids) : [],
+        const items = ids.length
+          ? await getOfflineResumeSummariesByIds(ids)
+          : []
+
+        return {
+          items,
+          count: ids.length,
+          more:
+            cursor.localOffset + ids.length < ordered.length ||
+            (limited && ordered.length === RESUME_LIBRARY_PAGE_SIZE),
+        }
+      }),
     ])
 
     if (!current()) return
 
     cursor.buffer.push(...cloudBatch)
     cursor.cloudOffset += cloudBatch.length
-    cursor.localBuffer.push(...localBatch)
-    cursor.localOffset += ids.length
+
+    if (remaining > 0 && cloudBatch.length < remaining) cursor.cloudDone = true
+
+    cursor.localBuffer.push(...local.items)
+    cursor.localOffset += local.count
 
     const items: ResumeItem[] = []
 
@@ -104,8 +110,25 @@ export async function buildLibraryPage({
       }
     }
 
-    pages.set(target, { items, next: cursor, ready: false })
+    if (!items.length && previousPage) {
+      previousPage.hasNext = false
+
+      return { items: previousPage.items, page: target - 1, hasNext: false }
+    }
+
+    const hasNext = Boolean(
+      cursor.buffer.length ||
+      cursor.localBuffer.length ||
+      local.more ||
+      (ownerId &&
+        !cursor.cloudDone &&
+        (cloudTotal === undefined || cursor.cloudOffset < cloudTotal)),
+    )
+
+    pages.set(target, { items, next: cursor, hasNext })
   }
 
-  return pages.get(page)!
+  const loaded = pages.get(page)!
+
+  return { items: loaded.items, page, hasNext: loaded.hasNext }
 }

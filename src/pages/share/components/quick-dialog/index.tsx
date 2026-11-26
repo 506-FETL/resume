@@ -28,10 +28,11 @@ const QuickDialogContent = createDeferredComponent(
 )
 
 interface QuickDialogProps {
+  returnFocusTo?: HTMLElement | null
   getSnapshot: SnapshotProvider
 }
 
-function QuickDialog({ getSnapshot }: QuickDialogProps) {
+function QuickDialog({ getSnapshot, returnFocusTo }: QuickDialogProps) {
   const ownerUserId = useUserStore((state) => state.currentUser?.id ?? null)
 
   const {
@@ -133,6 +134,7 @@ function QuickDialog({ getSnapshot }: QuickDialogProps) {
   return (
     <>
       <ShareDrawer
+        returnFocusTo={returnFocusTo}
         open={open}
         busy={submitting}
         onOpenChange={handleOpenChange}

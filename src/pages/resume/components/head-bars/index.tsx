@@ -2,6 +2,7 @@ import type { MouseEventHandler, Ref } from 'react'
 import { Cloud, CloudUpload, GitBranch, HardDrive, Plus } from 'lucide-react'
 import { PageHeader } from '@/components/layout/page-layout'
 import AnimatedContent from '@/components/motion/animated-content'
+import { Skeleton } from '@/components/ui/skeleton'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -10,12 +11,14 @@ import useJdVariantStore from '@/store/jd-variant'
 import { RESUME_BADGE_COLORS } from '../resume-card/const'
 
 function HeadBars({
+  authPending,
   onCreate,
   counts,
   isOnline,
   offlineCount,
   createButtonRef,
 }: {
+  authPending: boolean
   onCreate: MouseEventHandler<HTMLButtonElement>
   counts: {
     all: number
@@ -28,19 +31,22 @@ function HeadBars({
   offlineCount: number
   createButtonRef?: Ref<HTMLButtonElement>
 }) {
-  const { libraryCountsError, libraryCountsLoading, loadLibraryCounts } =
-    useResumeListStore()
+  const libraryCountsError = useResumeListStore((s) => s.libraryCountsError)
+  const libraryCountsLoading = useResumeListStore((s) => s.libraryCountsLoading)
+  const loadLibraryCounts = useResumeListStore((s) => s.loadLibraryCounts)
 
   const setShowSyncDialog = useResumeListStore((s) => s.setShowSyncDialog)
   const setDerivedJobsOpen = useResumeListStore((s) => s.setDerivedJobsOpen)
   const hasOfflineResumesToSync = isOnline && offlineCount > 0
-  const tasks = useJdVariantStore((s) => s.tasks)
+
+  const running = useJdVariantStore((s) =>
+    Object.values(s.tasks).some(
+      (task) => task.phase === 'parsing' || task.phase === 'rewriting',
+    ),
+  )
 
   const hasPendingTasks =
-    (counts?.pending ?? 0) > 0 ||
-    Object.values(tasks).some(
-      (task) => task.phase === 'parsing' || task.phase === 'rewriting',
-    )
+    !authPending && ((counts?.pending ?? 0) > 0 || running)
 
   const resumeTags = [
     { tone: 'cloud', label: '云端', icon: Cloud },
@@ -55,7 +61,7 @@ function HeadBars({
         title='我的简历'
         description={
           <span
-            className='whitespace-nowrap tabular-nums'
+            className='inline-block min-w-[4em] whitespace-nowrap tabular-nums'
             aria-label={counts ? `${counts.all} 份简历` : '简历数量暂不可用'}
           >
             {counts?.all ?? '—'} 份
@@ -65,6 +71,7 @@ function HeadBars({
           <Button
             ref={createButtonRef}
             aria-label='打开创建简历表单'
+            disabled={authPending}
             onClick={onCreate}
           >
             <Plus />
@@ -73,37 +80,41 @@ function HeadBars({
         }
       >
         <div className='flex flex-wrap items-center gap-2'>
-          <AnimatedContent animationKey={isOnline ? 'online' : 'offline'}>
-            <div className='flex flex-wrap items-center gap-1.5'>
-              {isOnline ? (
-                resumeTags.map(({ tone, label, icon: Icon }) => (
-                  <Badge
-                    key={tone}
-                    variant='outline'
-                    className={cn(
-                      RESUME_BADGE_COLORS[tone],
-                      '[@media(max-height:500px)]:px-1',
-                    )}
-                    aria-label={`${label}简历 ${counts?.[tone] ?? '未知'} 份`}
-                  >
-                    <Icon
-                      aria-hidden
-                      className='[@media(max-height:500px)]:hidden'
-                    />
-                    {label}
-                    <span className='tabular-nums'>
-                      {counts?.[tone] ?? '—'}
-                    </span>
+          {authPending ? (
+            <Skeleton className='h-5 w-48 max-w-full' />
+          ) : (
+            <div>
+              <div className='flex flex-wrap items-center gap-1.5'>
+                {isOnline ? (
+                  resumeTags.map(({ tone, label, icon: Icon }) => (
+                    <Badge
+                      key={tone}
+                      variant='outline'
+                      className={cn(
+                        RESUME_BADGE_COLORS[tone],
+                        '[@media(max-height:500px)]:px-1',
+                      )}
+                      aria-label={`${label}简历 ${counts?.[tone] ?? '未知'} 份`}
+                    >
+                      <Icon
+                        aria-hidden
+                        className='[@media(max-height:500px)]:hidden'
+                      />
+                      {label}
+                      <span className='min-w-[2ch] text-center tabular-nums'>
+                        {counts?.[tone] ?? '—'}
+                      </span>
+                    </Badge>
+                  ))
+                ) : (
+                  <Badge variant='outline'>
+                    <HardDrive aria-hidden />
+                    本地保存
                   </Badge>
-                ))
-              ) : (
-                <Badge variant='outline'>
-                  <HardDrive aria-hidden />
-                  本地保存
-                </Badge>
-              )}
+                )}
+              </div>
             </div>
-          </AnimatedContent>
+          )}
           {hasPendingTasks && (
             <Button
               onClick={() => setDerivedJobsOpen(true)}

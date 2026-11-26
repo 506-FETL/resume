@@ -22,9 +22,14 @@ import {
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { ContentSkeleton } from '@/components/loading-skeleton'
 import useResumeListStore from '@/pages/resume/store'
+import { restoreDialogFocus } from '@/lib/dialog-focus'
 import { formatDate } from '@/utils/date'
 
-export default function SyncResumesDialog() {
+export default function SyncResumesDialog({
+  returnFocusTo,
+}: {
+  returnFocusTo?: HTMLElement | null
+}) {
   const open = useResumeListStore((s) => s.showSyncDialog)
   const setOpen = useResumeListStore((s) => s.setShowSyncDialog)
   const rawOfflineResumes = useResumeListStore((s) => s.offlineResumes)
@@ -32,6 +37,11 @@ export default function SyncResumesDialog() {
   const syncResumes = useResumeListStore((s) => s.syncResumes)
 
   const libraryActive = useResumeListStore((s) => s.libraryActive)
+
+  const auxiliaryRevision = useResumeListStore(
+    (state) => state.libraryAuxiliaryRevision,
+  )
+
   const listLoading = useResumeListStore((s) => s.libraryOfflineLoading)
   const listError = useResumeListStore((s) => s.libraryOfflineError)
   const loadOptions = useResumeListStore((s) => s.loadLibraryOfflineOptions)
@@ -39,7 +49,7 @@ export default function SyncResumesDialog() {
 
   useEffect(() => {
     if (open && libraryActive) loadOptions()
-  }, [open, libraryActive, loadOptions])
+  }, [open, libraryActive, loadOptions, auxiliaryRevision])
 
   const offlineResumes = useMemo(
     () =>
@@ -53,32 +63,33 @@ export default function SyncResumesDialog() {
     [rawOfflineResumes],
   )
 
-  const [selectedIds, setSelectedIds] = useState<string[]>([])
+  const [selection, setSelection] = useState<Set<string> | null>(null)
+
+  const selectedIds = useMemo(
+    () =>
+      offlineResumes
+        .map((resume) => resume.resume_id)
+        .filter((id) => selection === null || selection.has(id)),
+    [offlineResumes, selection],
+  )
 
   useEffect(() => {
-    if (open) {
-      setSelectedIds((prev) =>
-        prev.length ? prev : offlineResumes.map((r) => r.resume_id),
-      )
-    } else {
-      setSelectedIds([])
-    }
-  }, [open, offlineResumes])
+    if (!open) setSelection(null)
+  }, [open])
 
   const handleToggle = (resumeId: string) => {
-    setSelectedIds((prev) =>
-      prev.includes(resumeId)
-        ? prev.filter((id) => id !== resumeId)
-        : [...prev, resumeId],
-    )
+    const next = new Set(selectedIds)
+
+    if (next.has(resumeId)) next.delete(resumeId)
+    else next.add(resumeId)
+
+    setSelection(next)
   }
 
   const handleToggleAll = () => {
-    if (selectedIds.length === offlineResumes.length) {
-      setSelectedIds([])
-    } else {
-      setSelectedIds(offlineResumes.map((r) => r.resume_id))
-    }
+    setSelection(
+      selectedIds.length === offlineResumes.length ? new Set() : null,
+    )
   }
 
   const handleSync = async () => {
@@ -89,7 +100,10 @@ export default function SyncResumesDialog() {
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
-      <DialogContent className='max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-150'>
+      <DialogContent
+        onCloseAutoFocus={(event) => restoreDialogFocus(event, returnFocusTo)}
+        className='max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-150'
+      >
         <DialogHeader>
           <DialogTitle className='text-2xl'>同步本地简历到云端</DialogTitle>
           <DialogDescription className='sr-only'>
@@ -160,7 +174,8 @@ export default function SyncResumesDialog() {
           <ScrollArea className='min-h-0 max-h-100 pr-4'>
             <div className='flex flex-col gap-3'>
               {offlineResumes.map((resume) => {
-                const isSelected = selectedIds.includes(resume.resume_id)
+                const isSelected =
+                  selection === null || selection.has(resume.resume_id)
 
                 return (
                   <Card
@@ -180,6 +195,7 @@ export default function SyncResumesDialog() {
                       <div className='flex items-start gap-3'>
                         <div onClick={(e) => e.stopPropagation()}>
                           <Checkbox
+                            aria-label={`选择${resume.display_name}`}
                             checked={isSelected}
                             onCheckedChange={() =>
                               handleToggle(resume.resume_id)

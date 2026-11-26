@@ -2,10 +2,8 @@ import type { StoreApi } from 'zustand'
 import type { ResumeItem } from '../types'
 import type { ResumeListState } from './types'
 import { toast } from 'sonner'
-import { syncOfflineResumesToCloud } from '@/lib/resume-sync-service'
-import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
-import { subscribeToResumeConfigUpdates } from '@/lib/supabase/resume'
-import { getAllResumesFromUser } from '@/lib/supabase/resume/form'
+import { readResumeListTemplateBinding } from '@/lib/resume-template/list-binding'
+import { subscribeToResumeConfigUpdates } from '@/lib/supabase/resume/config'
 
 export interface ResumeSyncSlice {
   isOnline: boolean
@@ -38,6 +36,11 @@ export function createResumeSyncSlice(
       set({ isSyncing: true, syncingIds: new Set(selectedIds) })
 
       try {
+        const { syncOfflineResumesToCloud } =
+          await import('@/lib/resume-sync-service')
+
+        if (generation !== get().libraryGeneration) return
+
         const result = await syncOfflineResumesToCloud(selectedIds)
 
         if (generation !== get().libraryGeneration) return
@@ -72,6 +75,9 @@ export function createResumeSyncSlice(
 
               return
             }
+
+            const { getAllResumesFromUser } =
+              await import('@/lib/supabase/resume/form')
 
             const onlineResumes = await getAllResumesFromUser()
 
@@ -125,7 +131,12 @@ export function createResumeSyncSlice(
             return
           }
 
-          get().refreshLibrary()
+          if (payload.eventType === 'UPDATE') {
+            get().invalidateLibraryUpdate(
+              payload.new.resume_id,
+              payload.new.updated_at,
+            )
+          } else get().refreshLibrary()
 
           return
         }
@@ -196,6 +207,9 @@ export function createResumeSyncSlice(
             }
 
             const syncPromise = async () => {
+              const { getAllResumesFromUser } =
+                await import('@/lib/supabase/resume/form')
+
               const onlineResumes = await getAllResumesFromUser()
 
               if (cancelled || generation !== get().libraryGeneration) return

@@ -1,10 +1,10 @@
 import { useState } from 'react'
-import { DashboardPageSkeleton } from '@/components/page-skeletons/dashboard'
+import type { ReactNode } from 'react'
 import { Skeleton } from '@/components/ui/skeleton'
 import { SIDEBAR_WIDTH_ICON } from '@/components/ui/sidebar/sidebar-context'
 import { DASHBOARD_SIDEBAR_WIDTH, readSidebarOpen } from './sidebar-preference'
 
-export function DashboardOpening({ guest }: { guest: boolean }) {
+export function DashboardOpening({ children }: { children: ReactNode }) {
   const [sidebarOpen] = useState(readSidebarOpen)
 
   return (
@@ -27,7 +27,7 @@ export function DashboardOpening({ guest }: { guest: boolean }) {
           <Skeleton className='h-3 w-8' />
         </div>
         <div className='min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]'>
-          <DashboardPageSkeleton guest={guest} />
+          {children}
         </div>
       </main>
     </div>

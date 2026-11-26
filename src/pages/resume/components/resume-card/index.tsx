@@ -1,8 +1,4 @@
-import {
-  bindJobResume,
-  jobContextUrl,
-  useJobContextStore,
-} from '@/lib/job-context'
+import { jobContextUrl } from '@/lib/job-context-url'
 import { toast } from 'sonner'
 import type { MouseEvent } from 'react'
 import type { ResumeItem } from '../../types'
@@ -17,7 +13,7 @@ import {
   Sparkles,
 } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useMemo, useRef, useState } from 'react'
+import { memo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge } from '@/components/ui/badge'
 import { Spinner } from '@/components/ui/spinner'
@@ -38,7 +34,7 @@ import DeleteResumeDialog from '../delete-resume-dialog'
 import EditResumeDialog from '../edit-resume-dialog'
 import TemplateBadge from '../template-badge'
 import { RESUME_BADGE_COLORS, RESUME_CARD_APPEARANCE } from './const'
-import { VariantBadge } from './variant-badge'
+import { VariantDetails } from './variant-details'
 import ResumeFocusPreview from './resume-focus-preview'
 
 interface ResumeCardProps {
@@ -50,7 +46,7 @@ interface ResumeCardProps {
   prepareDisabled?: boolean
 }
 
-export default function ResumeCard({
+function ResumeCard({
   resume,
   onDeletedClose,
   onPrepareForJob,
@@ -58,26 +54,16 @@ export default function ResumeCard({
   preparingForJob = false,
   prepareDisabled = false,
 }: ResumeCardProps) {
-  const { deleteResume, updateResume, openDeriveFor, libraryParents } =
-    useResumeListStore()
-
   const accountId = useUserStore((state) => state.currentUser?.id ?? null)
-
-  const { setCurrentResume } = useCurrentResumeStore()
-  const { openDialog: openQuickDialog } = useShareStore()
 
   const navigate = useNavigate()
   const [routeParams] = useSearchParams()
-  const [showEditDialog, setShowEditDialog] = useState(false)
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false)
+
+  // 首次打开前不挂载；关闭后让 Radix 完成退出和回焦。
+  const [showEditDialog, setShowEditDialog] = useState<boolean>()
+  const [showDeleteDialog, setShowDeleteDialog] = useState<boolean>()
   const menuTriggerRef = useRef<HTMLButtonElement>(null)
   const actionAfterCloseRef = useRef<(() => void) | null>(null)
-
-  const parent = useMemo(() => {
-    if (!resume.parent_resume_id) return null
-
-    return libraryParents[resume.parent_resume_id] ?? null
-  }, [resume.parent_resume_id, libraryParents])
 
   const shouldReduceMotion = useReducedMotion()
   const isVariant = Boolean(resume.parent_resume_id)
@@ -87,13 +73,13 @@ export default function ResumeCard({
   const updatedAt = resume.updated_at || resume.created_at
   const updatedLabel = new Date(updatedAt).toLocaleDateString('zh-CN')
   const isGenerating = resume.derived_status === 'generating'
-  const isFailed = resume.derived_status === 'failed'
 
   const handleUpdateSuccess = (updates: {
     display_name: string
     description: string
+    updated_at?: string
   }) => {
-    updateResume(resume.resume_id, updates)
+    useResumeListStore.getState().updateResume(resume.resume_id, updates)
   }
 
   const handleCardClick = async () => {
@@ -107,6 +93,9 @@ export default function ResumeCard({
           return
         }
 
+        const { bindJobResume, useJobContextStore } =
+          await import('@/lib/job-context')
+
         const context = await bindJobResume(jobId, resume.resume_id)
 
         if (useJobContextStore.getState().context?.id !== jobId) return
@@ -114,7 +103,9 @@ export default function ResumeCard({
         useJobContextStore.getState().setContext(context)
       }
 
-      setCurrentResume(resume.resume_id, resume.type)
+      useCurrentResumeStore
+        .getState()
+        .setCurrentResume(resume.resume_id, resume.type)
 
       navigate(
         jobId ? jobContextUrl('/resume/editor', jobId) : '/resume/editor',
@@ -125,7 +116,7 @@ export default function ResumeCard({
   }
 
   const handleDeleteConfirm = () => {
-    deleteResume(resume.resume_id)
+    useResumeListStore.getState().deleteResume(resume.resume_id)
     setShowDeleteDialog(false)
   }
 
@@ -142,16 +133,7 @@ export default function ResumeCard({
     )
       useJdVariantStore.getState().clearTask(resume.resume_id)
 
-    openDeriveFor(resume.resume_id)
-  }
-
-  const handleParentClick = (e: MouseEvent<HTMLButtonElement>) => {
-    e.stopPropagation()
-
-    if (!parent) return
-
-    setCurrentResume(parent.resume_id, parent.type)
-    navigate('/resume/editor')
+    useResumeListStore.getState().openDeriveFor(resume.resume_id)
   }
 
   const handleShareClick = (e: MouseEvent<HTMLButtonElement>) => {
@@ -159,7 +141,9 @@ export default function ResumeCard({
 
     if (resume.isOffline) return
 
-    openQuickDialog(resume.resume_id, resume.display_name || '未命名简历')
+    useShareStore
+      .getState()
+      .openDialog(resume.resume_id, resume.display_name || '未命名简历')
   }
 
   return (
@@ -195,9 +179,7 @@ export default function ResumeCard({
                 <TypeIcon aria-hidden />
                 {appearance.label}
               </Badge>
-              <div className='min-w-0 max-w-full'>
-                <TemplateBadge binding={resume.templateBinding} />
-              </div>
+              <TemplateBadge binding={resume.templateBinding} />
               {isVariant && (
                 <span className='inline-flex items-center gap-1'>
                   {resume.isOffline ? (
@@ -217,51 +199,10 @@ export default function ResumeCard({
                 {resume.description}
               </p>
             )}
-            {(isGenerating || isFailed || isVariant || parent) && (
-              <div className='mt-2 flex min-w-0 flex-wrap items-center gap-2'>
-                {isGenerating && (
-                  <Badge
-                    variant='outline'
-                    className={RESUME_BADGE_COLORS.generating}
-                  >
-                    <GitBranch aria-hidden />
-                    生成中
-                  </Badge>
-                )}
-                {isFailed && (
-                  <Badge
-                    variant='outline'
-                    className={RESUME_BADGE_COLORS.failed}
-                  >
-                    <GitBranch aria-hidden />
-                    生成失败
-                  </Badge>
-                )}
-                {isVariant && !isGenerating && !isFailed && (
-                  <VariantBadge
-                    onEdit={handleCardClick}
-                    parentName={parent?.display_name ?? null}
-                    matchRate={
-                      resume.derived_match_rate ??
-                      resume.derived_metadata?.matchRate ??
-                      null
-                    }
-                  />
-                )}
-                {parent && (
-                  <Button
-                    type='button'
-                    variant='link'
-                    size='sm'
-                    onClick={handleParentClick}
-                    className='h-auto min-w-0 max-w-full shrink px-0 py-0 text-xs font-normal text-muted-foreground'
-                  >
-                    <span className='truncate'>
-                      来自 {parent.display_name || '未命名简历'}
-                    </span>
-                  </Button>
-                )}
-              </div>
+            {(isVariant ||
+              isGenerating ||
+              resume.derived_status === 'failed') && (
+              <VariantDetails resume={resume} onEdit={handleCardClick} />
             )}
           </div>
         </div>
@@ -366,22 +307,25 @@ export default function ResumeCard({
         </div>
       </article>
 
-      {/* 编辑对话框 */}
-      <EditResumeDialog
-        resume={resume}
-        open={showEditDialog}
-        onOpenChange={setShowEditDialog}
-        onSuccess={handleUpdateSuccess}
-      />
-
-      {/* 删除确认对话框 */}
-      <DeleteResumeDialog
-        resumeName={resume.display_name || '未命名简历'}
-        open={showDeleteDialog}
-        onOpenChange={setShowDeleteDialog}
-        onConfirm={handleDeleteConfirm}
-        onDeletedClose={onDeletedClose}
-      />
+      {showEditDialog !== undefined && (
+        <EditResumeDialog
+          resume={resume}
+          open={showEditDialog}
+          onOpenChange={setShowEditDialog}
+          onSuccess={handleUpdateSuccess}
+        />
+      )}
+      {showDeleteDialog !== undefined && (
+        <DeleteResumeDialog
+          resumeName={resume.display_name || '未命名简历'}
+          open={showDeleteDialog}
+          onOpenChange={setShowDeleteDialog}
+          onConfirm={handleDeleteConfirm}
+          onDeletedClose={onDeletedClose}
+        />
+      )}
     </>
   )
 }
+
+export default memo(ResumeCard)

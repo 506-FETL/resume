@@ -8,21 +8,48 @@ export async function updateResumeConfig(
   resumeId: string,
   data: Record<string, any>,
 ) {
+  const userId = await getResumeOwnerId(resumeId)
+
+  const { error } = await supabase
+    .from('resume_config')
+    .update(data)
+    .eq('resume_id', resumeId)
+    .eq('user_id', userId)
+
+  if (error) throw error
+
+  notifyResumeReadChanged(resumeId)
+}
+
+export async function updateResumeLibraryMeta(
+  resumeId: string,
+  fields: { display_name: string | null; description: string | null },
+) {
+  const userId = await getResumeOwnerId(resumeId)
+
+  const { data, error } = await supabase
+    .from('resume_config')
+    .update(fields)
+    .eq('resume_id', resumeId)
+    .eq('user_id', userId)
+    .select('display_name,description,updated_at')
+    .single()
+
+  if (error) throw error
+
+  notifyResumeReadChanged(resumeId)
+
+  return data
+}
+
+async function getResumeOwnerId(resumeId: string) {
   if (!isCloudResumeId(resumeId)) throw new ResumeNotFoundError()
 
   const user = await getCurrentUser()
 
   if (!user) throw new Error('用户未登陆')
 
-  const { error } = await supabase
-    .from('resume_config')
-    .update(data)
-    .eq('resume_id', resumeId)
-    .eq('user_id', user.id)
-
-  if (error) throw error
-
-  notifyResumeReadChanged(resumeId)
+  return user.id
 }
 
 export async function subscribeToResumeConfigUpdates(

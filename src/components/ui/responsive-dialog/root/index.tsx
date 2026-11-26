@@ -4,11 +4,13 @@ import * as React from 'react'
 import { ResponsiveDialogContext } from '../context'
 import { Drawer, DrawerTrigger, DrawerContent } from '@/components/ui/drawer'
 import { Dialog, DialogTrigger, DialogContent } from '@/components/ui/dialog'
+import { restoreDialogFocus } from '@/lib/dialog-focus'
 import { cn } from '@/lib/utils'
 
 export function ResponsiveDialog({
   children,
   trigger,
+  returnFocusTo,
   open,
   onOpenChange,
   variant = 'default',
@@ -36,6 +38,11 @@ export function ResponsiveDialog({
         <Drawer open={open} onOpenChange={onOpenChange} showSwipeHandle>
           {trigger && <DrawerTrigger render={trigger} />}
           <DrawerContent
+            finalFocus={
+              returnFocusTo
+                ? () => (returnFocusTo.isConnected ? returnFocusTo : true)
+                : undefined
+            }
             className={contentClassName}
             overlayClassName={overlayClassName}
           >
@@ -51,6 +58,7 @@ export function ResponsiveDialog({
       <Dialog open={open} onOpenChange={onOpenChange}>
         {trigger && <DialogTrigger asChild>{trigger}</DialogTrigger>}
         <DialogContent
+          onCloseAutoFocus={(event) => restoreDialogFocus(event, returnFocusTo)}
           className={cn(
             'flex flex-col overflow-hidden p-0 duration-200',
             variant === 'sidebar'

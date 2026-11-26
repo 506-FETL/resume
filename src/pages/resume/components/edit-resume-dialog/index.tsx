@@ -1,3 +1,4 @@
+import useResumeListStore from '@/pages/resume/store'
 import type { FormEvent } from 'react'
 import type { ResumeListItem } from '@/lib/schema'
 import { useEffect, useState } from 'react'
@@ -14,11 +15,7 @@ import {
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import {
-  isOfflineResumeId,
-  updateOfflineResumeMeta,
-} from '@/lib/offline-resume-manager'
-import { updateResumeConfig } from '@/lib/supabase/resume'
+import { isOfflineResumeId } from '@/lib/resume-id'
 import { getErrorMessage } from '@/utils'
 
 interface EditResumeDialogProps {
@@ -31,6 +28,7 @@ interface EditResumeDialogProps {
   onSuccess?: (updatedResume: {
     display_name: string
     description: string
+    updated_at?: string
   }) => void
 }
 
@@ -55,32 +53,45 @@ export default function EditResumeDialog({
     e.preventDefault()
     setLoading(true)
 
+    const generation = useResumeListStore.getState().libraryGeneration
+
+    let result: {
+      display_name: string
+      description: string
+      updated_at?: string
+    } = {
+      display_name: displayName.trim() || '未命名简历',
+      description: description.trim(),
+    }
+
     try {
-      // 判断是离线还是在线简历
       if (isOfflineResumeId(resume.resume_id)) {
-        // 更新离线简历
-        await updateOfflineResumeMeta(resume.resume_id, {
-          display_name: displayName.trim() || '未命名简历',
-          description: description.trim() || '',
-        })
+        const { updateOfflineResumeMeta } =
+          await import('@/lib/offline-resume-manager/mutations')
+
+        await updateOfflineResumeMeta(resume.resume_id, result)
       } else {
-        // 更新在线简历
-        await updateResumeConfig(resume.resume_id, {
+        const { updateResumeLibraryMeta } =
+          await import('@/lib/supabase/resume/config')
+
+        const updated = await updateResumeLibraryMeta(resume.resume_id, {
           display_name: displayName.trim() || null,
           description: description.trim() || null,
         })
+
+        result = {
+          display_name: updated.display_name || '未命名简历',
+          description: updated.description ?? '',
+          updated_at: updated.updated_at,
+        }
       }
+
+      if (generation !== useResumeListStore.getState().libraryGeneration) return
 
       toast.success('简历信息更新成功')
       onOpenChange(false)
 
-      // 通知父组件更新成功
-      if (onSuccess) {
-        onSuccess({
-          display_name: displayName.trim() || '未命名简历',
-          description: description.trim() || '',
-        })
-      }
+      onSuccess?.(result)
     } catch (error: unknown) {
       toast.error(`更新失败: ${getErrorMessage(error, '请重试')}`)
     } finally {

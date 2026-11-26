@@ -10,13 +10,18 @@ export interface ResumeLibrarySlice {
   libraryAccountId: string | null
   libraryItems: ResumeItem[]
   libraryParents: Record<string, ResumeItem | null>
+  libraryParentErrors: Record<string, string>
+  loadLibraryParents: (ids: string[]) => Promise<void>
   libraryLoading: boolean
   libraryError: string | null
   libraryHasLoaded: boolean
   libraryCountsLoading: boolean
   libraryCountsError: string | null
+  libraryHasNextPage: boolean
   libraryPage: number
   libraryTotal: number | null
+  librarySearchCountError: string | null
+  libraryAuxiliaryRevision: number
   libraryCounts: ResumeLibraryCounts | null
   librarySearchInput: string
   libraryQuery: string
@@ -32,6 +37,7 @@ export interface ResumeLibrarySlice {
   loadLibraryCounts: () => Promise<void>
   refreshLibrary: () => Promise<void>
   invalidateLibrary: () => Promise<void>
+  invalidateLibraryUpdate: (id: string, updatedAt?: string) => Promise<void>
   cancelLibraryLoad: () => void
   resetLibraryAccount: (accountId: string | null) => void
   setLibraryFilter: (filter: ResumeFilterMode) => void
@@ -50,6 +56,7 @@ export interface LibraryRuntime {
   requestId: number
   revision: number
   queries: Map<string, LibraryQueryCache>
+  parentRequests: Map<string, Promise<void>>
   optionsLoaded: boolean
   pendingLoaded: boolean
   optionsRequest: number

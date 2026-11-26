@@ -12,7 +12,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
 import { useLibrarySearch } from '../../hooks/use-library-search'
 
-export default function LibrarySearch() {
+export default function LibrarySearch({ disabled }: { disabled: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null)
 
   const { input, changeInput, setComposing, finishComposition } =
@@ -28,6 +28,7 @@ export default function LibrarySearch() {
       <InputGroupInput
         ref={inputRef}
         id='resume-library-search'
+        disabled={disabled}
         type='search'
         aria-label='按名称或描述搜索简历'
         placeholder='搜索名称或描述'

@@ -1,6 +1,9 @@
 import type { ResumeItem } from '../types'
 import type { ResumeLibraryCloudCounts } from '@/lib/supabase/resume/library'
-import type { OfflineResumeLibraryIndex } from '@/lib/offline-resume-manager'
+import type {
+  OfflineResumeLibraryIndex,
+  OfflineResumeLibraryGroups,
+} from '@/lib/offline-resume-manager/library-index'
 import type { ResumeFilterMode } from './resume-ui'
 import { RESUME_LIBRARY_PAGE_SIZE } from '@/lib/supabase/resume/library'
 import { getFilterTotal } from '../utils'
@@ -17,12 +20,12 @@ export interface ResumeLibraryCounts {
 }
 
 export interface LibraryIndex {
-  local: OfflineResumeLibraryIndex
   counts: ResumeLibraryCounts
   cloud: ResumeLibraryCloudCounts
 }
 
 export interface PageCursor {
+  cloudDone?: boolean
   cloudOffset: number
   localOffset: number
   buffer: ResumeItem[]
@@ -31,17 +34,19 @@ export interface PageCursor {
 
 export interface CachedPage {
   items: ResumeItem[]
+  hasNext: boolean
   next: PageCursor
-  ready: boolean
 }
 
 export interface LibraryPageResult {
   items: ResumeItem[]
   page: number
-  total: number
+  hasNext: boolean
 }
 
 export interface LibraryQueryCache {
+  localGroups: Promise<OfflineResumeLibraryGroups> | null
+  localRequest: Promise<OfflineResumeLibraryIndex> | null
   index: LibraryIndex | null
   indexRequest: Promise<LibraryIndex> | null
   pages: Map<ResumeFilterMode, Map<number, CachedPage>>
@@ -51,6 +56,8 @@ export interface LibraryQueryCache {
 
 export function createLibraryQueryCache(): LibraryQueryCache {
   return {
+    localGroups: null,
+    localRequest: null,
     index: null,
     indexRequest: null,
     pages: new Map(),
@@ -59,21 +66,20 @@ export function createLibraryQueryCache(): LibraryQueryCache {
 }
 
 export function createLibraryIndex(
-  local: OfflineResumeLibraryIndex,
+  local: ResumeLibraryCloudCounts,
   cloud: ResumeLibraryCloudCounts,
 ): LibraryIndex {
   return {
-    local,
     cloud,
     counts: {
-      all: cloud.all + local.all.length,
+      all: cloud.all + local.all,
       cloud: cloud.roots,
-      local: local.roots.length,
-      variant: cloud.variants + local.variantCount,
-      roots: cloud.roots + local.roots.length,
-      readyVariants: cloud.readyVariants + local.variants.length,
-      offline: local.all.length,
-      pending: cloud.pending + local.pending.length,
+      local: local.roots,
+      variant: cloud.variants + local.variants,
+      roots: cloud.roots + local.roots,
+      readyVariants: cloud.readyVariants + local.readyVariants,
+      offline: local.all,
+      pending: cloud.pending + local.pending,
     },
   }
 }
@@ -86,11 +92,11 @@ export function createCompleteLibraryCache(items: ResumeItem[]) {
   cache.completeItems = items
   cache.index = createLibraryIndex(
     {
-      all: local.map((item) => item.resume_id),
-      roots: local.filter(isRoot).map((item) => item.resume_id),
-      variants: local.filter(isReadyVariant).map((item) => item.resume_id),
-      pending: local.filter(isPending).map((item) => item.resume_id),
-      variantCount: local.filter((item) => !isRoot(item)).length,
+      all: local.length,
+      roots: local.filter(isRoot).length,
+      variants: local.filter((item) => !isRoot(item)).length,
+      readyVariants: local.filter(isReadyVariant).length,
+      pending: local.filter(isPending).length,
     },
     {
       all: cloud.length,
@@ -120,15 +126,19 @@ export function readCompleteLibraryItems(cache: LibraryQueryCache) {
   const items: ResumeItem[] = []
   const pageCount = Math.ceil(counts.all / RESUME_LIBRARY_PAGE_SIZE)
 
+  if (pageCount && (!pages || pages.size < pageCount)) return
+
   for (let page = 1; page <= pageCount; page += 1) {
     const source = pages?.get(page)
 
-    if (!source?.ready) return
+    if (!source) return
 
     items.push(...source.items)
   }
 
   if (items.length !== counts.all) return
+
+  cache.completeItems = items
 
   return items
 }
@@ -138,11 +148,10 @@ export function readCachedLibraryItems(
   filter: ResumeFilterMode,
   page: number,
 ) {
-  if (!cache.index) return
-
   const cachedPage = cache.pages.get(filter)?.get(page)
 
-  if (cachedPage?.ready) return cachedPage.items
+  if (cachedPage) return cachedPage.items
+  if (!cache.index) return
 
   const counts = cache.index.counts
   const total = getFilterTotal(counts, filter)
@@ -165,7 +174,7 @@ export function readCachedLibraryItems(
 
     const equivalentPage = equivalentPages.get(page)
 
-    if (equivalentPage?.ready) return equivalentPage.items
+    if (equivalentPage) return equivalentPage.items
   }
 
   const allItems = readCompleteLibraryItems(cache)

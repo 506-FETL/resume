@@ -1,9 +1,8 @@
 import { useEffect, useState, useSyncExternalStore } from 'react'
 import {
-  getOfflineResumeSummariesByIds,
+  getOfflineResumeProjection,
   isOfflineResumeId,
-} from '@/lib/offline-resume-manager'
-import { getResumeById } from '@/lib/supabase/resume/form'
+} from '@/lib/offline-resume-manager/queries'
 import {
   getTrackerAccountScope,
   subscribeTrackerAccountScope,
@@ -39,10 +38,19 @@ export function useDeriveJd(resumeId: string | null) {
     setState({ key, text: '', loading: true, error: null })
 
     const request = isOfflineResumeId(resumeId)
-      ? getOfflineResumeSummariesByIds([resumeId]).then(([record]) => record)
-      : getResumeById<{ linked_jd_text: string | null }>(
-          resumeId,
-          'linked_jd_text',
+      ? getOfflineResumeProjection(resumeId, ['linked_jd_text']).then(
+          (record) => ({
+            linked_jd_text:
+              typeof record.linked_jd_text === 'string'
+                ? record.linked_jd_text
+                : null,
+          }),
+        )
+      : import('@/lib/supabase/resume/get-by-id').then(({ getResumeById }) =>
+          getResumeById<{ linked_jd_text: string | null }>(
+            resumeId,
+            'linked_jd_text',
+          ),
         )
 
     request

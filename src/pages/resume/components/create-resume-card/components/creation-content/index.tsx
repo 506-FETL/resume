@@ -80,10 +80,11 @@ export default function CreationContent({
 
   const list = useResumeListStore()
   const loadOptions = list.loadLibraryOptions
+  const auxiliaryRevision = list.libraryAuxiliaryRevision
 
   useEffect(() => {
     if (isOpen && step === 'job') loadOptions()
-  }, [isOpen, step, user?.id, loadOptions])
+  }, [isOpen, step, user?.id, loadOptions, auxiliaryRevision])
 
   useLayoutEffect(() => {
     cancelReadRef.current = flow.cancelRead

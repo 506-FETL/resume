@@ -8,7 +8,7 @@ interface AiQuotaStore {
   quota: AiQuota | null
   loading: boolean
   error: string | null
-  // 是否已发起过首次拉取（hook 兜底用）
+  // 首次读取是否已完成
   hasFetched: boolean
   // 当前额度归属的用户 id（来自 onAuthStateChange 的权威 session）
   currentUserId: string | null | undefined
@@ -126,13 +126,7 @@ export function applyAiQuotaReservation(
   useAiQuotaStore.getState().applyReservation(reservation, identity)
 }
 
-// ============ 登录态权威来源：onAuthStateChange ============
-// 依据 Supabase 官方文档：
-//   1. 回调携带的 `session` 是客户端登录态的权威来源（含最新 access_token），
-//      比缓存的 user 状态或 getUser() 更可靠；
-//   2. 回调内不能 await 其它 supabase 方法（auth 锁会死锁），需 setTimeout 推迟；
-//   3. INITIAL_SESSION 会在订阅时补发一次，用于首屏初始化。
-// 因此这里用 session.user.id 作为权威身份，身份变化即清空旧额度并重新拉取。
+// 身份切换立即失效旧请求；额度由当前可见的展示位按需读取。
 supabase.auth.onAuthStateChange((_event, session) => {
   const uid = session?.user?.id ?? null
   const state = useAiQuotaStore.getState()
@@ -141,7 +135,7 @@ supabase.auth.onAuthStateChange((_event, session) => {
   if (state.currentUserId === uid) return
 
   // 身份变化（首屏 / 登录 / 登出 / 切换账号）：丢弃旧身份可能残留的 in-flight，清空旧额度
-  const generation = ++identityGeneration
+  identityGeneration += 1
 
   inflight = null
 
@@ -152,19 +146,4 @@ supabase.auth.onAuthStateChange((_event, session) => {
     error: null,
     hasFetched: false,
   })
-
-  // 有登录用户则按新身份重新拉取；登出（uid=null）保持清空。
-  // setTimeout(0) 让本次 auth 回调先返回、锁释放、新 token 落地，再发 rpc。
-  if (uid) {
-    setTimeout(() => {
-      if (
-        isCurrentIdentity(
-          { userId: uid, generation },
-          useAiQuotaStore.getState().currentUserId,
-        ) &&
-        !useAiQuotaStore.getState().hasFetched
-      )
-        useAiQuotaStore.getState().fetchQuota()
-    }, 0)
-  }
 })

@@ -1,6 +1,12 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { dashboardShell } from '@/components/layout/load-dashboard-shell'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
+import {
+  isResumeLibrary,
+  resumeLibraryPage,
+  selectResumeLibrary,
+} from '@/lib/resume-library-route'
 import { WORKSPACE_PATH } from '@/lib/workspace-path'
 import {
   isWorkspaceHome,
@@ -20,22 +26,28 @@ if (pathname === '/' && hasAuthCallback) {
 }
 
 // 认证与界面并行加载；模块失败仍交给 App 的错误边界。
-if (isWorkspaceHome(pathname) && !hasAuthCallback) {
+const libraryRoute = isResumeLibrary(pathname)
+const gatedLibrary = Boolean(new URLSearchParams(search).get('jobId'))
+
+if ((isWorkspaceHome(pathname) || libraryRoute) && !hasAuthCallback) {
   import('./components/auth-session/subscription')
     .then(({ startAuthSession }) => startAuthSession())
     .catch(() => {})
 
-  selectWorkspaceData(true)
+  if (libraryRoute && !gatedLibrary) selectResumeLibrary(true)
+  if (isWorkspaceHome(pathname)) selectWorkspaceData(true)
 } else if (!isPublicHome) {
   import('./components/auth-session').catch(() => {})
 }
 
 // 首次工作台的外壳与页面并行取回；加载失败仍由实际路由展示错误。
 if (!isPublicHome && !pathname.startsWith('/share/view/')) {
-  import('./components/layout/dashboard-shell').catch(() => {})
+  dashboardShell.load().catch(() => {})
 }
 if (isWorkspaceHome(pathname)) {
   import('./pages/index').catch(() => {})
+} else if (libraryRoute) {
+  resumeLibraryPage.load().catch(() => {})
 }
 
 const root = createRoot(document.getElementById('root')!)

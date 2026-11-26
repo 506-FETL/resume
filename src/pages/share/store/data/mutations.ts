@@ -1,11 +1,3 @@
-import {
-  archiveResumeShare,
-  createResumeShareRelease,
-  deleteResumeShare,
-  publishResumeShareRelease,
-  setResumeShareActive,
-  updateResumeShareSettings,
-} from '@/lib/supabase/resume/share'
 import type { ShareDataSlice, ShareSlice } from '../types'
 import {
   addPending,
@@ -16,6 +8,15 @@ import {
 import { shareReadGeneration } from './requests'
 import { SHARE_PAGE_SIZE } from '@/lib/supabase/resume/share/management'
 import { findShareById } from '../../utils'
+
+async function loadShareMutations(generation: number) {
+  const actions = await import('@/lib/supabase/resume/share')
+
+  if (generation !== shareReadGeneration)
+    throw new Error('登录状态已变更，请重新加载')
+
+  return actions
+}
 
 export const createShareMutations: ShareSlice<
   Pick<
@@ -31,6 +32,7 @@ export const createShareMutations: ShareSlice<
   return {
     createRelease: async (resumeId, release, options) => {
       const generation = shareReadGeneration
+      const { createResumeShareRelease } = await loadShareMutations(generation)
       const record = await createResumeShareRelease(resumeId, release, options)
 
       if (shareReadGeneration !== generation)
@@ -62,6 +64,7 @@ export const createShareMutations: ShareSlice<
       }))
 
       try {
+        const { setResumeShareActive } = await loadShareMutations(generation)
         const savedActive = await setResumeShareActive(shareId, isActive)
 
         if (shareReadGeneration !== generation)
@@ -94,6 +97,9 @@ export const createShareMutations: ShareSlice<
       }))
 
       try {
+        const { updateResumeShareSettings } =
+          await loadShareMutations(generation)
+
         await updateResumeShareSettings(shareId, settings)
 
         if (shareReadGeneration !== generation)
@@ -148,6 +154,9 @@ export const createShareMutations: ShareSlice<
       }))
 
       try {
+        const { publishResumeShareRelease } =
+          await loadShareMutations(generation)
+
         const record = await publishResumeShareRelease(shareId, release)
 
         if (shareReadGeneration !== generation)
@@ -180,6 +189,8 @@ export const createShareMutations: ShareSlice<
       }))
 
       try {
+        const { archiveResumeShare } = await loadShareMutations(generation)
+
         await archiveResumeShare(shareId)
 
         const archivedAt = new Date().toISOString()
@@ -216,6 +227,8 @@ export const createShareMutations: ShareSlice<
       }))
 
       try {
+        const { deleteResumeShare } = await loadShareMutations(generation)
+
         await deleteResumeShare(shareId)
 
         if (shareReadGeneration !== generation)

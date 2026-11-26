@@ -2,7 +2,7 @@ import type {
   ResumePreviewEntry,
   ResumePreviewRequest,
 } from '../../../store/preview-types'
-import { AnimatePresence, motion, useInView, useIsPresent } from 'motion/react'
+import { AnimatePresence, motion, inView, useIsPresent } from 'motion/react'
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { PaperSkeleton } from '@/components/loading-skeleton'
@@ -18,7 +18,7 @@ export default function ResumeFocusPreview({
   templateBinding,
 }: ResumePreviewRequest) {
   const previewRef = useRef<HTMLDivElement>(null)
-  const visible = useInView(previewRef)
+  const [entered, setEntered] = useState(false)
   const present = useIsPresent()
 
   const request = useMemo(
@@ -32,10 +32,25 @@ export default function ResumeFocusPreview({
   const retry = useResumePreviewStore((state) => state.retry)
 
   useEffect(() => {
-    if (!visible || !present) return
+    if (!present || !previewRef.current) return
 
-    return acquire(request)
-  }, [acquire, present, request, visible, key])
+    let release: (() => void) | undefined
+
+    const stop = inView(previewRef.current, () => {
+      release = acquire(request)
+      setEntered(true)
+
+      return () => {
+        release?.()
+        release = undefined
+      }
+    })
+
+    return () => {
+      stop()
+      release?.()
+    }
+  }, [acquire, present, request, key])
 
   return (
     <div
@@ -44,7 +59,11 @@ export default function ResumeFocusPreview({
       data-resume-preview-state={entry?.status ?? 'idle'}
     >
       <div className='relative aspect-[210/297] w-full overflow-hidden rounded-sm bg-white shadow-md'>
-        <PreviewContent key={key} entry={entry} onRetry={() => retry(key)} />
+        {entered ? (
+          <PreviewContent key={key} entry={entry} onRetry={() => retry(key)} />
+        ) : (
+          <PaperSkeleton label='正在加载简历预览' compact className='h-full' />
+        )}
       </div>
     </div>
   )

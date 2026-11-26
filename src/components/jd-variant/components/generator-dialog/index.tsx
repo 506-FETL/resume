@@ -29,6 +29,7 @@ import { StepRewriting } from '../steps/step-rewriting'
 
 export interface JdVariantDialogProps {
   open: boolean
+  returnFocusTo?: HTMLElement | null
   onOpenChange: (next: boolean) => void
   parentResumeId: string
   onOpenResume: (draftId: string) => void
@@ -43,6 +44,7 @@ export interface JdVariantDialogProps {
 
 export function JdVariantDialog({
   open,
+  returnFocusTo,
   onOpenChange,
   parentResumeId,
   onOpenResume,
@@ -185,6 +187,7 @@ export function JdVariantDialog({
 
   return (
     <ResponsiveDialog
+      returnFocusTo={returnFocusTo}
       open={open}
       onOpenChange={handleOpenChange}
       contentClassName='h-[min(88dvh,48rem)] max-h-[calc(100dvh-2rem)] sm:max-w-[min(60rem,calc(100vw-3rem))] data-[swipe-axis=y]:[--drawer-content-height:90dvh] data-[swipe-axis=y]:[--drawer-content-max-height:90dvh]'

@@ -1,3 +1,4 @@
+import { LibraryRowsSkeleton } from '@/components/resume/library-skeleton'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,16 +14,18 @@ import useResumeListStore from '@/pages/resume/store'
 import useUserStore from '@/store/user'
 import { FileText, Plus } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
-import type { MouseEvent } from 'react'
+import { useCallback, type MouseEvent } from 'react'
 import ResumeCard from '../../components/resume-card'
 import type { ResumeItem } from '../../types'
 
+import { useShallow } from 'zustand/react/shallow'
 import type { RefObject } from 'react'
 import type { useJobPreparation } from '../../hooks/use-job-preparation'
 
 export function LibraryResults({
   id,
   resumes,
+  initialLoading,
   loading,
   loadError,
   resumeListRef,
@@ -33,6 +36,7 @@ export function LibraryResults({
 }: {
   id: string
   resumes: ResumeItem[]
+  initialLoading: boolean
   loading: boolean
   loadError: string | null
   resumeListRef: RefObject<HTMLDivElement | null>
@@ -49,15 +53,29 @@ export function LibraryResults({
     setLibrarySearchInput,
     setLibraryQuery,
     setLibraryFilter,
-  } = useResumeListStore()
+  } = useResumeListStore(
+    useShallow((s) => ({
+      syncingIds: s.syncingIds,
+      libraryQuery: s.libraryQuery,
+      libraryCounts: s.libraryCounts,
+      filterMode: s.filterMode,
+      setLibrarySearchInput: s.setLibrarySearchInput,
+      setLibraryQuery: s.setLibraryQuery,
+      setLibraryFilter: s.setLibraryFilter,
+    })),
+  )
 
   const shouldReduceMotion = useReducedMotion()
   const user = useUserStore((state) => state.currentUser)
+  const emptyLibrary = filterMode === 'all' || libraryCounts?.all === 0
 
   const { jobContext, routeJobId, preparingResume, prepareForJob } =
     jobPreparation
 
-  const visibleItems = resumes
+  const focusPageStatus = useCallback(
+    () => pageStatusRef.current?.focus({ preventScroll: true }),
+    [pageStatusRef],
+  )
 
   return (
     <div
@@ -66,12 +84,13 @@ export function LibraryResults({
       role='tabpanel'
       aria-labelledby={`${id}-${filterMode}`}
       tabIndex={-1}
-      className='min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain outline-none [scrollbar-gutter:stable]'
+      className='relative min-h-0 min-w-0 flex-1 overflow-y-auto overscroll-contain outline-none [scrollbar-gutter:stable]'
       aria-busy={loading}
-      inert={loading || undefined}
+      inert={(loading && !initialLoading) || undefined}
     >
+      {initialLoading && <LibraryRowsSkeleton />}
       <AnimatePresence mode='popLayout' initial={false}>
-        {visibleItems.map((resume, index) => {
+        {resumes.map((resume, index) => {
           const isSyncingThis = syncingIds.has(resume.resume_id)
 
           return (
@@ -107,9 +126,7 @@ export function LibraryResults({
             >
               <ResumeCard
                 resume={resume}
-                onDeletedClose={() =>
-                  pageStatusRef.current?.focus({ preventScroll: true })
-                }
+                onDeletedClose={focusPageStatus}
                 preparedForJob={jobContext?.resumeId === resume.resume_id}
                 preparingForJob={
                   preparingResume?.jobId === routeJobId &&
@@ -130,7 +147,7 @@ export function LibraryResults({
           )
         })}
 
-        {visibleItems.length === 0 && !loadError && !loading && (
+        {resumes.length === 0 && !loadError && !loading && (
           <PresenceDiv
             key='create-empty'
             layout={shouldReduceMotion ? false : 'position'}
@@ -158,7 +175,7 @@ export function LibraryResults({
                 <EmptyTitle>
                   {libraryQuery
                     ? '未找到匹配的简历'
-                    : libraryCounts?.all === 0
+                    : emptyLibrary
                       ? '还没有简历'
                       : filterMode === 'variants'
                         ? '还没有可用的岗位版本'
@@ -167,11 +184,11 @@ export function LibraryResults({
                 <EmptyDescription>
                   {libraryQuery
                     ? '试试其他名称或描述，或清空搜索。'
-                    : libraryCounts?.all === 0
+                    : emptyLibrary
                       ? '创建一份简历，整理经历并选择适合的模板。'
                       : filterMode === 'variants'
                         ? '从原始简历创建岗位版本，生成完成后会显示在这里。'
-                        : '创建一份新的原始简历，已有岗位版本可在「全部」中查看。'}
+                        : '可以创建一份新的原始简历。'}
                 </EmptyDescription>
               </EmptyHeader>
               <div className='flex flex-wrap justify-center gap-2'>

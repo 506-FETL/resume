@@ -27,11 +27,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 
 export interface DerivedJobsDialogProps {
   open: boolean
+  returnFocusTo?: HTMLElement | null
   onOpenChange: (next: boolean) => void
 }
 
 export function DerivedJobsDialog({
   open,
+  returnFocusTo,
   onOpenChange,
 }: DerivedJobsDialogProps) {
   const {
@@ -42,6 +44,8 @@ export function DerivedJobsDialog({
     runningTabRef,
     pendingId,
     runningItems,
+    parentErrors,
+    loadParents,
     failed,
     tasks,
     discardRunning,
@@ -53,6 +57,7 @@ export function DerivedJobsDialog({
 
   return (
     <ResponsiveDialog
+      returnFocusTo={returnFocusTo}
       open={open}
       onOpenChange={onOpenChange}
       contentClassName='h-[min(80dvh,40rem)] sm:max-w-xl'
@@ -178,6 +183,17 @@ export function DerivedJobsDialog({
                             <h3 className='min-w-0 text-sm font-medium wrap-anywhere'>
                               {item.parentName}
                             </h3>
+                            {parentErrors[item.parentResumeId] && (
+                              <Button
+                                size='sm'
+                                variant='ghost'
+                                onClick={() =>
+                                  loadParents([item.parentResumeId])
+                                }
+                              >
+                                重试来源名称
+                              </Button>
+                            )}
                             <Badge variant='secondary' className='shrink-0'>
                               {item.source === 'db'
                                 ? '进度未知'
@@ -283,9 +299,10 @@ export function DerivedJobsDialog({
                               失败
                             </Badge>
                           </div>
-                          {item.linked_jd_text && (
+                          {(item.linked_jd_excerpt || item.linked_jd_text) && (
                             <p className='line-clamp-3 text-sm leading-relaxed wrap-anywhere text-muted-foreground'>
-                              职位描述：{item.linked_jd_text}
+                              职位描述：
+                              {item.linked_jd_excerpt || item.linked_jd_text}
                             </p>
                           )}
                           <div className='flex flex-wrap justify-end gap-2'>

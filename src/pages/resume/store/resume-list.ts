@@ -2,16 +2,9 @@ import type { StoreApi } from 'zustand'
 import type { ResumeItem } from '../types'
 import type { ResumeListState } from './types'
 import { toast } from 'sonner'
-import {
-  deleteOfflineResume,
-  getAllOfflineResumes,
-  isOfflineResumeId,
-} from '@/lib/offline-resume-manager'
-import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
-import {
-  deleteResume as deleteResumeApi,
-  getAllResumesFromUser,
-} from '@/lib/supabase/resume/form'
+import { isOfflineResumeId } from '@/lib/resume-id'
+import { getAllOfflineResumes } from '@/lib/offline-resume-manager/queries'
+import { readResumeListTemplateBinding } from '@/lib/resume-template/list-binding'
 import { getCurrentUser } from '@/lib/supabase/user'
 import useCurrentResumeStore from '@/store/resume/current'
 import { getErrorMessage } from '@/utils'
@@ -27,7 +20,7 @@ export interface ResumeListSlice {
   deleteResume: (id: string) => void
   updateResume: (
     resumeId: string,
-    updates: { display_name: string; description: string },
+    updates: { display_name: string; description: string; updated_at?: string },
   ) => void
   addResume: (resume: ResumeItem) => void
 }
@@ -84,7 +77,11 @@ export function createResumeListSlice(
 
         const outcomes = await Promise.allSettled([
           (async () => {
-            const onlineResumes = user ? await getAllResumesFromUser() : []
+            const onlineResumes = user
+              ? await import('@/lib/supabase/resume/form').then(
+                  ({ getAllResumesFromUser }) => getAllResumesFromUser(),
+                )
+              : []
 
             if (request === requestId)
               set((state) => ({
@@ -143,32 +140,29 @@ export function createResumeListSlice(
         })
       }
 
-      const deletePromise = isOffline
-        ? deleteOfflineResume(id).then(() => {
-            if (generation !== get().libraryGeneration) return
+      const deletePromise = (async () => {
+        const remove = isOffline
+          ? (await import('@/lib/offline-resume-manager/mutations'))
+              .deleteOfflineResume
+          : (await import('@/lib/supabase/resume/form')).deleteResume
 
-            set((state) => ({
-              resumes: state.resumes.filter((r) => r.resume_id !== id),
-              offlineResumes: state.offlineResumes.filter(
-                (r) => r.resume_id !== id,
-              ),
-            }))
+        if (generation !== get().libraryGeneration)
+          throw new Error('登录状态已改变')
 
-            clearDeletedCurrentResume(id)
+        await remove(id)
 
-            return get().invalidateLibrary()
-          })
-        : deleteResumeApi(id).then(() => {
-            if (generation !== get().libraryGeneration) return
+        if (generation !== get().libraryGeneration) return
 
-            set((state) => ({
-              resumes: state.resumes.filter((r) => r.resume_id !== id),
-            }))
+        set((state) => ({
+          resumes: state.resumes.filter((r) => r.resume_id !== id),
+          offlineResumes: isOffline
+            ? state.offlineResumes.filter((r) => r.resume_id !== id)
+            : state.offlineResumes,
+        }))
 
-            clearDeletedCurrentResume(id)
-
-            return get().invalidateLibrary()
-          })
+        clearDeletedCurrentResume(id)
+        await get().invalidateLibrary()
+      })()
 
       toast.promise(deletePromise, {
         loading: '正在删除简历...',
@@ -201,7 +195,7 @@ export function createResumeListSlice(
           : state.offlineResumes,
       }))
 
-      get().invalidateLibrary()
+      get().invalidateLibraryUpdate(resumeId, updates.updated_at)
     },
 
     addResume: (resume) => {

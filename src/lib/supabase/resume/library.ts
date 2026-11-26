@@ -1,5 +1,5 @@
 import type { ResumeListItem } from '@/lib/schema'
-import { readResumeListTemplateBinding } from '@/lib/resume-template/binding'
+import { readResumeListTemplateBinding } from '@/lib/resume-template/list-binding'
 import supabase from '../client'
 
 export const RESUME_LIBRARY_PAGE_SIZE = 10
@@ -20,7 +20,7 @@ type ResumeLibraryRow = Omit<
 > & { template_binding: unknown }
 
 const LIST_FIELDS =
-  'resume_id,created_at,updated_at,type,display_name,description,parent_resume_id,linked_jd_text,derived_match_rate:derived_metadata->matchRate,derived_status,template_binding'
+  'resume_id,created_at,updated_at,type,display_name,description,parent_resume_id,linked_jd_excerpt:resume_jd_excerpt,derived_match_rate:derived_metadata->matchRate,derived_status,template_binding'
 
 function listQuery(
   ownerId: string,
@@ -29,14 +29,6 @@ function listQuery(
   limit: number,
   search: string,
 ) {
-  const fields =
-    filter === 'pending'
-      ? LIST_FIELDS
-      : LIST_FIELDS.replace(
-          'linked_jd_text,',
-          'linked_jd_excerpt:resume_jd_excerpt,',
-        )
-
   if (search && filter !== 'pending') {
     return supabase
       .rpc('search_resume_library_page', {
@@ -53,7 +45,7 @@ function listQuery(
 
   let query = supabase
     .from('resume_config')
-    .select(fields)
+    .select(LIST_FIELDS)
     .eq('user_id', ownerId)
 
   if (filter === 'roots') query = query.is('parent_resume_id', null)

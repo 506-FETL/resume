@@ -1,11 +1,19 @@
-import {
-  deleteOfflineDraftVariant,
-  isOfflineResumeId,
-  markOfflineVariantFailed,
-} from '@/lib/offline-resume-manager'
-import { deleteDraftVariant, markVariantFailed } from '@/lib/supabase/resume'
+import { isOfflineResumeId } from '@/lib/resume-id'
 import type { GetState, SetState } from './task-state'
 import { controllers, makePatch } from './task-state'
+
+export async function markDraftFailed(resumeId: string, message: string) {
+  if (isOfflineResumeId(resumeId)) {
+    const { markOfflineVariantFailed } =
+      await import('@/lib/offline-resume-manager/variants')
+
+    return markOfflineVariantFailed(resumeId, message)
+  }
+
+  const { markVariantFailed } = await import('@/lib/supabase/resume/variant')
+
+  return markVariantFailed(resumeId, message)
+}
 
 export function createAbortTask(set: SetState, get: GetState) {
   const patch = makePatch(set)
@@ -16,13 +24,8 @@ export function createAbortTask(set: SetState, get: GetState) {
 
     const draftResumeId = get().tasks[parentResumeId]?.draftResumeId
 
-    if (draftResumeId) {
-      const fail = isOfflineResumeId(draftResumeId)
-        ? markOfflineVariantFailed
-        : markVariantFailed
-
-      fail(draftResumeId, '已取消').catch(() => undefined)
-    }
+    if (draftResumeId)
+      markDraftFailed(draftResumeId, '已取消').catch(() => undefined)
 
     patch(parentResumeId, { phase: 'aborted' })
   }
@@ -37,8 +40,14 @@ export function createDiscardTask(set: SetState, get: GetState) {
 
     if (draftResumeId) {
       if (isOfflineResumeId(draftResumeId)) {
+        const { deleteOfflineDraftVariant } =
+          await import('@/lib/offline-resume-manager/variants')
+
         await deleteOfflineDraftVariant(draftResumeId)
       } else {
+        const { deleteDraftVariant } =
+          await import('@/lib/supabase/resume/variant')
+
         await deleteDraftVariant(draftResumeId)
       }
     }

@@ -1,4 +1,3 @@
-import { parseSharedTemplateDefinition } from '@/lib/resume-template/share'
 import type { PersistedResumeSnapshot } from '@/lib/schema'
 import supabase from '../../client'
 import { getCurrentUser } from '../../user'
@@ -219,6 +218,9 @@ export async function getResumeShareReleaseForReview(
     .single()
 
   if (error) throw error
+
+  const { parseSharedTemplateDefinition } =
+    await import('@/lib/resume-template/share')
 
   return {
     snapshot: data.snapshot as PersistedResumeSnapshot,

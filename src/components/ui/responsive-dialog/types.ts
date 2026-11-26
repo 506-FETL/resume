@@ -10,6 +10,7 @@ interface RootProps extends BaseProps {
 }
 
 export interface ResponsiveDialogProps extends RootProps {
+  returnFocusTo?: HTMLElement | null
   trigger?: React.ReactElement
   variant?: 'default' | 'sidebar'
   errors?: Record<string, boolean>

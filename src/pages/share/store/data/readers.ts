@@ -1,6 +1,5 @@
-import { getResumeOptions } from '@/lib/supabase/resume/form'
-import { listResumeHistoryShareOptions } from '@/lib/supabase/resume/history/queries'
-import { listResumeShares } from '@/lib/supabase/resume/share'
+import { getResumeOptions } from '@/lib/supabase/resume/summaries'
+import { listResumeShares } from '@/lib/supabase/resume/share/records'
 import type { ShareDataSlice, ShareSlice } from '../types'
 import {
   dialogShareRequests,
@@ -130,6 +129,9 @@ export const createShareReaders: ShareSlice<
 
       const request = (async () => {
         try {
+          const { listResumeHistoryShareOptions } =
+            await import('@/lib/supabase/resume/history/queries/resumes')
+
           const items = await listResumeHistoryShareOptions(resumeId)
 
           if (

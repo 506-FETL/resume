@@ -45,9 +45,20 @@ export let dbInstance: IDBPDatabase<ResumeDB> | null = null
 /**
  * 获取或创建数据库实例
  */
-export async function getDB(): Promise<IDBPDatabase<ResumeDB>> {
-  if (dbInstance) return dbInstance
+let opening: Promise<IDBPDatabase<ResumeDB>> | null = null
 
+export function getDB(): Promise<IDBPDatabase<ResumeDB>> {
+  if (dbInstance) return Promise.resolve(dbInstance)
+  if (opening) return opening
+
+  opening = openResumeDatabase().finally(() => {
+    opening = null
+  })
+
+  return opening
+}
+
+async function openResumeDatabase(): Promise<IDBPDatabase<ResumeDB>> {
   let connection = await openDB<ResumeDB>(DB_NAME, DB_VERSION, {
     upgrade(db, oldVersion, _newVersion, tx) {
       if (oldVersion < 1) {

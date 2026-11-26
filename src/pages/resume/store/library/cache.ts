@@ -1,8 +1,12 @@
-import { getOfflineResumeLibraryIndex } from '@/lib/offline-resume-manager'
+import {
+  getOfflineResumeLibraryIndex,
+  getOfflineResumeLibraryGroups,
+} from '@/lib/offline-resume-manager/library-index'
 import { matchesResumeLibraryQuery } from '@/lib/resume-library-search'
 import type { ResumeLibraryCloudCounts } from '@/lib/supabase/resume/library'
 import { getResumeLibraryCounts } from '@/lib/supabase/resume/library'
 import {
+  type LibraryQueryCache,
   createCompleteLibraryCache,
   createLibraryIndex,
   createLibraryQueryCache,
@@ -43,6 +47,35 @@ export function getQueryCache(runtime: LibraryRuntime, query: string) {
   return cache
 }
 
+export function readLocalIndex(cache: LibraryQueryCache, query = '') {
+  if (cache.localRequest) return cache.localRequest
+
+  const request = getOfflineResumeLibraryIndex(
+    query,
+    getLocalGroups(cache),
+  ).catch((error) => {
+    cache.localRequest = null
+
+    throw error
+  })
+
+  cache.localRequest = request
+
+  return request
+}
+
+function getLocalGroups(cache: LibraryQueryCache) {
+  if (cache.localGroups) return cache.localGroups
+
+  cache.localGroups = getOfflineResumeLibraryGroups().catch((error) => {
+    cache.localGroups = null
+
+    throw error
+  })
+
+  return cache.localGroups
+}
+
 export async function readIndex(
   runtime: LibraryRuntime,
   ownerId: string | null,
@@ -56,7 +89,15 @@ export async function readIndex(
   const currentRevision = runtime.revision
 
   const request = Promise.all([
-    getOfflineResumeLibraryIndex(query),
+    query
+      ? readLocalIndex(cache, query).then((local) => ({
+          all: local.all.length,
+          roots: local.roots.length,
+          variants: local.variantCount,
+          readyVariants: local.variants.length,
+          pending: local.pending.length,
+        }))
+      : getLocalGroups(cache).then((groups) => groups.counts),
     ownerId ? getResumeLibraryCounts(ownerId, query) : EMPTY_CLOUD_COUNTS,
   ]).then(([local, cloud]) => {
     const result = createLibraryIndex(local, cloud)
@@ -82,5 +123,9 @@ export function clearCache(runtime: LibraryRuntime) {
   runtime.pendingRequest += 1
   runtime.offlineRequest += 1
   runtime.queries = new Map()
+  runtime.parentRequests = new Map()
   runtime.countsRequest = null
+  runtime.optionsLoaded = false
+  runtime.pendingLoaded = false
+  runtime.offlineLoaded = false
 }
