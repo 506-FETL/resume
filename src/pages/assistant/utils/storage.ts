@@ -1,4 +1,4 @@
-import type { AiConversation } from '@/lib/ai/types'
+import useUserStore from '@/store/user'
 import { ASSISTANT_LAST_CONVERSATION_STORAGE_KEY } from '../const'
 import { toast } from 'sonner'
 
@@ -21,9 +21,22 @@ export function writeStoredBoolean(key: string, value: boolean): void {
   }
 }
 
-export function readLastConversationId(): string | null {
+function lastConversationKey() {
+  return `${ASSISTANT_LAST_CONVERSATION_STORAGE_KEY}:${useUserStore.getState().currentUser?.id}`
+}
+
+export function readLastConversationId(allowLegacy = false): string | null {
   try {
-    return localStorage.getItem(ASSISTANT_LAST_CONVERSATION_STORAGE_KEY)
+    const stored =
+      localStorage.getItem(lastConversationKey()) ??
+      (allowLegacy
+        ? localStorage.getItem(ASSISTANT_LAST_CONVERSATION_STORAGE_KEY)
+        : null)
+
+    return stored &&
+      /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(stored)
+      ? stored
+      : null
   } catch {
     return null
   }
@@ -31,7 +44,8 @@ export function readLastConversationId(): string | null {
 
 export function writeLastConversationId(id: string): void {
   try {
-    localStorage.setItem(ASSISTANT_LAST_CONVERSATION_STORAGE_KEY, id)
+    localStorage.setItem(lastConversationKey(), id)
+    localStorage.removeItem(ASSISTANT_LAST_CONVERSATION_STORAGE_KEY)
   } catch {
     // Storage may be unavailable in private or restricted browser contexts.
   }
@@ -41,30 +55,13 @@ export function clearLastConversationId(expectedId?: string): void {
   try {
     if (
       expectedId &&
-      localStorage.getItem(ASSISTANT_LAST_CONVERSATION_STORAGE_KEY) !==
-        expectedId
+      localStorage.getItem(lastConversationKey()) !== expectedId
     )
       return
 
+    localStorage.removeItem(lastConversationKey())
     localStorage.removeItem(ASSISTANT_LAST_CONVERSATION_STORAGE_KEY)
   } catch {
     // Storage may be unavailable in private or restricted browser contexts.
   }
-}
-
-export function chooseRestoredConversation(
-  conversations: AiConversation[],
-  activeConversationId: string | null,
-  storedConversationId: string | null,
-): AiConversation | null {
-  return (
-    conversations.find(
-      (conversation) => conversation.id === activeConversationId,
-    ) ??
-    conversations.find(
-      (conversation) => conversation.id === storedConversationId,
-    ) ??
-    conversations[0] ??
-    null
-  )
 }

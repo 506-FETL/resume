@@ -16,4 +16,6 @@ export type MessageViewSnapshot = Pick<
   | 'setTargetMessageId'
   | 'hasMoreMessages'
   | 'loadingOlder'
+  | 'olderMessagesError'
+  | 'historicalMatch'
 >

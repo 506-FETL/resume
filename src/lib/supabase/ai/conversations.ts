@@ -1,19 +1,8 @@
 import type { AiConversation, AiConversationSearchResult } from '@/lib/ai/types'
-import { deleteConversationExperienceSources } from '@/lib/experience-sources/api'
+import { invalidateConversationSummary } from './history-cache'
+import { mapConversation, SUMMARY_FIELDS } from './conversation-row'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
-
-// 行 → camelCase 映射
-function mapConversation(row: any): AiConversation {
-  return {
-    id: row.id,
-    userId: row.user_id,
-    title: row.title,
-    resumeId: row.resume_id ?? null,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  }
-}
 
 function mapConversationSearchResult(row: any): AiConversationSearchResult {
   if (row.role !== null && row.role !== 'user' && row.role !== 'assistant')
@@ -41,20 +30,54 @@ interface SearchConversationOptions {
   signal?: AbortSignal
 }
 
-export async function listConversations(): Promise<AiConversation[]> {
-  const user = await getCurrentUser()
+export type ConversationCursor = Pick<AiConversation, 'updatedAt' | 'id'>
 
-  if (!user) throw new Error('用户未登录')
+export interface ConversationPage {
+  conversations: AiConversation[]
+  next: ConversationCursor | null
+}
 
-  const { data, error } = await supabase
+export async function listConversations(
+  ownerId: string,
+  before?: ConversationCursor,
+): Promise<ConversationPage> {
+  const limit = 20
+
+  let query = supabase
     .from('ai_conversations')
-    .select('*')
-    .eq('user_id', user.id)
+    .select(SUMMARY_FIELDS)
+    .eq('user_id', ownerId)
     .order('updated_at', { ascending: false })
+    .order('id', { ascending: false })
+    .limit(limit + 1)
+
+  if (before) {
+    query = query.or(
+      `updated_at.lt.${before.updatedAt},and(updated_at.eq.${before.updatedAt},id.lt.${before.id})`,
+    )
+  }
+
+  const { data, error } = await query
 
   if (error) throw error
 
-  return (data || []).map(mapConversation)
+  const conversations = data.slice(0, limit).map(mapConversation)
+  const next = data.length > limit ? conversations[limit - 1] : null
+
+  return { conversations, next }
+}
+
+export async function getConversation(ownerId: string, id: string) {
+  const { data, error } = await supabase
+    .from('ai_conversations')
+    .select(SUMMARY_FIELDS)
+    .eq('user_id', ownerId)
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw error
+
+  return data ? mapConversation(data) : null
 }
 
 export async function createConversation(
@@ -97,10 +120,14 @@ export async function createConversation(
 
     if (existing.error) throw existing.error
 
+    invalidateConversationSummary(user.id, id)
+
     return mapConversation(existing.data)
   }
 
   if (error) throw error
+
+  invalidateConversationSummary(user.id, id)
 
   return mapConversation(data)
 }
@@ -123,22 +150,30 @@ export async function updateConversation(
 
   if (error) throw error
 
+  invalidateConversationSummary(user.id, id)
+
   return mapConversation(data)
 }
 
 // 触碰 updated_at，使该会话在列表回到顶部（写完消息后调用）
-export async function touchConversation(id: string): Promise<void> {
+export async function touchConversation(id: string): Promise<AiConversation> {
   const user = await getCurrentUser()
 
   if (!user) throw new Error('用户未登录')
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('ai_conversations')
     .update({ updated_at: new Date().toISOString() })
     .eq('id', id)
     .eq('user_id', user.id)
+    .select(SUMMARY_FIELDS)
+    .single()
 
   if (error) throw error
+
+  invalidateConversationSummary(user.id, id)
+
+  return mapConversation(data)
 }
 
 // 绑定该会话当前查看/编辑的简历（画布预览按会话切换用）。不触碰 updated_at，避免打开简历就把会话顶上去。
@@ -157,10 +192,20 @@ export async function updateConversationResumeBinding(
     .eq('user_id', user.id)
 
   if (error) throw error
+
+  invalidateConversationSummary(user.id, id)
 }
 
 export async function deleteConversation(id: string): Promise<void> {
+  const user = await getCurrentUser()
+
+  if (!user) throw new Error('用户未登录')
+
+  const { deleteConversationExperienceSources } =
+    await import('@/lib/experience-sources/api')
+
   await deleteConversationExperienceSources(id)
+  invalidateConversationSummary(user.id, id)
 }
 
 export async function searchConversations({

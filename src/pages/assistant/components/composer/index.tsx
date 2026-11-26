@@ -1,4 +1,5 @@
 import { useComposer } from './use-composer'
+import { SourceScopeFeedback } from '../source-scope-feedback'
 import { UploadTasks } from './upload-tasks'
 import { ArrowUp, Brain, Square, WandSparkles } from 'lucide-react'
 import { QuotaMeter } from '@/components/quota/quota-meter'
@@ -33,7 +34,6 @@ export default function Composer() {
     uploads,
     fileInputRef,
     sendStatusId,
-    context,
     sourceScope,
     textareaRef,
     commandRef,
@@ -45,7 +45,6 @@ export default function Composer() {
     setNewTaskProposalId,
     reduceMotion,
     disabled,
-    hasExplicitSources,
     running,
     awaiting,
     asNewTask,
@@ -97,19 +96,6 @@ export default function Composer() {
       {runPhase === 'settling' && (
         <p className='mb-2 text-xs text-muted-foreground' role='status'>
           正在完成已确认的修改，随后继续
-        </p>
-      )}
-      {!hasExplicitSources && sourceScope.error && (
-        <p className='mb-2 text-xs text-destructive' role='alert'>
-          参考资料读取失败
-          <InputGroupButton type='button' size='sm' onClick={sourceScope.retry}>
-            重试
-          </InputGroupButton>
-        </p>
-      )}
-      {!hasExplicitSources && !sourceScope.sources && !sourceScope.error && (
-        <p className='mb-2 text-xs text-muted-foreground' role='status'>
-          正在读取参考资料目录
         </p>
       )}
       <QueuedMessages />
@@ -237,7 +223,6 @@ export default function Composer() {
                 className='flex-wrap gap-0.5 sm:gap-1.5'
               >
                 <ComposerReferencePicker
-                  context={context}
                   onUploadFiles={() => fileInputRef.current?.click()}
                   disabled={disabled}
                   onSelect={appendDraft}
@@ -340,7 +325,10 @@ export default function Composer() {
           草稿暂未保存到本机，刷新后可能丢失
         </p>
       )}
-      <QuotaMeter className='mt-1.5' />
+      <div className='mt-1.5 flex min-h-6 flex-wrap items-center justify-center gap-x-3 text-xs'>
+        <SourceScopeFeedback scope={sourceScope} />
+        <QuotaMeter />
+      </div>
     </div>
   )
 }

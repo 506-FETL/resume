@@ -1,5 +1,4 @@
 import type { CanvasModel } from '../../../types'
-import type { AssistantJobOverview } from '@/lib/supabase/resume/company'
 import { useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import AnimatedContent from '@/components/motion/animated-content'
@@ -14,7 +13,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
-import { useIsMobile } from '@/hooks/use-mobile'
 import {
   loadCanvasBoard,
   useCanvasResources,
@@ -31,13 +29,17 @@ const STATUS_LABELS: Record<string, string> = {
 }
 
 export default function BoardSnapshot({ model }: { model: CanvasModel }) {
-  const isMobile = useIsMobile()
-
   const canvasVisible = useAssistantStore((s) =>
-    isMobile ? s.canvasMobileOpen : s.canvasOpen,
+    s.layoutMode === 'drawer' ? s.canvasMobileOpen : s.canvasOpen,
   )
 
-  const [jobs, setJobs] = useState<AssistantJobOverview[] | null>(null)
+  const [page, setPage] = useState(0)
+
+  const [result, setResult] = useState<{
+    page: number
+    data: Awaited<ReturnType<typeof loadCanvasBoard>>
+  } | null>(null)
+
   const [error, setError] = useState(false)
   const [retry, setRetry] = useState(0)
   const { generation, boardRevision } = useCanvasResources()
@@ -51,13 +53,19 @@ export default function BoardSnapshot({ model }: { model: CanvasModel }) {
 
     setError(false)
 
-    loadCanvasBoard()
-      .then((rows) => {
+    loadCanvasBoard(page)
+      .then((data) => {
         if (
           !cancelled &&
           generation === useCanvasResources.getState().generation
         ) {
-          setJobs(rows)
+          if (!data.rows.length && page > 0) {
+            setPage(page - 1)
+
+            return
+          }
+
+          setResult({ page, data })
           setLoadedGeneration(generation)
         }
       })
@@ -72,11 +80,13 @@ export default function BoardSnapshot({ model }: { model: CanvasModel }) {
     return () => {
       cancelled = true
     }
-  }, [canvasVisible, activeTab, generation, boardRevision, retry])
+  }, [canvasVisible, activeTab, generation, boardRevision, retry, page])
 
   const deleted = model.writes.filter(
     (w) => w.action === 'delete' && w.targetTab === 'board',
   )
+
+  const jobs = result?.data.rows
 
   if (error) {
     return (
@@ -89,6 +99,11 @@ export default function BoardSnapshot({ model }: { model: CanvasModel }) {
         >
           重新加载
         </Button>
+        {page > 0 && (
+          <Button variant='ghost' size='sm' onClick={() => setPage(page - 1)}>
+            上一页
+          </Button>
+        )}
       </AnimatedContent>
     )
   }
@@ -133,6 +148,33 @@ export default function BoardSnapshot({ model }: { model: CanvasModel }) {
               ))}
             </TableBody>
           </Table>
+          {result && (result.page > 0 || result.data.hasMore) && (
+            <nav
+              aria-label='看板分页'
+              aria-busy={page !== result.page}
+              className='mt-3 flex items-center justify-end gap-2'
+            >
+              <Button
+                variant='ghost'
+                size='sm'
+                disabled={page !== result.page || !result.page}
+                onClick={() => setPage(result.page - 1)}
+              >
+                上一页
+              </Button>
+              <span className='text-xs text-muted-foreground'>
+                第 {result.page + 1} 页
+              </span>
+              <Button
+                variant='ghost'
+                size='sm'
+                disabled={page !== result.page || !result.data.hasMore}
+                onClick={() => setPage(result.page + 1)}
+              >
+                下一页
+              </Button>
+            </nav>
+          )}
           {deleted.length > 0 && (
             <p className='mt-3 text-xs text-muted-foreground'>
               本轮已删除：

@@ -1,4 +1,4 @@
-import * as api from '@/lib/experience-sources/api'
+import { readExperienceSourceMetadata } from '@/lib/experience-sources/read-metadata'
 
 import type { ExperienceSlice } from './types'
 import { metadataQueue } from './runtime'
@@ -44,7 +44,7 @@ export const createMetadataSlice: ExperienceSlice<'resolveMetadata'> = (
       for (let offset = 0; offset < ids.length; offset += 100) {
         const batch = ids.slice(offset, offset + 100)
 
-        api.getExperienceSourceMetadata(batch).then(
+        readExperienceSourceMetadata(batch).then(
           (result) => {
             if (get().generation !== generation || get().revision !== revision)
               return

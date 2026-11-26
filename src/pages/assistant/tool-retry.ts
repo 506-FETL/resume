@@ -1,10 +1,8 @@
 import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
 import { toast } from 'sonner'
-import { getTool } from '@/lib/ai/agent'
 import { createEvidenceTools } from '@/lib/ai/agent/evidence-tools'
-import { getToolResultState } from '@/lib/ai/agent/to-message-parts'
 import { getUserReferences } from '@/lib/ai/references'
-import { getExperienceSourceMetadata } from '@/lib/experience-sources/api'
+import { readExperienceSourceMetadata } from '@/lib/experience-sources/read-metadata'
 import { listMessages } from '@/lib/supabase/ai/messages'
 import useUserStore from '@/store/user'
 import useAssistantStore from './store'
@@ -125,6 +123,13 @@ export async function retryToolCall(toolCallId: string): Promise<boolean> {
         patch({ state: 'call', result: undefined })
 
         try {
+          const [{ getTool }, { getToolResultState }] = await Promise.all([
+            import('@/lib/ai/agent'),
+            import('@/lib/ai/agent/to-message-parts'),
+          ])
+
+          controller.signal.throwIfAborted()
+
           const registered = getTool(part.toolName)
 
           const needsSources =
@@ -169,7 +174,7 @@ export async function retryToolCall(toolCallId: string): Promise<boolean> {
 
           const metadata = await Promise.all(
             Array.from({ length: Math.ceil(frozen.length / 100) }, (_, index) =>
-              getExperienceSourceMetadata(
+              readExperienceSourceMetadata(
                 frozen
                   .slice(index * 100, (index + 1) * 100)
                   .map((source) => source.sourceId),

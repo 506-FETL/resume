@@ -1,261 +1,135 @@
-import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
-import { useShallow } from 'zustand/react/shallow'
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useEffect, useRef, useState } from 'react'
 import { isResumeNotFoundError } from '@/lib/resume-id'
 import useCurrentResumeStore from '@/store/resume/current'
+import useUserStore from '@/store/user'
 import useAssistantStore from '../store'
 import {
   invalidateCanvasSnapshot,
-  loadCanvasOptions,
-  loadCanvasSnapshot,
   useCanvasResources,
 } from './canvas-resources'
+import { type CanvasResume, loadCanvasResume } from './canvas-resume'
 
 export { invalidateCanvasSnapshot } from './canvas-resources'
 
-interface ResumeOption {
-  resumeId: string
-  name: string
-  updatedAt?: string
-}
-
 export function useCanvasPreview() {
-  const isMobile = useIsMobile()
+  const owner = useUserStore((s) => s.currentUser?.id)
+  const generation = useCanvasResources((s) => s.generation)
+  const revision = useCanvasResources((s) => s.resumeRevision)
+  const current = useCurrentResumeStore((s) => s.resumeId)
+  const explicit = useAssistantStore((s) => s.explicitPreviewResumeId)
+  const refresh = useAssistantStore((s) => s.canvasRefreshTick)
+  const lastRefreshRef = useRef(refresh)
 
-  const canvasVisible = useAssistantStore((state) =>
-    isMobile ? state.canvasMobileOpen : state.canvasOpen,
+  const visible = useAssistantStore(
+    (s) =>
+      s.canvasActiveTab === 'resume' &&
+      (s.layoutMode === 'drawer' ? s.canvasMobileOpen : s.canvasOpen),
   )
 
-  const {
-    previewResumeId,
-    setPreviewResumeId,
-    canvasRefreshTick,
-    canvasActiveTab,
-    activeConversationId,
-    conversations,
-    explicitPreviewResumeId,
-  } = useAssistantStore(
-    useShallow((s) => ({
-      previewResumeId: s.previewResumeId,
-      setPreviewResumeId: s.setPreviewResumeId,
-      canvasRefreshTick: s.canvasRefreshTick,
-      canvasActiveTab: s.canvasActiveTab,
-      activeConversationId: s.activeConversationId,
-      conversations: s.conversations,
-      explicitPreviewResumeId: s.explicitPreviewResumeId,
-    })),
+  const waiting = useAssistantStore(
+    (s) => s.initializing && !s.pendingConversationId,
   )
 
-  const { generation, resumeRevision } = useCanvasResources()
-  const currentResumeId = useCurrentResumeStore((state) => state.resumeId)
-
-  const clearCurrentResume = useCurrentResumeStore(
-    (state) => state.clearCurrentResume,
+  const bound = useAssistantStore(
+    (s) =>
+      s.conversations.find(
+        (row) => row.id === (s.pendingConversationId ?? s.activeConversationId),
+      )?.resumeId,
   )
 
-  const [options, setOptions] = useState<ResumeOption[]>([])
-  const [optionsReady, setOptionsReady] = useState(false)
-  const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(null)
-  const [loadedResumeId, setLoadedResumeId] = useState<string | null>(null)
-  const [loadedGeneration, setLoadedGeneration] = useState(generation)
-
-  const [status, setStatus] = useState<'idle' | 'loading' | 'error' | 'empty'>(
-    'loading',
-  )
-
-  const optionsLoadingRef = useRef(false)
-  const lastRefreshRef = useRef(canvasRefreshTick)
-  const active = canvasVisible && canvasActiveTab === 'resume'
-
-  const boundResumeId = useMemo(
-    () =>
-      conversations.find(
-        (conversation) => conversation.id === activeConversationId,
-      )?.resumeId ?? null,
-    [conversations, activeConversationId],
-  )
+  const [view, setView] = useState<{
+    generation: number
+    resume?: CanvasResume | null
+    error?: boolean
+  }>({ generation })
 
   useEffect(() => {
-    if (lastRefreshRef.current === canvasRefreshTick) return
+    if (lastRefreshRef.current === refresh) return
 
-    lastRefreshRef.current = canvasRefreshTick
-    invalidateCanvasSnapshot(previewResumeId ?? undefined)
-  }, [canvasRefreshTick, previewResumeId])
+    lastRefreshRef.current = refresh
 
-  useEffect(() => {
-    setOptions([])
-    setSnapshot(null)
-    setLoadedResumeId(null)
-    setOptionsReady(false)
-    setStatus('loading')
-    setLoadedGeneration(generation)
-  }, [generation])
-
-  useEffect(() => {
-    if (!active) return
-
-    let cancelled = false
-
-    optionsLoadingRef.current = true
-    setOptionsReady(false)
-
-    loadCanvasOptions()
-      .then((rows) => {
-        if (
-          cancelled ||
-          generation !== useCanvasResources.getState().generation
-        )
-          return
-
-        const list = rows.map((resume) => ({
-          resumeId: resume.resume_id,
-          name: resume.display_name ?? '未命名',
-          updatedAt: resume.updated_at,
-        }))
-
-        const availableIds = new Set(list.map((option) => option.resumeId))
-
-        const hasCurrent = Boolean(
-          currentResumeId && availableIds.has(currentResumeId),
-        )
-
-        if (currentResumeId && !hasCurrent) clearCurrentResume()
-
-        const previousPreviewId = useAssistantStore.getState().previewResumeId
-
-        const target =
-          explicitPreviewResumeId ??
-          (boundResumeId && availableIds.has(boundResumeId)
-            ? boundResumeId
-            : hasCurrent
-              ? currentResumeId
-              : previousPreviewId && availableIds.has(previousPreviewId)
-                ? previousPreviewId
-                : (list[0]?.resumeId ?? null))
-
-        optionsLoadingRef.current = false
-        setOptions(list)
-        setOptionsReady(true)
-        setPreviewResumeId(target)
-
-        if (target && !availableIds.has(target)) {
-          setSnapshot(null)
-          setStatus('error')
-
-          return
-        }
-
-        if (!target) {
-          setSnapshot(null)
-          setStatus('empty')
-        }
-      })
-      .catch(() => {
-        if (
-          cancelled ||
-          generation !== useCanvasResources.getState().generation
-        )
-          return
-
-        optionsLoadingRef.current = false
-        setStatus('error')
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [
-    active,
-    boundResumeId,
-    explicitPreviewResumeId,
-    currentResumeId,
-    generation,
-    resumeRevision,
-    clearCurrentResume,
-    setPreviewResumeId,
-  ])
-
-  useEffect(() => {
-    if (
-      !active ||
-      !optionsReady ||
-      optionsLoadingRef.current ||
-      !previewResumeId
+    invalidateCanvasSnapshot(
+      useAssistantStore.getState().previewResumeId ?? undefined,
     )
-      return
+  }, [refresh])
 
-    const option = options.find((item) => item.resumeId === previewResumeId)
+  useEffect(() => {
+    if (!visible || !owner || (waiting && !explicit)) return
 
-    if (!option) return
+    let active = true
+    const previous = useAssistantStore.getState().previewResumeId
 
-    let cancelled = false
+    const targets = explicit
+      ? [explicit]
+      : [
+          ...new Set(
+            [bound, current, previous].filter((id): id is string =>
+              Boolean(id),
+            ),
+          ),
+          null,
+        ]
 
-    setStatus('loading')
+    const owns = () =>
+      active && useCanvasResources.getState().generation === generation
 
-    loadCanvasSnapshot(previewResumeId, option.updatedAt)
-      .then((next) => {
-        if (
-          cancelled ||
-          generation !== useCanvasResources.getState().generation
-        )
+    setView((value) =>
+      value.generation === generation &&
+      value.resume &&
+      targets[0] === value.resume.id
+        ? { generation, resume: value.resume }
+        : { generation },
+    )
+
+    async function load() {
+      for (const target of targets) {
+        try {
+          const resume = await loadCanvasResume(owner!, target)
+
+          if (!owns()) return
+
+          useAssistantStore.getState().setPreviewResumeId(resume?.id ?? null)
+          setView({ generation, resume })
+
           return
-
-        setSnapshot(next)
-        setLoadedResumeId(previewResumeId)
-        setStatus('idle')
-      })
-      .catch((error) => {
-        if (
-          cancelled ||
-          generation !== useCanvasResources.getState().generation
-        )
-          return
-
-        setSnapshot(null)
-        setStatus(isResumeNotFoundError(error) ? 'empty' : 'error')
-
-        if (isResumeNotFoundError(error)) {
-          setOptions((current) =>
-            current.filter((item) => item.resumeId !== previewResumeId),
-          )
-
-          setPreviewResumeId(null)
-
-          if (currentResumeId === previewResumeId) clearCurrentResume()
+        } catch (error) {
+          if (!owns()) return
+          if (explicit || !target || !isResumeNotFoundError(error)) throw error
+          if (target === current)
+            useCurrentResumeStore.getState().clearCurrentResume()
         }
-      })
+      }
+    }
+
+    load().catch((error: unknown) => {
+      if (owns())
+        setView((value) => ({
+          generation,
+          resume: isResumeNotFoundError(error) ? undefined : value.resume,
+          error: true,
+        }))
+    })
 
     return () => {
-      cancelled = true
+      active = false
     }
-  }, [
-    active,
-    options,
-    optionsReady,
-    previewResumeId,
-    generation,
-    resumeRevision,
-    currentResumeId,
-    clearCurrentResume,
-    setPreviewResumeId,
-  ])
+  }, [owner, generation, revision, visible, current, explicit, bound, waiting])
 
-  const ownsData = generation === loadedGeneration
+  const owned = view.generation === generation
+  const resume = owned ? view.resume : undefined
 
-  const currentName =
-    options.find((option) => option.resumeId === previewResumeId)?.name ?? null
+  const status =
+    owned && view.error && !resume
+      ? 'error'
+      : resume === undefined
+        ? 'loading'
+        : resume
+          ? 'idle'
+          : 'empty'
 
   return {
-    previewResumeId,
-    options: ownsData ? options : [],
-    loadedResumeId,
-    snapshot: ownsData && loadedResumeId === previewResumeId ? snapshot : null,
-    status: ownsData
-      ? snapshot && loadedResumeId !== previewResumeId
-        ? ('loading' as const)
-        : status
-      : ('loading' as const),
-    currentName: ownsData ? currentName : null,
+    status,
+    resume,
+    refreshFailed: Boolean(owned && view.error && resume),
   }
 }

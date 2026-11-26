@@ -9,6 +9,10 @@ import {
   MessageScrollerViewport,
   useMessageScroller,
 } from '@/components/ui/message-scroller'
+import { Button } from '@/components/ui/button'
+import { CONVERSATION_BOTTOM_TARGET } from '../../../const'
+import { MessageScrollerItem } from '@/components/ui/message-scroller'
+import { TextPart } from '../../message-bubble/text-part'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAssistantNavigation } from '../../../hooks/use-assistant-navigation'
 import { useChatStream } from '../../../hooks/use-chat-stream'
@@ -47,6 +51,8 @@ function MessageTranscript({ snapshot }: { snapshot: MessageViewSnapshot }) {
     targetMessageId,
     setTargetMessageId,
     loadingOlder,
+    olderMessagesError,
+    historicalMatch,
   } = snapshot
 
   const { regenerateFrom, editUserMessageAndRerun } = useChatStream()
@@ -62,6 +68,18 @@ function MessageTranscript({ snapshot }: { snapshot: MessageViewSnapshot }) {
     viewportRef,
     isPresent,
   )
+
+  const detachedMatch =
+    historicalMatch &&
+    !messages.some((message) => message.id === historicalMatch.id)
+      ? historicalMatch
+      : null
+
+  const matchedText =
+    detachedMatch?.parts
+      .filter((part) => part.type === 'text')
+      .map((part) => part.text)
+      .join('\n') ?? ''
 
   const visibleMessages: AiMessage[] = streaming
     ? [
@@ -100,6 +118,8 @@ function MessageTranscript({ snapshot }: { snapshot: MessageViewSnapshot }) {
           cancelled ||
           !entries[0]?.isIntersecting ||
           current.loadingOlder ||
+          current.olderMessagesError ||
+          current.historicalMatch ||
           !current.hasMoreMessages ||
           !isCurrentMessageView(conversationViewVersion, activeConversationId)
         ) {
@@ -142,6 +162,8 @@ function MessageTranscript({ snapshot }: { snapshot: MessageViewSnapshot }) {
     conversationViewVersion,
     isPresent,
     loadOlderMessages,
+    historicalMatch,
+    olderMessagesError,
   ])
 
   return (
@@ -161,6 +183,51 @@ function MessageTranscript({ snapshot }: { snapshot: MessageViewSnapshot }) {
           )}
         </div>
         <MessageScrollerContent className='relative mx-auto flex w-full max-w-4xl flex-col gap-5 px-3 py-4 sm:gap-6 sm:px-6 sm:py-6 lg:px-8'>
+          {detachedMatch && (
+            <MessageScrollerItem messageId={detachedMatch.id}>
+              <div className='space-y-3 rounded-xl border p-4'>
+                <p className='text-xs text-muted-foreground'>
+                  搜索命中的历史消息 ·{' '}
+                  {detachedMatch.role === 'user' ? '你' : 'AI 助手'}
+                </p>
+                {detachedMatch.role === 'assistant' ? (
+                  <TextPart text={matchedText} animate={false} />
+                ) : (
+                  <p className='whitespace-pre-wrap break-words'>
+                    {matchedText}
+                  </p>
+                )}
+                <Button
+                  variant='ghost'
+                  size='sm'
+                  onClick={() => {
+                    useAssistantStore.setState({
+                      historicalMatch: null,
+                      targetMessageId: CONVERSATION_BOTTOM_TARGET,
+                    })
+                  }}
+                >
+                  回到最近消息
+                </Button>
+              </div>
+              <p className='mt-5 text-center text-xs text-muted-foreground'>
+                以下是这段对话最近加载的消息
+              </p>
+            </MessageScrollerItem>
+          )}
+          {(olderMessagesError ||
+            (detachedMatch && snapshot.hasMoreMessages)) && (
+            <Button
+              variant='ghost'
+              size='sm'
+              disabled={loadingOlder}
+              onClick={() => loadOlderMessages()}
+            >
+              {olderMessagesError
+                ? '更早消息加载失败，点击重试'
+                : '加载更早消息'}
+            </Button>
+          )}
           <AnimatePresence initial={false} mode='popLayout'>
             {visibleMessages.map((message, index) => {
               const previousMessage = visibleMessages[index - 1]

@@ -2,7 +2,8 @@ import type { AiUserReference } from '@/lib/ai/types'
 import { Archive, Briefcase, FileText, Plus, Upload } from 'lucide-react'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { ExperienceSourcePicker } from '@/features/experience-sources'
+import { ExperienceSourcePicker } from '@/features/experience-sources/source-picker'
+import { useComposerContext } from '../../../hooks/use-composer-context'
 import type { ExperienceSourceReference } from '@/lib/experience-sources/types'
 import {
   Command,
@@ -24,7 +25,6 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import type { ComposerReferencePickerProps } from '../../../types'
 
 export function ComposerReferencePicker({
-  context,
   onUploadFiles,
   disabled,
   onSelect,
@@ -37,7 +37,10 @@ export function ComposerReferencePicker({
   const selectionRef = useRef(false)
   const searchRef = useRef<HTMLInputElement>(null)
   const reduceMotion = useReducedMotion()
-  const { resumes, jobs, retryResumes, retryJobs } = context
+
+  const { resumes, jobs, retryResumes, retryJobs } = useComposerContext(
+    open && !disabled,
+  )
 
   const select = (reference: AiUserReference) => {
     selectionRef.current = true

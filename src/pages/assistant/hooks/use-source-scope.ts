@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { AiUserReference } from '@/lib/ai/types'
 import { resolveActiveResumeId } from '@/lib/ai/active-resume'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
 import useUserStore from '@/store/user'
@@ -11,7 +12,21 @@ import {
 } from '../store/source-scope'
 import type { ExperienceSourceRelation } from '@/lib/experience-sources/types'
 
-export function useSourceScope() {
+export function useSubmissionSources(
+  references: AiUserReference[],
+  needed: boolean,
+) {
+  const explicit = references.some(
+    (reference) =>
+      reference.type === 'reference' && reference.kind === 'experience',
+  )
+
+  const scope = useSourceScope(needed && !explicit)
+
+  return { ...scope, ready: explicit || Boolean(scope.sources) }
+}
+
+export function useSourceScope(needed = true) {
   const ownerId = useUserStore((state) => state.currentUser?.id)
 
   const conversationId = useAssistantStore(
@@ -45,12 +60,15 @@ export function useSourceScope() {
 
   const cached = peekSourceScope(target)
   const sources = cached ?? (view.key === key ? view.sources : undefined)
-  const error = view.key === key ? view.error : undefined
+  const error = needed && view.key === key ? view.error : undefined
 
   useEffect(() => {
-    if (!ownerId) return
+    if (!needed || !ownerId) return
 
     let active = true
+
+    if (!peekSourceScope({ ownerId, conversationId, resumeId, scopeRevision }))
+      setView({ key })
 
     loadSourceScope({ ownerId, conversationId, resumeId, scopeRevision }).then(
       (sources) => {
@@ -68,12 +86,13 @@ export function useSourceScope() {
     return () => {
       active = false
     }
-  }, [ownerId, conversationId, resumeId, scopeRevision, key, attempt])
+  }, [needed, ownerId, conversationId, resumeId, scopeRevision, key, attempt])
 
   return {
     sources,
     ...peekSourceScopeDetails(target),
     error,
+    loading: needed && !sources && !error,
     retry: () => setAttempt((value) => value + 1),
   }
 }

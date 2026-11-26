@@ -242,7 +242,9 @@ export default function GuidePopover({
         }
         sideOffset={index === 0 ? 80 : 14}
         collisionPadding={{ top: topInset, bottom: 12, left: 12, right: 12 }}
-        updatePositionStrategy='always'
+        updatePositionStrategy={
+          target.id === 'assistant-canvas-trigger' ? 'optimized' : 'always'
+        }
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           setPositioned(true)

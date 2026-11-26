@@ -6,10 +6,8 @@ import { ASSISTANT_TOOLS } from '../composer-tools'
 import { ASSISTANT_COMMANDS } from '@/lib/ai/commands'
 import { createSkillReferences } from '@/lib/ai/skills/references'
 import type { AiUserReference } from '@/lib/ai/types'
-import { useSourceScope } from '../../hooks/use-source-scope'
-import { freezeSourceScope } from '../../store/source-scope'
+import { useSubmissionSources } from '../../hooks/use-source-scope'
 import { useChatStream } from '../../hooks/use-chat-stream'
-import { useComposerContext } from '../../hooks/use-composer-context'
 import useAssistantStore from '../../store'
 import type { ComposerKeyDownEvent, ComposerTool } from '../../types'
 
@@ -56,8 +54,6 @@ export function useComposer() {
   const uploads = useComposerUploads()
   const fileInputRef = useRef<HTMLInputElement>(null)
   const sendStatusId = useId()
-  const context = useComposerContext()
-  const sourceScope = useSourceScope()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const commandRef = useRef<HTMLDivElement>(null)
   const thinkingRef = useRef<HTMLButtonElement>(null)
@@ -73,15 +69,6 @@ export function useComposer() {
   const reduceMotion = useReducedMotion()
 
   const disabled = initializing || loadingMessages || Boolean(bootstrapError)
-
-  const hasExplicitSources = references.some(
-    (reference) =>
-      reference.type === 'reference' && reference.kind === 'experience',
-  )
-
-  const composerSources = hasExplicitSources
-    ? freezeSourceScope(sourceScope.sources ?? [], references)
-    : sourceScope.sources
 
   const running =
     streaming ||
@@ -104,11 +91,20 @@ export function useComposer() {
   const toolsOpen =
     !disabled && (manualToolsOpen || (queryMode && !commandDismissed))
 
+  const canSend = Boolean(
+    visibleDraft.trim() || (!replying && references.length),
+  )
+
+  const sourceScope = useSubmissionSources(
+    references,
+    !disabled && (canSend || (toolsOpen && Boolean(activeConversationId))),
+  )
+
   const compactDisabled =
     disabled ||
     runPhase !== 'idle' ||
     !activeConversationId ||
-    !composerSources ||
+    !sourceScope.ready ||
     Boolean(pendingConfirm || pendingAssistantWrite) ||
     queuedMessages.length > 0 ||
     pendingMessageUpdates.length > 0
@@ -133,10 +129,6 @@ export function useComposer() {
       : tool,
   )
 
-  const canSend = Boolean(
-    visibleDraft.trim() || (!replying && references.length),
-  )
-
   const sendBlockedReason = uploads.tasks.length
     ? uploads.tasks.some((task) => ['failed', 'unknown'].includes(task.status))
       ? '文件还未准备好，请重试或移除后再发送。'
@@ -144,7 +136,7 @@ export function useComposer() {
     : undefined
 
   const sendDisabled =
-    disabled || !canSend || Boolean(sendBlockedReason) || !composerSources
+    disabled || !canSend || Boolean(sendBlockedReason) || !sourceScope.ready
 
   const closeTools = () => {
     setManualToolsOpen(false)
@@ -273,7 +265,6 @@ export function useComposer() {
     uploads,
     fileInputRef,
     sendStatusId,
-    context,
     sourceScope,
     textareaRef,
     commandRef,
@@ -285,7 +276,6 @@ export function useComposer() {
     setNewTaskProposalId,
     reduceMotion,
     disabled,
-    hasExplicitSources,
     running,
     awaiting,
     asNewTask,

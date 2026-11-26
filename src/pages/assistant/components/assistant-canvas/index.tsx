@@ -24,11 +24,24 @@ import { CANVAS_MAX_WIDTH, CANVAS_MIN_WIDTH, CHAT_MIN_WIDTH } from '../../const'
 import { useCanvasModel } from '../../hooks/use-canvas-model'
 import useAssistantStore from '../../store'
 import { useFeatureGuidesStore } from '@/store/feature-guides'
-import BoardSnapshot from './board-snapshot'
+import { createDeferredComponent } from '@/components/deferred-content'
 import { CanvasTabs } from './canvas-tabs'
-import ChangeLog from './change-log'
 import ResumePreview from './resume-preview'
-import VersionTimeline from './version-timeline'
+
+const BoardSnapshot = createDeferredComponent(
+  () => import('./board-snapshot'),
+  '求职看板',
+)
+
+const ChangeLog = createDeferredComponent(
+  () => import('./change-log'),
+  '变更记录',
+)
+
+const VersionTimeline = createDeferredComponent(
+  () => import('./version-timeline'),
+  '历史版本',
+)
 
 function CanvasPanel({
   value,
@@ -48,6 +61,17 @@ function CanvasPanel({
   const visible = displayed === value
   const exiting = visible && active !== value
   const interactive = visible && !exiting
+
+  const open = useAssistantStore((s) =>
+    s.layoutMode === 'drawer' ? s.canvasMobileOpen : s.canvasOpen,
+  )
+
+  const selected = open && active === value
+  const [visited, setVisited] = useState(selected)
+
+  useEffect(() => {
+    if (selected) setVisited(true)
+  }, [selected])
 
   useLayoutEffect(() => {
     const panel = panelRef.current
@@ -92,7 +116,7 @@ function CanvasPanel({
         }}
         className='absolute inset-0 min-h-0 overflow-hidden'
       >
-        {children}
+        {(selected || visited) && children}
       </motion.div>
     </TabsContent>
   )

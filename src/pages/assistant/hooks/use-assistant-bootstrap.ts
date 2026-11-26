@@ -1,216 +1,244 @@
 import { useEffect } from 'react'
-import {
-  loadAssistantConversations,
-  loadAssistantMessages,
-  useConversationReadScope,
-} from './conversation-reads'
+import type { AiConversation } from '@/lib/ai/types'
+import type { ListMessagesResult } from '@/lib/supabase/ai/messages'
 import { getErrorMessage } from '@/utils'
 import useAssistantStore, { cancelActiveAssistantRun } from '../store'
 import {
-  chooseRestoredConversation,
   readLastConversationId,
   writeLastConversationId,
-} from '../utils'
+} from '../utils/storage'
+import {
+  applyAssistantConversationPage,
+  consumeAssistantPreload,
+  loadAssistantConversations,
+  loadAssistantMessages,
+  loadConversationSummary,
+  useConversationReadScope,
+} from './conversation-reads'
 
 export function useAssistantBootstrap() {
   const scope = useConversationReadScope()
   const attempt = useAssistantStore((state) => state.bootstrapAttempt)
 
   useEffect(() => {
-    let cancelled = false
+    const initial = useAssistantStore.getState()
+    const prepared = consumeAssistantPreload()
+    const owner = scope.owner
+    let live = true
 
-    const ownsRequest = () =>
-      !cancelled &&
-      scope.generation === useConversationReadScope.getState().generation
+    const ownsAccount = () =>
+      live && scope === useConversationReadScope.getState()
 
-    const load = async () => {
-      const existing = useAssistantStore.getState()
+    const ownsView = () =>
+      ownsAccount() &&
+      initial.conversationViewVersion ===
+        useAssistantStore.getState().conversationViewVersion &&
+      initial.conversationLoadRequestId ===
+        useAssistantStore.getState().conversationLoadRequestId
 
-      const preserveView =
-        existing.bootstrapGeneration === scope.generation &&
-        !existing.initializing &&
-        (!existing.loadingMessages ||
-          (existing.activeConversationId !== null &&
-            existing.pendingConversationId === existing.activeConversationId &&
-            existing.conversationLoadRequestId === null)) &&
-        (!existing.bootstrapError || existing.bootstrapError.preserveView)
+    const preserve =
+      initial.bootstrapGeneration === scope.generation &&
+      (!initial.loadingMessages ||
+        (initial.pendingConversationId === initial.activeConversationId &&
+          !initial.conversationLoadRequestId)) &&
+      (!initial.bootstrapError || initial.bootstrapError.preserveView === true)
 
-      const retryConversationId =
-        existing.bootstrapError?.conversationId ?? null
+    const retry = initial.bootstrapError?.conversationId
 
-      let restoringConversationId = retryConversationId
+    let target =
+      retry ?? initial.activeConversationId ?? readLastConversationId()
+
+    const keepBlank = preserve && !retry && !initial.activeConversationId
+    let failedTarget: string | null = null
+
+    useAssistantStore.setState({
+      bootstrapError: null,
+      initializing: !preserve,
+      ...(!preserve && { messages: [], historicalMatch: null }),
+      loadingConversations: !retry,
+      ...(!retry && { conversationListError: false }),
+    })
+
+    async function readList() {
+      if (!owner) throw new Error('用户未登录')
+      if (prepared) await prepared.list
+
+      const page = await loadAssistantConversations(owner)
+
+      if (!ownsAccount()) return page
+
+      applyAssistantConversationPage(page, preserve)
+
+      if (
+        target &&
+        ownsView() &&
+        useAssistantStore.getState().initializing &&
+        page.conversations.some((item) => item.id === target)
+      )
+        useAssistantStore.setState({
+          pendingConversationId: target,
+          loadingMessages: true,
+        })
+
+      return page
+    }
+
+    const list = retry ? undefined : readList()
+
+    list?.catch(() => {
+      if (ownsAccount())
+        useAssistantStore.setState({
+          loadingConversations: false,
+          conversationListError: true,
+        })
+    })
+
+    const complete = () => {
+      useAssistantStore.setState({
+        initializing: false,
+        bootstrapGeneration: scope.generation,
+      })
+    }
+
+    async function show(
+      conversation: AiConversation,
+      page?: ListMessagesResult,
+    ) {
+      if (!ownsView() || !owner) return
+
+      failedTarget = conversation.id
+
+      if (!useAssistantStore.getState().conversations.includes(conversation))
+        useAssistantStore.getState().upsertConversation(conversation)
 
       useAssistantStore.setState({
-        ...(!preserveView && {
-          ...(!retryConversationId && { conversations: [] }),
-          messages: [],
-          initializing: true,
-          loadingMessages: false,
-          pendingConversationId: null,
-          conversationLoadRequestId: null,
-        }),
-        bootstrapError: null,
-        loadingConversations: !retryConversationId,
+        pendingConversationId: conversation.id,
+        loadingMessages: true,
       })
 
-      const initialView = useAssistantStore.getState()
+      const { messages, hasMore } =
+        page ?? (await loadAssistantMessages(conversation.id))
 
-      const ownsView = () => {
-        const current = useAssistantStore.getState()
+      if (!ownsView()) return
 
-        return (
-          ownsRequest() &&
-          current.conversationViewVersion ===
-            initialView.conversationViewVersion &&
-          current.conversationLoadRequestId ===
-            initialView.conversationLoadRequestId
-        )
-      }
+      const current = useAssistantStore.getState()
 
-      const finishBootstrap = () => {
+      const unchanged = messages.length
+        ? initial.messages.at(-messages.length) === messages[0]
+        : initial.messages.length === 0
+
+      if (
+        preserve &&
+        conversation.id === initial.activeConversationId &&
+        (current.streaming ||
+          current.messages !== initial.messages ||
+          unchanged)
+      ) {
         useAssistantStore.setState({
-          initializing: false,
-          loadingConversations: false,
-        })
-      }
-
-      const completeBootstrap = () => {
-        finishBootstrap()
-        useAssistantStore.setState({ bootstrapGeneration: scope.generation })
-      }
-
-      try {
-        const conversations = retryConversationId
-          ? useAssistantStore.getState().conversations
-          : await loadAssistantConversations()
-
-        if (!ownsRequest()) return
-
-        useAssistantStore.getState().setConversations(conversations)
-        useAssistantStore.getState().setLoadingConversations(false)
-
-        if (!ownsView()) {
-          completeBootstrap()
-
-          return
-        }
-
-        const currentActiveId =
-          useAssistantStore.getState().activeConversationId
-
-        // 用户主动创建的空白会话在返回时仍保持为空白会话。
-        if (preserveView && !retryConversationId && !currentActiveId) {
-          completeBootstrap()
-
-          return
-        }
-
-        const restored = retryConversationId
-          ? conversations.find(
-              (conversation) => conversation.id === retryConversationId,
-            )
-          : chooseRestoredConversation(
-              conversations,
-              currentActiveId,
-              readLastConversationId(),
-            )
-
-        if (!restored) {
-          completeBootstrap()
-
-          useAssistantStore.getState().setConversationView(null, [], {})
-
-          return
-        }
-
-        restoringConversationId = restored.id
-
-        const refreshingCurrent =
-          preserveView && restored.id === currentActiveId
-
-        if (refreshingCurrent) {
-          useAssistantStore.setState({
-            loadingMessages: true,
-            pendingConversationId: restored.id,
-          })
-        } else if (preserveView) {
-          useAssistantStore.setState({ initializing: true, messages: [] })
-        }
-
-        const { messages, hasMore } = await loadAssistantMessages(restored.id)
-
-        if (!ownsRequest()) return
-
-        completeBootstrap()
-
-        if (!ownsView()) return
-        if (
-          refreshingCurrent &&
-          (useAssistantStore.getState().messages !== initialView.messages ||
-            useAssistantStore.getState().streaming)
-        ) {
-          useAssistantStore.setState({
-            loadingMessages: false,
-            pendingConversationId: null,
-          })
-
-          return
-        }
-
-        useAssistantStore
-          .getState()
-          .setConversationView(restored.id, messages, { hasMore })
-
-        writeLastConversationId(restored.id)
-      } catch (error) {
-        if (!ownsRequest()) return
-
-        finishBootstrap()
-
-        if (!ownsView()) return
-        if (getErrorMessage(error) === '用户未登录') {
-          restoringConversationId = null
-          useAssistantStore.getState().setConversations([])
-          useAssistantStore.getState().setConversationView(null, [], {})
-          useAssistantStore.setState({ bootstrapGeneration: null })
-        } else if (
-          preserveView &&
-          (!restoringConversationId ||
-            restoringConversationId === initialView.activeConversationId)
-        ) {
-          useAssistantStore.setState({
-            loadingMessages: false,
-            pendingConversationId: null,
-            bootstrapError: {
-              message: getErrorMessage(error),
-              conversationId: restoringConversationId,
-              preserveView: true,
-            },
-          })
-
-          return
-        }
-
-        useAssistantStore.setState({
-          initializing: false,
-          loadingConversations: false,
           loadingMessages: false,
           pendingConversationId: null,
-          conversationLoadRequestId: null,
-          activeConversationId: null,
-          bootstrapError: {
-            message: getErrorMessage(error),
-            conversationId: restoringConversationId,
-          },
         })
+      } else {
+        current.setConversationView(conversation.id, messages, { hasMore })
       }
+
+      writeLastConversationId(conversation.id)
+      complete()
     }
 
-    load()
+    async function load() {
+      if (!owner) throw new Error('用户未登录')
+      if (keepBlank) {
+        complete()
+
+        return
+      }
+
+      // 已记录在本账户下的 ID 可一次取到 RLS 核对过的会话和正文，空会话也有父行。
+      if (target) {
+        failedTarget = target
+
+        const known = initial.conversations.find((item) => item.id === target)
+
+        if (known) {
+          useAssistantStore.setState({
+            pendingConversationId: known.id,
+            loadingMessages: true,
+          })
+        }
+
+        if (prepared?.target === target) await prepared.messages
+
+        const page = await loadAssistantMessages(target, owner)
+
+        if (!ownsView()) return
+
+        const conversation =
+          page.conversation === undefined
+            ? (known ?? (await loadConversationSummary(owner, target)))
+            : page.conversation
+
+        if (conversation) {
+          await show(conversation, page)
+
+          return
+        }
+
+        if (ownsView())
+          useAssistantStore.getState().removeConversationLocal(target)
+      }
+
+      failedTarget = null
+
+      const page = await (list ?? readList())
+
+      if (!ownsView()) return
+
+      // 旧版只保存一个全局 ID，先在当前账户内验证归属。
+      target = !target ? readLastConversationId(true) : null
+
+      let restored = page.conversations.find((item) => item.id === target)
+
+      if (!restored && target && page.next) {
+        failedTarget = target
+        restored = (await loadConversationSummary(owner, target)) ?? undefined
+      }
+
+      if (!ownsView()) return
+
+      restored ??= page.conversations[0]
+
+      if (restored) {
+        await show(restored)
+
+        return
+      }
+
+      useAssistantStore.getState().setConversationView(null, [], {})
+      complete()
+    }
+
+    load().catch((error: unknown) => {
+      if (!ownsView()) return
+
+      useAssistantStore.setState({
+        initializing: false,
+        loadingMessages: false,
+        pendingConversationId: null,
+        bootstrapError: {
+          message: getErrorMessage(error),
+          conversationId: failedTarget,
+          preserveView: Boolean(
+            preserve &&
+            (!failedTarget || initial.activeConversationId === failedTarget),
+          ),
+        },
+      })
+    })
 
     return () => {
-      cancelled = true
+      live = false
       cancelActiveAssistantRun()
     }
-  }, [scope.generation, attempt])
+  }, [scope, attempt])
 }

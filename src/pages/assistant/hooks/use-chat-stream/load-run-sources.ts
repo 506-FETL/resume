@@ -1,5 +1,5 @@
 import type { ExperienceSourceRelation } from '@/lib/experience-sources/types'
-import { getExperienceSourceMetadata } from '@/lib/experience-sources/api'
+import { readExperienceSourceMetadata } from '@/lib/experience-sources/read-metadata'
 
 // 压缩与发送共用资料版本和更新时间，避免下一次请求把刚保存的摘要判为过期。
 export async function loadRunSources(
@@ -9,7 +9,7 @@ export async function loadRunSources(
 ) {
   const statuses = await Promise.all(
     Array.from({ length: Math.ceil(frozenSources.length / 100) }, (_, index) =>
-      getExperienceSourceMetadata(
+      readExperienceSourceMetadata(
         frozenSources
           .slice(index * 100, (index + 1) * 100)
           .map((source) => source.sourceId),

@@ -73,7 +73,6 @@ export interface ComposerCommandAccessibilityProps {
 
 export interface ComposerReferencePickerProps {
   onUploadFiles: () => void
-  context: ComposerContextResult
   disabled: boolean
   onSelect: (reference: AiUserReference) => void
   textareaRef: RefObject<HTMLTextAreaElement | null>

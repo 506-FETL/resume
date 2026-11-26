@@ -23,6 +23,8 @@ export default function MessageList() {
       setTargetMessageId: state.setTargetMessageId,
       hasMoreMessages: state.hasMoreMessages,
       loadingOlder: state.loadingOlder,
+      olderMessagesError: state.olderMessagesError,
+      historicalMatch: state.historicalMatch,
     })),
   )
 

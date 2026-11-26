@@ -1,4 +1,10 @@
-import { FileText, PanelRight, Search, SquarePen } from 'lucide-react'
+import {
+  FileText,
+  PanelLeft,
+  PanelRight,
+  Search,
+  SquarePen,
+} from 'lucide-react'
 import { useState } from 'react'
 import { LoadingRegion, PaperSkeleton } from '@/components/loading-skeleton'
 import { AnimatedThemeToggler } from '@/components/ui/animated-theme-toggler'
@@ -78,14 +84,30 @@ export function AssistantNavigationSkeleton() {
   )
 }
 
-export function AssistantPageSkeleton() {
+export function AssistantPageSkeleton({
+  shellPending = false,
+}: {
+  shellPending?: boolean
+}) {
   const [canvas] = useState(readAssistantCanvasPreferences)
 
   return (
     <div className='@container/assistant flex h-full min-h-0 w-full overflow-hidden bg-background'>
       <div className='flex min-h-0 min-w-0 flex-1 flex-col'>
         <header className='flex h-16 shrink-0 items-center gap-2 border-b bg-background px-3 sm:px-5'>
-          <SidebarTrigger aria-label='切换侧边栏' />
+          {shellPending ? (
+            <Button
+              disabled
+              variant='ghost'
+              size='icon'
+              className='size-7'
+              aria-label='切换侧边栏'
+            >
+              <PanelLeft />
+            </Button>
+          ) : (
+            <SidebarTrigger aria-label='切换侧边栏' />
+          )}
           <div className='min-w-0 flex-1'>
             <Skeleton className='h-6 w-24' />
           </div>
@@ -127,7 +149,7 @@ export function AssistantPageSkeleton() {
           <div className='flex h-13.25 shrink-0 items-center border-b p-2 text-sm'>
             简历预览
           </div>
-          <div className='flex shrink-0 items-center gap-2 border-b px-3 py-2 text-sm'>
+          <div className='flex min-h-12 shrink-0 items-center gap-2 border-b px-3 py-2 text-sm'>
             <FileText className='size-4 shrink-0 text-muted-foreground' />
             <span className='font-medium'>当前简历</span>
           </div>

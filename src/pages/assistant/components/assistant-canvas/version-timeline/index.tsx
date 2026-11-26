@@ -13,8 +13,8 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from '@/components/ui/empty'
-import { isOfflineResumeId } from '@/lib/offline-resume-manager'
-import { getResumeById } from '@/lib/supabase/resume'
+import { isOfflineResumeId } from '@/lib/resume-id'
+import { getResumeById } from '@/lib/supabase/resume/get-by-id'
 import useCurrentResumeStore from '@/store/resume/current'
 import useAssistantStore from '../../../store'
 

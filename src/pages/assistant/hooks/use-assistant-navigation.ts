@@ -7,15 +7,21 @@ import {
   forgetAssistantReturnPath,
   resolveAssistantReturnPath,
 } from '@/lib/ai/navigation'
-import { deleteConversation, listMessages } from '@/lib/supabase/ai'
+import { deleteConversation } from '@/lib/supabase/ai/conversations'
+import { getHistoricalMessage, listMessages } from '@/lib/supabase/ai/messages'
+import { CONVERSATION_BOTTOM_TARGET } from '../const'
 import {
   loadAssistantMessages,
+  loadConversationSummary,
   useConversationReadScope,
 } from './conversation-reads'
 import { getErrorMessage } from '@/utils'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
 import useAssistantStore, { cancelActiveAssistantRun } from '../store'
-import { clearLastConversationId, writeLastConversationId } from '../utils'
+import {
+  clearLastConversationId,
+  writeLastConversationId,
+} from '../utils/storage'
 
 function isEditableTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false
@@ -70,7 +76,14 @@ export function useAssistantNavigation(bindShortcuts = false) {
         'targetMessageId',
       )
 
+      if (!scope.owner) return false
       if (state.activeConversationId === id && !hasPositionTarget) {
+        if (state.pendingConversationId && state.pendingConversationId !== id)
+          useAssistantStore.setState({
+            pendingConversationId: null,
+            conversationLoadRequestId: null,
+            loadingMessages: false,
+          })
         if (options.closeOverlays !== false) closeOverlays()
 
         return true
@@ -95,23 +108,63 @@ export function useAssistantNavigation(bindShortcuts = false) {
         abortController: null,
         pendingConversationId: id,
         conversationLoadRequestId: requestId,
+        loadingOlder: false,
+        olderMessagesError: false,
         conversationViewVersion: state.conversationViewVersion + 1,
         loadingMessages: true,
       })
 
       try {
-        const { messages, hasMore } = await loadAssistantMessages(id)
+        const known = state.conversations.find((item) => item.id === id)
+        const sameConversation = state.activeConversationId === id
+
+        const ownView = () =>
+          scope === useConversationReadScope.getState() &&
+          useAssistantStore.getState().conversationLoadRequestId === requestId
+
+        const [conversation, page] = await Promise.all([
+          known ?? loadConversationSummary(scope.owner, id),
+          sameConversation
+            ? { messages: state.messages, hasMore: state.hasMoreMessages }
+            : loadAssistantMessages(id),
+        ])
+
+        if (!ownView()) return false
+        if (!conversation) throw new Error('该对话已被删除')
+        if (!known) {
+          useAssistantStore.getState().upsertConversation(conversation)
+        }
+
+        const target = options.targetMessageId
+        let historicalMatch = null
 
         if (
-          scope !== useConversationReadScope.getState() ||
-          useAssistantStore.getState().conversationLoadRequestId !== requestId
-        )
-          return false
+          target &&
+          target !== CONVERSATION_BOTTOM_TARGET &&
+          !page.messages.some((message) => message.id === target)
+        ) {
+          historicalMatch = await getHistoricalMessage(scope.owner, id, target)
 
-        useAssistantStore.getState().setConversationView(id, messages, {
-          targetMessageId: options.targetMessageId,
-          hasMore,
-        })
+          if (!ownView()) return false
+          if (!historicalMatch)
+            throw new Error('这条历史消息已被删除，请重新搜索')
+        }
+
+        if (sameConversation) {
+          useAssistantStore.setState({
+            historicalMatch,
+            targetMessageId: target ?? null,
+            pendingConversationId: null,
+            conversationLoadRequestId: null,
+            loadingMessages: false,
+          })
+        } else {
+          useAssistantStore.getState().setConversationView(id, page.messages, {
+            targetMessageId: target,
+            hasMore: page.hasMore,
+            historicalMatch,
+          })
+        }
 
         writeLastConversationId(id)
 
@@ -127,6 +180,13 @@ export function useAssistantNavigation(bindShortcuts = false) {
             pendingConversationId: null,
             conversationLoadRequestId: null,
             loadingMessages: false,
+            ...(state.initializing &&
+              !state.activeConversationId && {
+                bootstrapError: {
+                  message: getErrorMessage(error),
+                  conversationId: id,
+                },
+              }),
           })
 
           toast.error('加载消息失败', { description: getErrorMessage(error) })
@@ -159,6 +219,8 @@ export function useAssistantNavigation(bindShortcuts = false) {
 
   const deleteAndSelectConversation = useCallback(
     async (id: string) => {
+      const scope = useConversationReadScope.getState()
+
       const { conversations, activeConversationId } =
         useAssistantStore.getState()
 
@@ -175,17 +237,25 @@ export function useAssistantNavigation(bindShortcuts = false) {
         if (activeConversationId === id) cancelActiveAssistantRun()
 
         await deleteConversation(id)
+
+        if (scope !== useConversationReadScope.getState()) return
+
+        const stillSelected =
+          useAssistantStore.getState().activeConversationId === id
+
         useExperienceSourcesStore.getState().invalidate()
         useAssistantStore.getState().removeConversationLocal(id)
         toast.success('已删除会话')
 
-        if (activeConversationId !== id) return
+        if (!stillSelected) return
 
         clearLastConversationId(id)
 
         if (candidate) await openConversation(candidate.id)
         else useAssistantStore.getState().setConversationView(null, [], {})
       } catch (error) {
+        if (scope !== useConversationReadScope.getState()) return
+
         toast.error('删除失败', { description: getErrorMessage(error) })
       }
     },
@@ -214,7 +284,10 @@ export function useAssistantNavigation(bindShortcuts = false) {
     )
       return
 
-    useAssistantStore.getState().setLoadingOlder(true)
+    useAssistantStore.setState({
+      loadingOlder: true,
+      olderMessagesError: false,
+    })
 
     const convId = s.activeConversationId
 
@@ -238,6 +311,7 @@ export function useAssistantNavigation(bindShortcuts = false) {
 
       useAssistantStore.getState().prependOlderMessages(messages, hasMore)
     } catch {
+      if (ownsView()) useAssistantStore.setState({ olderMessagesError: true })
     } finally {
       if (ownsView()) useAssistantStore.getState().setLoadingOlder(false)
     }

@@ -6,7 +6,7 @@ import type {
 import { prepareRunSources } from './prepare-sources'
 import type { AiMessage, AiMessagePart } from '@/lib/ai/types'
 import { toast } from 'sonner'
-import { buildUserContext, runAgent } from '@/lib/ai/agent'
+import { buildUserContext } from '@/lib/ai/agent/build-context'
 import { referenceLabel } from '@/lib/ai/references'
 import type { ContextCompactionEvent } from '@/lib/ai/agent/context-events'
 import {
@@ -86,7 +86,8 @@ export async function streamAssistantResponse(
   }
 
   try {
-    const [context, prepared] = await Promise.all([
+    const [{ runAgent }, context, prepared] = await Promise.all([
+      import('@/lib/ai/agent'),
       buildUserContext(execution.targetResumeId),
       prepareRunSources(
         frozenSources,
@@ -222,7 +223,9 @@ export async function streamAssistantResponse(
 
       if (ownsView()) useAssistantStore.getState().upsertConversation(updated)
     } else {
-      await touchConversation(conversationId)
+      const updated = await touchConversation(conversationId)
+
+      if (ownsView()) useAssistantStore.getState().upsertConversation(updated)
     }
 
     // 7. 本轮成功：以服务端权威额度校正各展示位（composer / 账户菜单 / 用户中心）

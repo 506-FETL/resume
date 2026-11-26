@@ -1,6 +1,7 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { dashboardShell } from '@/components/layout/load-dashboard-shell'
+import { isAssistantPage, selectAssistantPage } from '@/lib/assistant-route'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
 import {
   isExperienceArchive,
@@ -31,17 +32,22 @@ if (pathname === '/' && hasAuthCallback) {
 
 // 认证与界面并行加载；模块失败仍交给 App 的错误边界。
 const libraryRoute = isResumeLibrary(pathname)
+const assistantRoute = isAssistantPage(pathname)
 const archiveRoute = isExperienceArchive(pathname)
 const gatedLibrary = Boolean(new URLSearchParams(search).get('jobId'))
 
 if (
-  (isWorkspaceHome(pathname) || libraryRoute || archiveRoute) &&
+  (isWorkspaceHome(pathname) ||
+    libraryRoute ||
+    archiveRoute ||
+    assistantRoute) &&
   !hasAuthCallback
 ) {
   import('./components/auth-session/subscription')
     .then(({ startAuthSession }) => startAuthSession())
     .catch(() => {})
 
+  if (assistantRoute) selectAssistantPage(true)
   if (libraryRoute && !gatedLibrary) selectResumeLibrary(true)
   if (archiveRoute)
     selectExperienceArchive(window.history.state?.key ?? 'default')

@@ -345,6 +345,7 @@ export function installComposerSessions(store: StoreApi<AssistantStore>) {
       confirmationFeedback: '',
       annotationTarget: null,
       explicitPreviewResumeId: null,
+      previewResumeId: null,
       sourceViewer: null,
       queuePaused: true,
     })

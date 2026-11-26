@@ -42,6 +42,7 @@ const steps: GuideStep[] = [
 export default function AssistantGuide() {
   const enabled = useAssistantStore(
     (state) =>
+      !state.initializing &&
       !state.loadingConversations &&
       !state.loadingMessages &&
       !state.streaming &&

@@ -1,5 +1,12 @@
-import type { AiMessage, AiMessagePart, AiMessageRole } from '@/lib/ai/types'
+import type {
+  AiConversation,
+  AiMessage,
+  AiMessagePart,
+  AiMessageRole,
+} from '@/lib/ai/types'
 import { normalizeUserParts } from '@/lib/ai/references'
+import { mapConversation, SUMMARY_FIELDS } from './conversation-row'
+import { conversationMessageReads } from './history-cache'
 import supabase from '../client'
 import { getCurrentUser } from '../user'
 
@@ -17,9 +24,53 @@ function mapMessage(row: any): AiMessage {
   }
 }
 
+const MESSAGE_FIELDS = 'id,conversation_id,user_id,role,parts,created_at'
+
+export async function getConversationWithMessages(
+  ownerId: string,
+  id: string,
+): Promise<ListMessagesResult> {
+  const { data, error } = await supabase
+    .from('ai_conversations')
+    .select(`${SUMMARY_FIELDS},ai_messages(${MESSAGE_FIELDS})`)
+    .eq('user_id', ownerId)
+    .eq('id', id)
+    .order('created_at', { ascending: false, referencedTable: 'ai_messages' })
+    .order('id', { ascending: false, referencedTable: 'ai_messages' })
+    .limit(31, { referencedTable: 'ai_messages' })
+    .maybeSingle()
+
+  if (error) throw error
+  if (!data) return { conversation: null, messages: [], hasMore: false }
+
+  return {
+    ...mapMessagePage(data.ai_messages, 30),
+    conversation: mapConversation(data),
+  }
+}
+
+export async function getHistoricalMessage(
+  ownerId: string,
+  conversationId: string,
+  id: string,
+) {
+  const { data, error } = await supabase
+    .from('ai_messages')
+    .select(MESSAGE_FIELDS)
+    .eq('user_id', ownerId)
+    .eq('conversation_id', conversationId)
+    .eq('id', id)
+    .maybeSingle()
+
+  if (error) throw error
+
+  return data ? mapMessage(data) : null
+}
+
 export interface ListMessagesResult {
   messages: AiMessage[]
   hasMore: boolean
+  conversation?: AiConversation | null
 }
 
 export type MessageCursor = Pick<AiMessage, 'createdAt' | 'id'>
@@ -43,7 +94,7 @@ export async function listMessages(
 
   let query = supabase
     .from('ai_messages')
-    .select('*')
+    .select(MESSAGE_FIELDS)
     .eq('conversation_id', conversationId)
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
@@ -71,7 +122,13 @@ export async function listMessages(
 
   if (error) throw error
 
-  const rows = data || []
+  return mapMessagePage(data, limit)
+}
+
+function mapMessagePage(
+  rows: Parameters<typeof mapMessage>[0][],
+  limit: number,
+) {
   const hasMore = rows.length > limit
   const page = hasMore ? rows.slice(0, limit) : rows
   // 倒序取回后 reverse 成升序（旧 → 新）
@@ -93,6 +150,8 @@ export async function truncateMessages(
   })
 
   if (error) throw error
+
+  conversationMessageReads.invalidate(conversationId)
 }
 
 export async function insertMessage(
@@ -125,12 +184,17 @@ export async function insertMessage(
         .eq('user_id', user.id)
         .maybeSingle()
 
-      if (!lookupError && existing && existing.role === msg.role)
+      if (!lookupError && existing && existing.role === msg.role) {
+        conversationMessageReads.invalidate(conversationId)
+
         return mapMessage(existing)
+      }
     }
 
     throw error
   }
+
+  conversationMessageReads.invalidate(data.conversation_id)
 
   return mapMessage(data)
 }
@@ -153,6 +217,8 @@ export async function updateMessage(
     .single()
 
   if (error) throw error
+
+  conversationMessageReads.invalidate(data.conversation_id)
 
   return mapMessage(data)
 }

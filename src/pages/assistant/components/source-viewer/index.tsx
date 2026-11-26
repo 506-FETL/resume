@@ -7,24 +7,38 @@ import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
 import {
   Drawer,
   DrawerClose,
+  DrawerDescription,
   DrawerContent,
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import ExperienceOriginalPreview from '@/features/experience-sources/original-preview'
+import { createDeferredComponent } from '@/components/deferred-content'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
 import { Spinner } from '@/components/ui/spinner'
 import { toast } from 'sonner'
-import { ExperienceSourceReader } from '@/features/experience-sources'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import useAssistantStore from '../../store'
+
+const ExperienceSourceReader = createDeferredComponent(
+  () =>
+    import('@/features/experience-sources/source-reader').then(
+      ({ ExperienceSourceReader }) => ({ default: ExperienceSourceReader }),
+    ),
+  '资料正文',
+)
+
+const ExperienceOriginalPreview = createDeferredComponent(
+  () => import('@/features/experience-sources/original-preview'),
+  '原件预览',
+)
 
 export default function SourceViewer() {
   const [detail, setDetail] = useState<ExperienceSourceReadResult | null>(null)
@@ -152,6 +166,9 @@ export default function SourceViewer() {
         >
           <DrawerHeader className='relative shrink-0 border-b pr-14 text-left'>
             <DrawerTitle className='wrap-break-word'>{source.name}</DrawerTitle>
+            <DrawerDescription className='sr-only'>
+              查看引用的资料原文。
+            </DrawerDescription>
             <DrawerClose
               render={
                 <Button
@@ -184,6 +201,9 @@ export default function SourceViewer() {
       >
         <DialogHeader className='shrink-0 border-b p-5 pr-14'>
           <DialogTitle className='wrap-break-word'>{source.name}</DialogTitle>
+          <DialogDescription className='sr-only'>
+            查看引用的资料原文。
+          </DialogDescription>
         </DialogHeader>
         {body}
       </DialogContent>

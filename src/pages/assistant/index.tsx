@@ -9,7 +9,9 @@ import { useAssistantBootstrap } from './hooks/use-assistant-bootstrap'
 import { useAssistantLayout } from './hooks/use-assistant-layout'
 import { useAssistantNavigation } from './hooks/use-assistant-navigation'
 import { useWriteConfirmBridge } from './hooks/use-write-confirm-bridge'
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useState } from 'react'
+import useUserStore from '@/store/user'
+import { useFeatureGuidesStore } from '@/store/feature-guides'
 import { ErrorBoundary } from 'react-error-boundary'
 
 const AssistantGuide = lazy(
@@ -17,6 +19,19 @@ const AssistantGuide = lazy(
 )
 
 export default function Assistant() {
+  const owner = useUserStore((state) => state.currentUser?.id)
+
+  return owner ? <AssistantWorkspace key={owner} owner={owner} /> : null
+}
+
+function AssistantWorkspace({ owner }: { owner: string }) {
+  const [showGuide] = useState(
+    () =>
+      !useFeatureGuidesStore
+        .getState()
+        .dismissed[owner]?.includes('assistant-quote'),
+  )
+
   const rootRef = useAssistantLayout()
 
   useExperienceHandoff()
@@ -41,11 +56,13 @@ export default function Assistant() {
       <AssistantCanvas />
       <ConversationSearch />
       <SourceViewer />
-      <ErrorBoundary fallback={null}>
-        <Suspense fallback={null}>
-          <AssistantGuide />
-        </Suspense>
-      </ErrorBoundary>
+      {showGuide && (
+        <ErrorBoundary fallback={null}>
+          <Suspense fallback={null}>
+            <AssistantGuide />
+          </Suspense>
+        </ErrorBoundary>
+      )}
     </div>
   )
 }

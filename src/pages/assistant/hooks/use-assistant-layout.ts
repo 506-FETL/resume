@@ -10,26 +10,28 @@ export function useAssistantLayout() {
 
     if (!element) return
 
-    const update = () => {
-      const width = element.getBoundingClientRect().width
-
+    const update = (width: number) => {
       const mode =
         width >= CHAT_MIN_WIDTH + CANVAS_MIN_WIDTH ? 'split' : 'drawer'
 
-      const previousMode = useAssistantStore.getState().layoutMode
+      const state = useAssistantStore.getState()
+
+      if (state.layoutMode === mode && state.availableWidth === width) return
 
       if (
-        mode !== previousMode &&
+        mode !== state.layoutMode &&
         document.activeElement?.closest('[data-assistant-canvas]')
       )
         document.getElementById('assistant-canvas-trigger')?.focus()
 
-      useAssistantStore.getState().setAssistantLayout(mode, width)
+      state.setAssistantLayout(mode, width)
     }
 
-    update()
+    update(element.getBoundingClientRect().width)
 
-    const observer = new ResizeObserver(update)
+    const observer = new ResizeObserver(([entry]) => {
+      update(entry.contentRect.width)
+    })
 
     observer.observe(element)
 

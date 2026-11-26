@@ -155,6 +155,7 @@ export type AssistantJobOverview = Pick<
 
 export async function listAssistantJobOverviews(
   limit?: number,
+  offset = 0,
 ): Promise<AssistantJobOverview[]> {
   const user = await getCurrentUser()
 
@@ -174,7 +175,9 @@ export async function listAssistantJobOverviews(
     return data ?? []
   }
 
-  return limit === undefined ? collectPages(fetchPage) : fetchPage(0, limit - 1)
+  return limit === undefined
+    ? collectPages(fetchPage)
+    : fetchPage(offset, offset + limit - 1)
 }
 
 export async function getCompanyById(

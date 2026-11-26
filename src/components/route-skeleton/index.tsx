@@ -37,10 +37,12 @@ export function RouteSkeleton({
   label = '正在加载页面',
   guest = false,
   location,
+  shellPending = false,
 }: {
   pathname: string
   label?: string
   guest?: boolean
+  shellPending?: boolean
   location?: { search: string; state: ExperienceLocationState | null }
 }) {
   const path = pathname.replace(/\/+$/, '') || '/'
@@ -60,7 +62,8 @@ export function RouteSkeleton({
   }
   if (path === '/history') return <HistoryPageSkeleton />
   if (path === '/profile') return <ProfilePageSkeleton />
-  if (path.startsWith('/assistant')) return <AssistantPageSkeleton />
+  if (path.startsWith('/assistant'))
+    return <AssistantPageSkeleton shellPending={shellPending} />
 
   if (path.startsWith('/share/view/')) {
     return (

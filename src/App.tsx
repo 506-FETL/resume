@@ -17,6 +17,7 @@ import {
   isResumeLibrary,
   selectResumeLibrary,
 } from '@/lib/resume-library-route'
+import { isAssistantPage, selectAssistantPage } from '@/lib/assistant-route'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
 import {
   isExperienceArchive,
@@ -119,6 +120,12 @@ function App() {
     )
   }, [archiveRoute, location.key])
 
+  const assistantPage = isAssistantPage(location.pathname)
+
+  useEffect(() => {
+    selectAssistantPage(assistantPage)
+  }, [assistantPage])
+
   const isAssistantRoute =
     location.pathname === '/assistant' ||
     location.pathname.startsWith('/assistant/')
@@ -188,9 +195,13 @@ function App() {
                   fallback={
                     isWorkspaceHome(location.pathname) ||
                     isResumeLibrary(location.pathname) ||
-                    archiveRoute ? (
-                      <DashboardOpening>
+                    archiveRoute ||
+                    assistantPage ? (
+                      <DashboardOpening
+                        fullBleed={assistantPage && authStatus !== 'anonymous'}
+                      >
                         <RouteSkeleton
+                          shellPending
                           pathname={location.pathname}
                           location={location}
                           guest={authStatus === 'anonymous'}

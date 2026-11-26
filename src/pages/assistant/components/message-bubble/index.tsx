@@ -15,6 +15,8 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { getUserReferences, referenceKey } from '@/lib/ai/references'
 import ReferenceTags from '../reference-tags'
+import { useSubmissionSources } from '../../hooks/use-source-scope'
+import { SourceScopeFeedback } from '../source-scope-feedback'
 import SkillActivity from '../skill-activity'
 import { MessageActions } from './message-actions'
 import { ReasoningPart } from './reasoning-part'
@@ -40,7 +42,7 @@ type ToolCallPart = Extract<AiMessagePart, { type: 'tool-call' }>
 function renderAssistantParts(
   parts: AiMessagePart[],
   isStreamingMessage: boolean,
-  evidence: CitationEvidence[],
+  evidence: () => CitationEvidence[],
 ) {
   const nodes: ReactNode[] = []
   let buffer: ToolCallPart[] = []
@@ -136,7 +138,9 @@ function UserMessageEditor({
   const [value, setValue] = useState(initial)
   const [references, setReferences] = useState(initialReferences)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
-  const canSave = Boolean(value.trim() || references.length)
+  const hasContent = Boolean(value.trim() || references.length)
+  const scope = useSubmissionSources(references, hasContent)
+  const canSave = hasContent && scope.ready
 
   return (
     <div className='flex w-full flex-col gap-2'>
@@ -169,6 +173,7 @@ function UserMessageEditor({
         aria-label='编辑消息内容'
         className='min-h-24 resize-y rounded-2xl bg-background px-3 py-2 text-base leading-relaxed sm:text-sm'
       />
+      <SourceScopeFeedback scope={scope} />
       <div className='flex items-center justify-end gap-2'>
         <Button variant='ghost' size='sm' onClick={onCancel}>
           取消

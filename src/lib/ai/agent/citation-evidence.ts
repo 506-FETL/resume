@@ -90,21 +90,19 @@ export function citationLabel(evidence: CitationEvidence): string {
   return `${name} · ${block.page ? `第 ${block.page} 页 · ` : ''}${position}`
 }
 
-export function collectMessageCitationEvidence(
-  message: AiMessage,
+export function collectPreviousCitationEvidence(
+  messageId: string,
+  conversationId: string,
   history: AiMessage[],
   ownerId: string,
 ): CitationEvidence[] {
-  if (message.role !== 'assistant') return []
-
-  const index = history.findIndex((item) => item.id === message.id)
+  const index = history.findIndex((item) => item.id === messageId)
 
   const previous =
-    message.id === 'streaming' ? history : history.slice(0, Math.max(0, index))
+    messageId === 'streaming' ? history : history.slice(0, Math.max(0, index))
 
   const conversation = previous.filter(
-    (item) =>
-      item.userId === ownerId && item.conversationId === message.conversationId,
+    (item) => item.userId === ownerId && item.conversationId === conversationId,
   )
 
   const scope = [...conversation]
@@ -112,21 +110,19 @@ export function collectMessageCitationEvidence(
     .find((item) => item.role === 'user')
     ?.parts.find((part) => part.type === 'source-scope')?.sources
 
+  if (!scope?.length) return []
+
+  const allowed = new Set(
+    scope.map((source) => `${source.sourceId}:${source.versionId}`),
+  )
+
   const parts = conversation
     .filter((item) => item.role === 'assistant')
     .flatMap((item) => item.parts)
 
-  const priorEvidence = scope
-    ? collectCitationEvidence(parts).filter((item) =>
-        scope.some(
-          (source) =>
-            source.sourceId === item.sourceId &&
-            source.versionId === item.versionId,
-        ),
-      )
-    : []
-
-  return [...priorEvidence, ...collectCitationEvidence(message.parts)]
+  return collectCitationEvidence(parts).filter((item) =>
+    allowed.has(`${item.sourceId}:${item.versionId}`),
+  )
 }
 
 export function resolveCitationEvidence(

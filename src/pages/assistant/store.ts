@@ -1,3 +1,4 @@
+import { createHistorySlice, type HistorySlice } from './store/history-slice'
 import type { AssistantLayoutMode, CanvasTabKey } from './types'
 import type {
   ConfirmDecision,
@@ -43,7 +44,7 @@ function readStoredCanvasTab(): CanvasTabKey {
   return 'resume'
 }
 
-export interface AssistantStore extends ComposerSlice {
+export interface AssistantStore extends ComposerSlice, HistorySlice {
   conversations: AiConversation[]
   activeConversationId: string | null
   messages: AiMessage[]
@@ -97,14 +98,15 @@ export interface AssistantStore extends ComposerSlice {
   abortController: AbortController | null
   inFlightConversationIds: Record<string, true>
 
-  setConversations: (list: AiConversation[]) => void
-  upsertConversation: (conv: AiConversation) => void
-  removeConversationLocal: (id: string) => void
   setActiveConversationId: (id: string | null) => void
   setConversationView: (
     conversationId: string | null,
     messages: AiMessage[],
-    options?: { targetMessageId?: string | null; hasMore?: boolean },
+    options?: {
+      targetMessageId?: string | null
+      hasMore?: boolean
+      historicalMatch?: AiMessage | null
+    },
   ) => void
   prependOlderMessages: (older: AiMessage[], hasMore: boolean) => void
   setLoadingOlder: (v: boolean) => void
@@ -140,6 +142,7 @@ export interface AssistantStore extends ComposerSlice {
 
 const useAssistantStore = create<AssistantStore>()((set, get, api) => ({
   ...createComposerSlice(set, get, api),
+  ...createHistorySlice(set),
   conversations: [],
   activeConversationId: null,
   messages: [],
@@ -186,32 +189,6 @@ const useAssistantStore = create<AssistantStore>()((set, get, api) => ({
   abortController: null,
   inFlightConversationIds: {},
 
-  setConversations: (list) => set({ conversations: list }),
-  upsertConversation: (conv) =>
-    set((state) => {
-      const exists = state.conversations.some((c) => c.id === conv.id)
-
-      const conversations = exists
-        ? state.conversations.map((c) => (c.id === conv.id ? conv : c))
-        : [conv, ...state.conversations]
-
-      // 按 updatedAt desc 维持列表顺序
-      conversations.sort(
-        (a, b) =>
-          new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-      )
-
-      return { conversations }
-    }),
-  removeConversationLocal: (id) =>
-    set((state) => ({
-      conversations: state.conversations.filter((c) => c.id !== id),
-      activeConversationId:
-        state.activeConversationId === id ? null : state.activeConversationId,
-      messages: state.activeConversationId === id ? [] : state.messages,
-      composerSkillIds:
-        state.activeConversationId === id ? [] : state.composerSkillIds,
-    })),
   setActiveConversationId: (id) =>
     set((state) => ({
       activeConversationId: id,
@@ -228,6 +205,8 @@ const useAssistantStore = create<AssistantStore>()((set, get, api) => ({
           : null,
       messages,
       targetMessageId: options?.targetMessageId ?? null,
+      historicalMatch: options?.historicalMatch ?? null,
+      olderMessagesError: false,
       hasMoreMessages: options?.hasMore ?? false,
       oldestMessageCursor: messages[0]
         ? { createdAt: messages[0].createdAt, id: messages[0].id }
@@ -245,6 +224,11 @@ const useAssistantStore = create<AssistantStore>()((set, get, api) => ({
   prependOlderMessages: (older, hasMore) =>
     set((state) => ({
       messages: [...older, ...state.messages],
+      historicalMatch: older.some(
+        (item) => item.id === state.historicalMatch?.id,
+      )
+        ? null
+        : state.historicalMatch,
       hasMoreMessages: hasMore,
       oldestMessageCursor: older[0]
         ? { createdAt: older[0].createdAt, id: older[0].id }

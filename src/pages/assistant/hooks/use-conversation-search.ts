@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   isConversationSearchUnavailable,
   searchConversations,
-} from '@/lib/supabase/ai'
+} from '@/lib/supabase/ai/conversations'
 import {
   CONVERSATION_SEARCH_DEBOUNCE_MS,
   CONVERSATION_SEARCH_MIN_LENGTH,
@@ -42,6 +42,7 @@ export function useConversationSearch(open: boolean) {
   const [status, setStatus] = useState<ConversationSearchStatus>('idle')
   const [hasMore, setHasMore] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
+  const nextOffsetRef = useRef(0)
   const requestIdRef = useRef(0)
   const controllerRef = useRef<AbortController | null>(null)
 
@@ -66,15 +67,18 @@ export function useConversationSearch(open: boolean) {
       try {
         const next = await searchConversations({
           query: searchQuery,
-          limit: CONVERSATION_SEARCH_PAGE_SIZE,
+          limit: CONVERSATION_SEARCH_PAGE_SIZE + 1,
           offset,
           signal: controller.signal,
         })
 
         if (requestIdRef.current !== requestId) return
 
-        setResults((current) => (append ? mergeResults(current, next) : next))
-        setHasMore(next.length === CONVERSATION_SEARCH_PAGE_SIZE)
+        const page = next.slice(0, CONVERSATION_SEARCH_PAGE_SIZE)
+
+        nextOffsetRef.current = offset + page.length
+        setResults((current) => (append ? mergeResults(current, page) : page))
+        setHasMore(next.length > page.length)
         setStatus(next.length === 0 && !append ? 'empty' : 'ready')
       } catch (error) {
         if (controller.signal.aborted || requestIdRef.current !== requestId)
@@ -86,7 +90,7 @@ export function useConversationSearch(open: boolean) {
 
         if (!append) setResults([])
 
-        setHasMore(false)
+        setHasMore(append)
       } finally {
         if (requestIdRef.current === requestId) setLoadingMore(false)
       }
@@ -116,6 +120,11 @@ export function useConversationSearch(open: boolean) {
 
     controllerRef.current?.abort()
     requestIdRef.current += 1
+    nextOffsetRef.current = 0
+    setHasMore(false)
+    setLoadingMore(false)
+    setResults([])
+    setStatus('loading')
 
     const timer = window.setTimeout(() => {
       runSearch(normalized)
@@ -134,15 +143,15 @@ export function useConversationSearch(open: boolean) {
 
     if (normalized.length < CONVERSATION_SEARCH_MIN_LENGTH) return
 
-    runSearch(normalized, results.length, true)
-  }, [hasMore, loadingMore, query, results.length, runSearch])
+    runSearch(normalized, nextOffsetRef.current, true)
+  }, [hasMore, loadingMore, query, runSearch])
 
   const retry = useCallback(() => {
     const normalized = query.trim()
 
     if (normalized.length >= CONVERSATION_SEARCH_MIN_LENGTH)
-      runSearch(normalized)
-  }, [query, runSearch])
+      runSearch(normalized, nextOffsetRef.current, hasMore)
+  }, [query, hasMore, runSearch])
 
   const reset = useCallback(() => {
     controllerRef.current?.abort()

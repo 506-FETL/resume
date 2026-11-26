@@ -4,7 +4,13 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { SIDEBAR_WIDTH_ICON } from '@/components/ui/sidebar/sidebar-context'
 import { DASHBOARD_SIDEBAR_WIDTH, readSidebarOpen } from './sidebar-preference'
 
-export function DashboardOpening({ children }: { children: ReactNode }) {
+export function DashboardOpening({
+  children,
+  fullBleed = false,
+}: {
+  children: ReactNode
+  fullBleed?: boolean
+}) {
   const [sidebarOpen] = useState(readSidebarOpen)
 
   return (
@@ -19,14 +25,22 @@ export function DashboardOpening({ children }: { children: ReactNode }) {
         <Skeleton className='h-5 w-full max-w-24' />
       </div>
       <main className='flex min-w-0 flex-1 flex-col'>
+        {!fullBleed && (
+          <div
+            aria-hidden
+            className='flex min-h-14 items-center gap-3 border-b border-border/70 px-4'
+          >
+            <Skeleton className='size-4' />
+            <Skeleton className='h-3 w-8' />
+          </div>
+        )}
         <div
-          aria-hidden
-          className='flex min-h-14 items-center gap-3 border-b border-border/70 px-4'
+          className={
+            fullBleed
+              ? 'min-h-0 flex-1 overflow-hidden'
+              : 'min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]'
+          }
         >
-          <Skeleton className='size-4' />
-          <Skeleton className='h-3 w-8' />
-        </div>
-        <div className='min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]'>
           {children}
         </div>
       </main>

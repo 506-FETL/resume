@@ -14,17 +14,32 @@ import {
   CONVERSATION_SEARCH_MIN_LENGTH,
 } from '../../const'
 import { useAssistantNavigation } from '../../hooks/use-assistant-navigation'
+import { useConversationReadScope } from '../../hooks/conversation-reads'
 import { useConversationSearch } from '../../hooks/use-conversation-search'
 import useAssistantStore from '../../store'
 import SearchEmpty from './search-empty'
 import ConversationSearchResult from './search-result'
 
 export default function ConversationSearch() {
-  const { searchOpen, setSearchOpen, conversations } = useAssistantStore(
+  const generation = useConversationReadScope((scope) => scope.generation)
+
+  return <SearchDialog key={generation} />
+}
+
+function SearchDialog() {
+  const {
+    searchOpen,
+    setSearchOpen,
+    conversations,
+    loadingConversations,
+    conversationListError,
+  } = useAssistantStore(
     useShallow((state) => ({
       searchOpen: state.searchOpen,
       setSearchOpen: state.setSearchOpen,
       conversations: state.conversations,
+      loadingConversations: state.loadingConversations || state.initializing,
+      conversationListError: state.conversationListError,
     })),
   )
 
@@ -82,7 +97,13 @@ export default function ConversationSearch() {
             {conversations.length === 0 && (
               <div className='flex flex-col items-center gap-2 px-6 py-10 text-center'>
                 <Search className='size-5 text-muted-foreground' />
-                <p className='text-sm font-medium'>还没有历史对话</p>
+                <p className='text-sm font-medium'>
+                  {loadingConversations
+                    ? '正在读取最近对话…'
+                    : conversationListError
+                      ? '最近对话暂时未能加载'
+                      : '还没有历史对话'}
+                </p>
               </div>
             )}
           </CommandGroup>

@@ -52,7 +52,10 @@ export default function GuideArrow({
       }
     }
 
-    const stop = autoUpdate(target, anchor, update, { animationFrame: true })
+    const stop = autoUpdate(target, anchor, update, {
+      animationFrame: target.id !== 'assistant-canvas-trigger',
+    })
+
     const observer = new MutationObserver(update)
 
     observer.observe(anchor, { attributes: true, attributeFilter: ['style'] })

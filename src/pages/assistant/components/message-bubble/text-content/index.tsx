@@ -73,7 +73,9 @@ type CitationNode = {
   value?: string
 }
 
-const CitationEvidenceContext = createContext<CitationEvidence[]>([])
+const noEvidence = (): CitationEvidence[] => []
+
+const CitationEvidenceContext = createContext(noEvidence)
 
 function experienceCitations() {
   return (tree: CitationNode) => {
@@ -134,7 +136,7 @@ function ExperienceCitation(props: Record<string, unknown>) {
   const { href, children, sourceId, versionId, blockId, quote } =
     props as unknown as ComponentProps<'a'> & z.infer<typeof citationSchema>
 
-  const evidence = use(CitationEvidenceContext)
+  const evidence = use(CitationEvidenceContext)()
 
   const source = resolveCitationEvidence(
     evidence,
@@ -236,7 +238,7 @@ const STREAM_ANIMATION = {
 const TextContent = memo(function TextContent({
   text,
   animate = false,
-  evidence = [],
+  evidence = noEvidence,
 }: TextPartProps) {
   const reduceMotion = useReducedMotion()
 

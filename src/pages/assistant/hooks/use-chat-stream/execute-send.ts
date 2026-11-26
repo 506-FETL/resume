@@ -67,6 +67,7 @@ export async function executeSend(
 
   // 正文分包与会话准备并行，失败仍由回复区的重试入口处理。
   TextPart.preload().catch(() => undefined)
+  import('@/lib/ai/agent').catch(() => undefined)
 
   // 1. 同步占用运行锁；重跑保留原消息，普通发送立即上屏。
   let frozenSources = freezeSourceScope(submission?.sources ?? [], references)
