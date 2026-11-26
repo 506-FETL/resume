@@ -12,7 +12,6 @@ import { useShallow } from 'zustand/react/shallow'
 import { Button } from '@/components/ui/button'
 import { useTrackerFilterActions } from '../../hooks/use-tracker-filter-actions'
 import useTrackerStore from '../../store'
-import { selectTrackerListJobs } from '../../store/selectors'
 
 interface TrackerPageStateProps {
   mode: 'empty' | 'archived' | 'filtered' | 'error'
@@ -20,18 +19,16 @@ interface TrackerPageStateProps {
 }
 
 export function TrackerPageState({ mode, onRetry }: TrackerPageStateProps) {
-  const { error, openAddDrawer, jobs } = useTrackerStore(
+  const { error, openAddDrawer, hasArchived } = useTrackerStore(
     useShallow((state) => ({
       error: state.error,
       openAddDrawer: state.openAddDrawer,
-      jobs: selectTrackerListJobs(state),
+      hasArchived: (state.historyCounts?.archivedTotal ?? 0) > 0,
     })),
   )
 
   const { focusSearchInput, clearSearchAndFilters, setShowArchived } =
     useTrackerFilterActions()
-
-  const hasArchived = jobs.some((job) => job.archived)
 
   const content = {
     empty: { icon: BriefcaseBusiness, title: '暂无职位', description: null },

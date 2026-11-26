@@ -7,7 +7,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useId, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
+import { TrackerCalendar } from '../deferred-sections'
 import { Input } from '@/components/ui/input'
 import {
   Popover,
@@ -275,7 +275,7 @@ export default function NextActionSection({ job }: NextActionSectionProps) {
                   无日期
                 </Button>
               </div>
-              <Calendar
+              <TrackerCalendar
                 mode='single'
                 selected={selectedDate}
                 onSelect={(value) =>

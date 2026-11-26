@@ -1,3 +1,4 @@
+import { companyJobsChanged } from '../lib/company-reads'
 import type { ReopenProcessInput } from '../types'
 import { create } from 'zustand'
 import {
@@ -5,6 +6,7 @@ import {
   getTrackerAccountScope,
   subscribeTrackerAccountScope,
 } from '../lib/account-scope'
+import { emptyTrackerPages } from './workflow-save/job-pages'
 import { createTrackerPersistence } from './workflow-save'
 import { createTrackerCompanies } from './companies'
 import { createTrackerSubmissions } from './submissions'
@@ -54,7 +56,6 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
       current?.resolve()
     },
     submissionQueue: [],
-    submissionRevision: 0,
     requestSubmission: (jobId) =>
       new Promise<void>((resolve) => {
         const job = get().jobs.find((row) => row.id === jobId)
@@ -98,7 +99,9 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
       if (target === 'applied' && !job?.has_submission)
         return get().requestSubmission(id)
 
-      return persistence.changeJobStatus(id, target, fields)
+      return get()
+        .ensureJobLoaded(id)
+        .then(() => persistence.changeJobStatus(id, target, fields))
     },
     // 初始状态
     jobs: [],
@@ -129,6 +132,7 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
     sortDir: 'desc',
 
     // Drawer
+    drawerWorkflowRead: null,
     selectedJob: null,
     drawerOpen: false,
     addDrawerOpen: false,
@@ -198,14 +202,35 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
         return { selectedIds: nextSelectedIds }
       })
     },
-    selectAll: () => {
+    selectAll: async () => {
+      const before = get()
+
+      if (!before.scopeComplete) await before.ensureAllJobs()
+
+      const state = get()
+
+      if (
+        !state.isSelectMode ||
+        !state.scopeComplete ||
+        before.accountScope !== state.accountScope ||
+        before.showArchived !== state.showArchived ||
+        before.filterStatus !== state.filterStatus ||
+        before.metricFilter !== state.metricFilter ||
+        before.searchKeyword !== state.searchKeyword ||
+        before.filterCompanyId !== state.filterCompanyId ||
+        before.focusedOnly !== state.focusedOnly
+      )
+        return
+
       set((state) => {
+        const inRange = state.jobs.filter((job) => state.viewJobIds.has(job.id))
+
         const selectableJobs = filterJobs(
           state.filterCompanyId
-            ? state.jobs.filter(
+            ? inRange.filter(
                 (job) => job.tracker_company_id === state.filterCompanyId,
               )
-            : state.jobs,
+            : inRange,
           state.filterStatus,
           state.searchKeyword,
           state.showArchived,
@@ -239,7 +264,10 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
           .flushWorkflow(previousId)
           .catch(() => {})
 
-      set({ selectedJob: current, drawerOpen: false })
+      const drawerWorkflowRead = get().ensureJobLoaded(job.id)
+
+      drawerWorkflowRead.catch(() => {})
+      set({ selectedJob: current, drawerOpen: false, drawerWorkflowRead })
 
       // Base UI 需要先渲染一次关闭态的 Popup，下一帧切换 open 才能应用 starting-style。
       pendingDrawerOpenFrame = requestAnimationFrame(() => {
@@ -268,7 +296,14 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
     removeJobs: (ids) => {
       const idsSet = ids instanceof Set ? ids : new Set(ids)
 
+      for (const row of get().jobs) {
+        if (idsSet.has(row.id))
+          companyJobsChanged(row.tracker_company_id, row.status)
+      }
+
+      get().resetCompanyOptions()
       get().invalidateJobs(idsSet)
+      get().refreshJobCounts()
 
       set((state) => {
         const deletingSelectedJob = state.selectedJob
@@ -285,7 +320,7 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
           saveStates: Object.fromEntries(
             Object.entries(state.saveStates).filter(([id]) => !idsSet.has(id)),
           ),
-          isSelectMode: false,
+          isSelectMode: state.isSelectMode && nextSelectedIds.size > 0,
           selectedJob: deletingSelectedJob ? null : state.selectedJob,
           drawerOpen: deletingSelectedJob ? false : state.drawerOpen,
         }
@@ -295,6 +330,9 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
       assertTrackerAccountScope(scope)
 
       if (job.user_id !== scope.userId) throw new Error('职位不属于当前账号')
+
+      get().rememberJob(job)
+      get().refreshJobCounts()
 
       set((state) => ({
         jobs: [
@@ -307,7 +345,8 @@ const useTrackerStore = create<TrackerStore>()((set, get) => {
         },
       }))
 
-      get().loadCompanies(true)
+      get().resetCompanyOptions()
+      companyJobsChanged(job.tracker_company_id, undefined, job.status)
     },
   }
 })
@@ -321,9 +360,12 @@ subscribeTrackerAccountScope(() => {
     .submissionQueue.forEach((request) => request.resolve())
 
   cancelPendingDrawerOpen()
+  useTrackerStore.getState().resetCompanyOptions()
   useTrackerStore.getState().resetPersistence()
+  useTrackerStore.getState().resetJobPages()
 
   useTrackerStore.setState({
+    ...emptyTrackerPages,
     accountScope: getTrackerAccountScope(),
     submissionQueue: [],
     submissionsByJob: {},
@@ -332,6 +374,7 @@ subscribeTrackerAccountScope(() => {
     submissionMaterialsByKey: {},
     reopenQueue: [],
     jobs: [],
+    drawerWorkflowRead: null,
     selectedJob: null,
     selectedIds: new Set(),
     isSelectMode: false,
@@ -349,10 +392,6 @@ subscribeTrackerAccountScope(() => {
     focusedOnly: false,
     groupByCompany: false,
     referralSourceId: null,
-    companies: [],
-    companiesLoading: false,
-    companiesError: null,
-    companiesInitialized: false,
   })
 })
 

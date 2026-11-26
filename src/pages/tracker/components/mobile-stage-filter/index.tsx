@@ -14,59 +14,20 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { cn } from '@/lib/utils'
 import { BOARD_COLUMNS } from '../../const'
 import useTrackerStore from '../../store'
-import { selectTrackerListJobs } from '../../store/selectors'
-import { filterJobs } from '../../utils'
+import { useTrackerOverview } from '../../hooks/use-tracker-overview'
 
 export default function MobileStageFilter() {
-  const {
-    jobs,
-    filterStatus,
-    metricFilter,
-    searchKeyword,
-    showArchived,
-    filterCompanyId,
-    focusedOnly,
-    loading,
-    error,
-    isInitialized,
-  } = useTrackerStore(
+  const { filterStatus, metricFilter } = useTrackerStore(
     useShallow((state) => ({
-      jobs: selectTrackerListJobs(state),
       filterStatus: state.filterStatus,
       metricFilter: state.metricFilter,
-      searchKeyword: state.searchKeyword,
-      showArchived: state.showArchived,
-      filterCompanyId: state.filterCompanyId,
-      focusedOnly: state.focusedOnly,
-      loading: state.loading,
-      error: state.error,
-      isInitialized: state.isInitialized,
     })),
   )
 
+  const { stats, stageCounts, busy, error } = useTrackerOverview()
   const stageTriggerRef = useRef<HTMLButtonElement>(null)
   const value = filterStatus ?? metricFilter ?? 'all'
-
-  const scopedJobs = filterJobs(
-    filterCompanyId
-      ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
-      : jobs,
-    null,
-    searchKeyword,
-    showArchived,
-    null,
-    focusedOnly,
-  )
-
-  const unavailable = loading || !isInitialized || !!error
-
-  const pendingCount = filterJobs(
-    scopedJobs,
-    null,
-    '',
-    showArchived,
-    'pending',
-  ).length
+  const unavailable = busy || error
 
   const selectedStage = BOARD_COLUMNS.find(
     (column) => column.status === filterStatus,
@@ -114,8 +75,8 @@ export default function MobileStageFilter() {
       >
         <TabsList variant='line' aria-label='筛选职位' className='h-11 gap-3'>
           {[
-            { value: 'all', label: '全部', count: scopedJobs.length },
-            { value: 'pending', label: '待跟进', count: pendingCount },
+            { value: 'all', label: '全部', count: stats.total },
+            { value: 'pending', label: '待跟进', count: stats.pending },
           ].map((option) => (
             <TabsTrigger
               key={option.value}
@@ -165,10 +126,7 @@ export default function MobileStageFilter() {
               >
                 {column.label}
                 <span className='text-xs tabular-nums text-muted-foreground'>
-                  {unavailable
-                    ? '—'
-                    : scopedJobs.filter((job) => job.status === column.status)
-                        .length}
+                  {unavailable ? '—' : (stageCounts[column.status] ?? 0)}
                 </span>
               </DropdownMenuRadioItem>
             ))}

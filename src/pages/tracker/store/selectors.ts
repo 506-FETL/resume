@@ -1,5 +1,4 @@
 import type { JobApplication } from '../types'
-import { getFurthestStageIndex } from '../utils'
 
 const displayFields = [
   'id',
@@ -31,51 +30,61 @@ function sameDisplay(a: JobApplication, b: JobApplication) {
 
 let listSource: JobApplication[] | undefined
 let listSnapshot: JobApplication[] = []
+let listIds: Set<string> | undefined
 
 let rows = new Map<
   string,
-  { source: JobApplication; snapshot: JobApplication; depth: number }
+  { source: JobApplication; snapshot: JobApplication }
 >()
 
 /** 只用于列表、筛选与统计展示。编辑和打开详情仍须由 store 按 id 读取最新记录。 */
 export function selectTrackerListJobs({
   jobs,
+  viewJobIds,
 }: {
   jobs: JobApplication[]
+  viewJobIds?: Set<string>
 }): JobApplication[] {
-  if (jobs === listSource) return listSnapshot
+  if (jobs === listSource && viewJobIds === listIds) return listSnapshot
 
   const nextRows: typeof rows = new Map()
 
-  const next = jobs.map((job) => {
+  const visible = viewJobIds
+    ? jobs.filter((job) => viewJobIds.has(job.id))
+    : jobs
+
+  let sameOrder = visible.length === listSnapshot.length
+  let displayChanged = false
+
+  for (const job of visible) {
     const previous = rows.get(job.id)
 
     if (previous?.source === job) {
       nextRows.set(job.id, previous)
-
-      return previous.snapshot
+      continue
     }
 
-    const depth = getFurthestStageIndex(job)
-
     const snapshot =
-      previous &&
-      sameDisplay(previous.snapshot, job) &&
-      previous.depth === depth
-        ? previous.snapshot
-        : job
+      previous && sameDisplay(previous.snapshot, job) ? previous.snapshot : job
 
-    nextRows.set(job.id, { source: job, snapshot, depth })
+    nextRows.set(job.id, { source: job, snapshot })
 
-    return snapshot
-  })
+    if (snapshot !== previous?.snapshot) displayChanged = true
+    if (!previous || previous.snapshot.created_at !== job.created_at)
+      sameOrder = false
+  }
 
-  if (
-    next.length !== listSnapshot.length ||
-    next.some((job, index) => job !== listSnapshot[index])
-  )
-    listSnapshot = next
+  if (!sameOrder) {
+    listSnapshot = Array.from(nextRows.values(), (row) => row.snapshot).sort(
+      (left, right) =>
+        (right.created_at ?? '').localeCompare(left.created_at ?? '') ||
+        right.id.localeCompare(left.id),
+    )
+  } else if (displayChanged) {
+    listSnapshot = listSnapshot.map((job) => nextRows.get(job.id)!.snapshot)
+  }
 
+  listIds = viewJobIds
   listSource = jobs
   rows = nextRows
 
@@ -113,6 +122,7 @@ export function selectTrackerDrawerJob({
   if (
     !previous ||
     !job ||
+    previous.workflowLoaded !== job.workflowLoaded ||
     !sameDisplay(previous, job) ||
     !sameStages ||
     previous.contacts !== job.contacts ||

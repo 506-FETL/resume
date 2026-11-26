@@ -33,6 +33,8 @@ export function CompanyLogo({
   return (
     <img
       src={logo}
+      loading='lazy'
+      decoding='async'
       alt={company}
       className={cn('size-5 object-contain', imgClassName)}
       onError={() => setFailed(true)}

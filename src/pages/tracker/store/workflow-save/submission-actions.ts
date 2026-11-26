@@ -1,3 +1,4 @@
+import { companyJobsChanged } from '../../lib/company-reads'
 import type { PersistenceRuntime } from './runtime'
 import type { WorkflowDrafts } from './workflow-drafts'
 import type { FieldWrites } from './field-writes'
@@ -65,6 +66,11 @@ export function createSubmissionActions(
       )
         Object.assign(accepted, { [field]: saved[field] })
     }
+
+    const job = find(id)!
+
+    if (saved.status !== job.status)
+      companyJobsChanged(job.tracker_company_id, job.status, saved.status)
 
     merge(id, accepted)
 

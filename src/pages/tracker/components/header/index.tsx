@@ -11,6 +11,15 @@ export default function TrackerHeader() {
   const { stats, busy, error } = useTrackerOverview()
   const openAddDrawer = useTrackerStore((state) => state.openAddDrawer)
 
+  const countsError = useTrackerStore((state) => state.countsError)
+  const retryCounts = useTrackerStore((state) => state.refreshJobCounts)
+
+  const retry = countsError && (
+    <Button variant='ghost' size='sm' onClick={() => retryCounts()}>
+      重试统计
+    </Button>
+  )
+
   if (isMobile) {
     return (
       <header className='flex shrink-0 items-center justify-between gap-2'>
@@ -24,6 +33,7 @@ export default function TrackerHeader() {
             </span>
             <span aria-hidden>·</span>
             <ResponseRate />
+            {retry}
           </div>
         </div>
         <Button
@@ -44,6 +54,7 @@ export default function TrackerHeader() {
           求职跟进
         </h1>
         <ResponseRate />
+        {retry}
       </div>
       <Button
         className='h-9 shrink-0 rounded-lg px-2.5 sm:px-3'

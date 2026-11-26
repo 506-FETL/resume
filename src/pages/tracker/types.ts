@@ -72,6 +72,7 @@ export interface TrackerContact {
 }
 
 export interface JobApplication {
+  workflowLoaded?: boolean
   focused_at: string | null
   id: string
   created_at: string

@@ -1,12 +1,11 @@
 import type { ComponentProps } from 'react'
 import type { AddJobFormData } from './types'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import type { Drawer } from '@/components/ui/drawer'
 import { useIsMobile } from '@/hooks/use-mobile'
-import { createCompany } from '@/lib/supabase/resume'
+import { createCompany } from '@/lib/supabase/resume/company/mutations'
 import { extractJobProfile } from '@/lib/supabase/resume/job-profile'
 import {
   assertTrackerAccountScope,
@@ -14,9 +13,9 @@ import {
   getTrackerAccountScope,
   isTrackerAccountScopeCurrent,
 } from '../../../lib/account-scope'
-import { useTrackerResumeOptions } from '../../../lib/resume-resources'
 import useTrackerStore, { getTrackerConflictAction } from '../../../store'
 import { getTrackerErrorMessage } from '../../../utils'
+import { readCompanyMembers } from '../../../lib/company-reads'
 import { INITIAL_FORM_DATA } from './types'
 import { buildJobPayload, validateAddJobForm } from './utils'
 
@@ -34,15 +33,7 @@ export function useAddJob() {
     )
 
   const isMobile = useIsMobile()
-  const reduce = useReducedMotion()
   const [formData, setFormData] = useState<AddJobFormData>(INITIAL_FORM_DATA)
-
-  const {
-    data: resumes,
-    loading: loadingResumes,
-    error: resumesError,
-    retry: retryResumes,
-  } = useTrackerResumeOptions(addDrawerOpen)
 
   const [submitting, setSubmitting] = useState(false)
   const [pendingTerminal, setPendingTerminal] = useState(false)
@@ -225,21 +216,37 @@ export function useAddJob() {
       return
     }
 
-    const duplicate = useTrackerStore
-      .getState()
-      .jobs.find(
-        (job) =>
-          job.tracker_company_id === formData.tracker_company_id &&
-          (job.recruitment_batch ?? '').trim() ===
-            formData.recruitment_batch.trim() &&
-          job.position.trim().toLocaleLowerCase() ===
-            formData.position.trim().toLocaleLowerCase(),
-      )
+    if (formData.tracker_company_id) {
+      setSubmitting(true)
 
-    if (duplicate) {
-      setDuplicateId(duplicate.id)
+      try {
+        const members = await readCompanyMembers(formData.tracker_company_id)
 
-      return
+        assertTrackerAccountScope(scope)
+
+        const duplicate = members.find(
+          (row) =>
+            (row.recruitment_batch ?? '').trim() ===
+              formData.recruitment_batch.trim() &&
+            row.position.trim().toLocaleLowerCase() ===
+              formData.position.trim().toLocaleLowerCase(),
+        )
+
+        if (duplicate) {
+          setDuplicateId(duplicate.id)
+
+          return
+        }
+      } catch (error) {
+        if (isTrackerAccountScopeCurrent(scope))
+          toast.error('检查已有岗位失败', {
+            description: getTrackerErrorMessage(error),
+          })
+
+        return
+      } finally {
+        if (isTrackerAccountScopeCurrent(scope)) setSubmitting(false)
+      }
     }
 
     if (formData.status === 'offer' || formData.status === 'rejected') {
@@ -284,12 +291,7 @@ export function useAddJob() {
     addDrawerOpen,
     closeAddDrawer,
     isMobile,
-    reduce,
     formData,
-    resumes,
-    loadingResumes,
-    resumesError,
-    retryResumes,
     submitting,
     pendingTerminal,
     setPendingTerminal,

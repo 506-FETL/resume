@@ -1,11 +1,8 @@
-import type {
-  ResumeOption,
-  ResumePreviewData,
-} from '../components/drawer/types'
+import type { ResumePreviewData } from '../components/drawer/types'
 import type { TrackerAccountScope as ResumeScope } from './account-scope'
 import { useCallback, useEffect, useState, useSyncExternalStore } from 'react'
-import { FORM_DATA_KEYS } from '@/store/resume/const'
-import { getResumeOptions, getResumeById } from '@/lib/supabase/resume'
+import { readOwnedResumeRow } from '@/lib/supabase/resume/read-owned-row'
+import { subscribeResumeReadChanges } from '@/lib/resume-read-events'
 import { getTrackerErrorMessage } from '../utils'
 import {
   getTrackerAccountScope,
@@ -20,12 +17,12 @@ interface CacheEntry<T> {
   promise?: Promise<T>
 }
 
-const optionsCache = new Map<string, CacheEntry<ResumeOption[]>>()
+const nameCache = new Map<string, CacheEntry<string>>()
 const previewCache = new Map<string, CacheEntry<ResumePreviewData>>()
 
 // 即使身份 A → B → A 发生在同一轮渲染中，旧请求也不能回填新会话。
 subscribeTrackerAccountScope(() => {
-  optionsCache.clear()
+  nameCache.clear()
   previewCache.clear()
 })
 
@@ -92,15 +89,26 @@ function readResource<T>(
   return entry.promise
 }
 
-export function loadTrackerResumeOptions(
-  requestScope = getTrackerAccountScope(),
-) {
-  return readResource(
-    optionsCache,
-    'options',
-    requestScope,
-    async () => (await getResumeOptions()) as ResumeOption[],
-  )
+subscribeResumeReadChanges((id) => {
+  if (id) {
+    nameCache.delete(id)
+    previewCache.delete(id)
+  } else {
+    nameCache.clear()
+    previewCache.clear()
+  }
+})
+
+function loadTrackerResumeName(scope: ResumeScope, resumeId: string) {
+  return readResource(nameCache, resumeId, scope, async () => {
+    const row = await readOwnedResumeRow(
+      resumeId,
+      scope.userId!,
+      'display_name',
+    )
+
+    return String(row.display_name || '未命名简历')
+  })
 }
 
 export function loadTrackerResumePreview(
@@ -108,12 +116,24 @@ export function loadTrackerResumePreview(
   resumeId: string,
 ) {
   return readResource(previewCache, resumeId, requestScope, async () => {
+    const [{ getResumeById }, { FORM_DATA_KEYS }] = await Promise.all([
+      import('@/lib/supabase/resume/get-by-id'),
+      import('@/store/resume/const'),
+    ])
+
     const data = await getResumeById<ResumePreviewData>(
       resumeId,
-      `${FORM_DATA_KEYS.join(',')},order,visibility,type,template_binding,spacing,font,theme`,
+      `${FORM_DATA_KEYS.join(',')},order,visibility,type,template_binding,spacing,font,theme,display_name`,
     )
 
     if (!data) throw new Error('这份简历暂时无法查看')
+
+    if (requestScope === getTrackerAccountScope()) {
+      nameCache.set(resumeId, {
+        data: data.display_name || '未命名简历',
+        expiresAt: Date.now() + CACHE_TTL,
+      })
+    }
 
     return data
   })
@@ -203,12 +223,12 @@ function useResumeResource<T>(
   }
 }
 
-export function useTrackerResumeOptions(enabled: boolean) {
+export function useTrackerResumeName(id: string, enabled: boolean) {
   return useResumeResource(
-    enabled,
-    'options',
-    optionsCache,
-    loadTrackerResumeOptions,
+    enabled && Boolean(id),
+    id,
+    nameCache,
+    loadTrackerResumeName,
   )
 }
 

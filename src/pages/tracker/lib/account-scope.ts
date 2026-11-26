@@ -59,3 +59,13 @@ export function createTrackerAccountGuard(requestScope: TrackerAccountScope) {
     if (userId !== requestScope.userId) throw new TrackerAccountScopeError()
   }
 }
+
+const visitResetters = new Set<() => void>()
+
+export function onTrackerVisitEnd(reset: () => void) {
+  visitResetters.add(reset)
+}
+
+export function finishTrackerVisit() {
+  visitResetters.forEach((reset) => reset())
+}

@@ -14,7 +14,7 @@ import { useCountUp } from '../../hooks/use-count-up'
 import { useTrackerOverview } from '../../hooks/use-tracker-overview'
 
 function ResponseRate() {
-  const { stats, busy, error } = useTrackerOverview()
+  const { stats, historyBusy: busy, historyError: error } = useTrackerOverview()
   const reduce = useReducedMotion()
   const rate = useCountUp(stats.responseRate)
   const available = !error && stats.historicalApplied > 0

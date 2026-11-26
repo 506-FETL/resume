@@ -1,4 +1,9 @@
-import type { ApplicationStatus, StageStatus, TrackerSortBy } from './types'
+import type {
+  ApplicationStatus,
+  DrawerTab,
+  StageStatus,
+  TrackerSortBy,
+} from './types'
 
 export const TRACKER_SEARCH_INPUT_ID = 'tracker-search'
 
@@ -315,4 +320,10 @@ export const COMMON_CITIES = [
   '石家庄',
   '兰州',
   '南宁',
+]
+
+export const DRAWER_TABS: { value: DrawerTab; label: string }[] = [
+  { value: 'follow-up', label: '跟进' },
+  { value: 'interview', label: '阶段详情' },
+  { value: 'documents', label: '联系人与简历' },
 ]

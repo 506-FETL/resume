@@ -12,7 +12,6 @@ import { getTrackerErrorMessage } from '../../../utils'
 
 export function useSubmissionList(jobId: string, onViewDetails?: () => void) {
   const reduce = useReducedMotion()
-  const revision = useTrackerStore((state) => state.submissionRevision)
   const resource = useTrackerStore((state) => state.submissionsByJob[jobId])
   const sectionRef = useRef<HTMLElement>(null)
   const editTriggerRef = useRef<HTMLButtonElement>(null)
@@ -33,7 +32,7 @@ export function useSubmissionList(jobId: string, onViewDetails?: () => void) {
 
   useEffect(() => {
     useTrackerStore.getState().loadSubmissions(jobId)
-  }, [jobId, revision])
+  }, [jobId, resource?.revision])
 
   const current = resource
   const data = resource?.data
@@ -53,7 +52,7 @@ export function useSubmissionList(jobId: string, onViewDetails?: () => void) {
   useEffect(() => {
     if (!compact && primaryId && historyOpen)
       useTrackerStore.getState().loadSubmissionHistory(primaryId)
-  }, [compact, primaryId, revision, historyOpen])
+  }, [compact, primaryId, historyResource?.revision, historyOpen])
 
   const choose = async (row: JobSubmission) => {
     const scope = getTrackerAccountScope()
@@ -92,6 +91,15 @@ export function useSubmissionList(jobId: string, onViewDetails?: () => void) {
     }
   }
 
+  function openMaterial(target: typeof viewing) {
+    if (target)
+      useTrackerStore
+        .getState()
+        .loadSubmissionMaterial(target.record.id, target.revisionId)
+
+    setViewing(target)
+  }
+
   return {
     reduce,
     resource,
@@ -100,7 +108,7 @@ export function useSubmissionList(jobId: string, onViewDetails?: () => void) {
     historyTriggerRef,
     legacyTriggerRef,
     viewing,
-    setViewing,
+    setViewing: openMaterial,
     materialEdit,
     setMaterialEdit,
     details,

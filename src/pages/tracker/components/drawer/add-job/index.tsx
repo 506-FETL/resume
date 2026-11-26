@@ -1,5 +1,5 @@
+import { restoreDialogFocus } from '@/lib/dialog-focus'
 import { useAddJob } from './use-add-job'
-import { AnimatePresence } from 'motion/react'
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,7 +10,6 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
-import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -28,24 +27,23 @@ import {
   DrawerHeader,
   DrawerTitle,
 } from '@/components/ui/drawer'
-import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { APPLICATION_STATUS_CONFIG } from '../../../const'
 import useTrackerStore from '../../../store'
+import { openTrackerTarget } from '../../../store/open-target'
 import { AddJobForm } from './add-job-form'
 import { AddJobStageSection } from './add-job-stage-section'
 
-export default function AddJobDrawer() {
+export default function AddJobDrawer({
+  opener,
+}: {
+  opener?: HTMLElement | null
+}) {
   const {
     addDrawerOpen,
     closeAddDrawer,
     isMobile,
-    reduce,
     formData,
-    resumes,
-    loadingResumes,
-    resumesError,
-    retryResumes,
     submitting,
     pendingTerminal,
     setPendingTerminal,
@@ -89,43 +87,7 @@ export default function AddJobDrawer() {
         formData={formData}
         onChange={handleChange}
         onResumeChange={handleResumeChange}
-        resumes={resumes ?? []}
-        loadingResumes={loadingResumes}
       />
-      <AnimatePresence initial={false}>
-        {resumesError && (
-          <PresenceDiv
-            role='alert'
-            initial={{ opacity: 0, y: reduce ? 0 : 8 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{
-              opacity: 0,
-              transition: {
-                duration: reduce ? 0 : DURATION.fast,
-                ease: EASE.in,
-              },
-            }}
-            transition={{
-              duration: reduce ? 0 : DURATION.base,
-              ease: EASE.out,
-            }}
-            className='flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground'
-          >
-            <span>
-              简历列表加载失败：
-              {resumesError}
-            </span>
-            <Button
-              type='button'
-              variant='outline'
-              size='sm'
-              onClick={retryResumes}
-            >
-              重试列表
-            </Button>
-          </PresenceDiv>
-        )}
-      </AnimatePresence>
     </AddJobForm>
   )
 
@@ -158,7 +120,14 @@ export default function AddJobDrawer() {
           onOpenChange={handleOpenChange}
           showSwipeHandle
         >
-          <DrawerContent className='max-h-[calc(100dvh-1rem)] overflow-clip'>
+          <DrawerContent
+            finalFocus={
+              opener
+                ? () => (opener.isConnected ? opener : undefined)
+                : undefined
+            }
+            className='max-h-[calc(100dvh-1rem)] overflow-clip'
+          >
             <DrawerHeader>
               <DrawerTitle>新增职位</DrawerTitle>
               <DrawerDescription className='sr-only'>
@@ -175,7 +144,10 @@ export default function AddJobDrawer() {
         </Drawer>
       ) : (
         <Dialog open={addDrawerOpen} onOpenChange={handleOpenChange}>
-          <DialogContent className='max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-lg'>
+          <DialogContent
+            onCloseAutoFocus={(event) => restoreDialogFocus(event, opener)}
+            className='max-h-[calc(100dvh-2rem)] grid-rows-[auto_minmax(0,1fr)_auto] sm:max-w-lg'
+          >
             <DialogHeader>
               <DialogTitle>新增职位</DialogTitle>
               <DialogDescription className='sr-only'>
@@ -239,14 +211,12 @@ export default function AddJobDrawer() {
             <Button
               variant='outline'
               onClick={() => {
-                const existing = useTrackerStore
-                  .getState()
-                  .jobs.find((job) => job.id === duplicateId)
+                const id = duplicateId
 
                 setDuplicateId(null)
                 closeAddDrawer()
 
-                if (existing) useTrackerStore.getState().openJobDrawer(existing)
+                if (id) openTrackerTarget(id)
               }}
             >
               打开已有岗位

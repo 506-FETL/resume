@@ -1,3 +1,4 @@
+import type { SubmissionFormProps } from '../submission-dialog/types'
 import { useSubmissionList } from './use-submission-list'
 import { RecordFacts } from './record-facts'
 import { RecordJd } from './record-jd'
@@ -14,10 +15,19 @@ import {
 } from '@/components/ui/collapsible'
 import { ContentSkeleton } from '@/components/loading-skeleton'
 import useTrackerStore from '../../../store'
-import { SubmissionForm } from '../submission-dialog'
+import { deferDialog } from '@/components/deferred-dialog'
 import SubmissionDetails from '../submission-details'
 import SubmissionFileRow from '../submission-file-row'
-import MaterialPreview from '../submission-preview'
+
+const Preview = deferDialog(() => import('../submission-preview'), '投递原件')
+
+const Correction = deferDialog<SubmissionFormProps>(
+  () =>
+    import('../submission-dialog').then(({ SubmissionForm }) => ({
+      default: SubmissionForm,
+    })),
+  '更正投递记录',
+)
 
 export default function SubmissionList({
   jobId,
@@ -343,22 +353,35 @@ export default function SubmissionList({
           )}
         </Alert>
       )}
-      {viewing && (
-        <MaterialPreview
-          key={viewing.revisionId ?? viewing.record.id}
-          {...viewing}
-          onClose={() => setViewing(null)}
-        />
-      )}
-      {materialEdit && (
-        <SubmissionForm
-          key={materialEdit.id}
-          jobId={jobId}
-          requestId={materialEdit.id}
-          correctingRecord={materialEdit}
-          onClose={() => setMaterialEdit(null)}
-        />
-      )}
+      <Preview open={Boolean(viewing)} onClose={() => setViewing(null)}>
+        {(Content, opener) =>
+          viewing && (
+            <Content
+              key={viewing.revisionId ?? viewing.record.id}
+              {...viewing}
+              opener={opener}
+              onClose={() => setViewing(null)}
+            />
+          )
+        }
+      </Preview>
+      <Correction
+        open={Boolean(materialEdit)}
+        onClose={() => setMaterialEdit(null)}
+      >
+        {(Content, opener) =>
+          materialEdit && (
+            <Content
+              key={materialEdit.id}
+              jobId={jobId}
+              requestId={materialEdit.id}
+              correctingRecord={materialEdit}
+              opener={opener}
+              onClose={() => setMaterialEdit(null)}
+            />
+          )
+        }
+      </Correction>
       {details && (
         <SubmissionDetails
           record={details}

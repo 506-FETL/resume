@@ -20,6 +20,7 @@ import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import {
+  DRAWER_TABS,
   APPLICATION_STATUS_CONFIG,
   APPLICATION_STATUS_ORDER,
   TRACKER_SEARCH_INPUT_ID,
@@ -29,21 +30,15 @@ import ViewTransition from '../view-transition'
 import ActivityTimeline from './activity-timeline'
 import Contacts from './contacts'
 import JobDetailContent from './job-detail-content'
+import WorkflowContent from './workflow-content'
 import DrawerDocument from './document/index'
 import SubmissionList from './submission-list'
-import DrawerEditForm from './edit-form'
+import { DrawerEditForm, DrawerStageDetail } from './deferred-sections'
 import NextActionSection from './next-action'
 import ProgressTimeline from './progress-timeline/index'
-import DrawerStageDetail from './stage-detail/index'
 import DrawerTabPanel from './tab-panel'
 
-const DRAWER_TABS: { value: DrawerTab; label: string }[] = [
-  { value: 'follow-up', label: '跟进' },
-  { value: 'interview', label: '阶段详情' },
-  { value: 'documents', label: '联系人与简历' },
-]
-
-function JobDrawer() {
+function JobDrawer({ opener }: { opener?: HTMLElement | null }) {
   const {
     selectedJob,
     drawerOpen,
@@ -78,14 +73,12 @@ function JobDrawer() {
 
   if (!selectedJob) {
     return (
-      <>
-        <Drawer
-          open={false}
-          onOpenChange={handleOpenChange}
-          swipeDirection={isMobile ? 'down' : 'right'}
-          showSwipeHandle={isMobile}
-        />
-      </>
+      <Drawer
+        open={false}
+        onOpenChange={handleOpenChange}
+        swipeDirection={isMobile ? 'down' : 'right'}
+        showSwipeHandle={isMobile}
+      />
     )
   }
 
@@ -183,14 +176,16 @@ function JobDrawer() {
         ) : (
           <div className='flex min-h-0 flex-1 flex-col gap-2 md:gap-3'>
             <div className='shrink-0'>
-              <ProgressTimeline
-                viewingStage={viewingStage}
-                onStageClick={(stage) => {
-                  flushWorkflow(selectedJob.id).catch(() => {})
-                  setViewingStage(stage === selectedJob.status ? null : stage)
-                  handleTabChange('interview')
-                }}
-              />
+              <WorkflowContent id={selectedJob.id} label='职位流程'>
+                <ProgressTimeline
+                  viewingStage={viewingStage}
+                  onStageClick={(stage) => {
+                    flushWorkflow(selectedJob.id).catch(() => {})
+                    setViewingStage(stage === selectedJob.status ? null : stage)
+                    handleTabChange('interview')
+                  }}
+                />
+              </WorkflowContent>
             </div>
             <Tabs
               className='min-h-0 flex-1'
@@ -243,10 +238,12 @@ function JobDrawer() {
                           />
                         )}
                         <Separator className='shrink-0' />
-                        <ActivityTimeline
-                          key={`activity-${selectedJob.id}`}
-                          job={selectedJob}
-                        />
+                        <WorkflowContent id={selectedJob.id} label='跟进记录'>
+                          <ActivityTimeline
+                            key={`activity-${selectedJob.id}`}
+                            job={selectedJob}
+                          />
+                        </WorkflowContent>
                       </div>
                     )}
                     {activeTab === 'interview' && (
@@ -271,7 +268,16 @@ function JobDrawer() {
                         <ViewTransition
                           animationKey={`${selectedJob.id}-${displayStage}`}
                         >
-                          <DrawerStageDetail displayStage={displayStage} />
+                          {displayStage === 'applied' ? (
+                            <SubmissionList jobId={selectedJob.id} />
+                          ) : (
+                            <WorkflowContent
+                              id={selectedJob.id}
+                              label='阶段详情'
+                            >
+                              <DrawerStageDetail displayStage={displayStage} />
+                            </WorkflowContent>
+                          )}
                         </ViewTransition>
                       </div>
                     )}
@@ -328,9 +334,11 @@ function JobDrawer() {
         <DrawerContent
           initialFocus={closeButtonRef}
           finalFocus={() =>
-            drawerTriggerRef.current?.isConnected
-              ? drawerTriggerRef.current
-              : document.getElementById(TRACKER_SEARCH_INPUT_ID)
+            opener?.isConnected
+              ? opener
+              : drawerTriggerRef.current?.isConnected
+                ? drawerTriggerRef.current
+                : document.getElementById(TRACKER_SEARCH_INPUT_ID)
           }
           className='flex min-h-0 flex-col gap-0 overflow-clip p-0'
           style={

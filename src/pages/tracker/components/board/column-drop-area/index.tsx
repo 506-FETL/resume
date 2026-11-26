@@ -1,3 +1,5 @@
+import { MoreJobs } from '../../more-jobs'
+import { useJobWindow } from '../../../hooks/use-job-window'
 import type { RefCallback } from 'react'
 import type { ApplicationStatus, JobApplication } from '../../../types'
 import { motion } from 'motion/react'
@@ -72,7 +74,8 @@ export function BoardColumnDropArea({
   reduceMotion: boolean | null
 }) {
   const scrollRef = useRef<HTMLDivElement | null>(null)
-  const itemIds = useMemo(() => jobs.map((job) => job.id), [jobs])
+  const { rows, ...page } = useJobWindow(jobs, status)
+  const itemIds = useMemo(() => rows.map((job) => job.id), [rows])
 
   const { ref: registerContainerRef, active } = useCrossListContainer({
     id: status,
@@ -110,14 +113,14 @@ export function BoardColumnDropArea({
       }}
     >
       {jobs.length > 0 ? (
-        jobs.map((job, index) => (
+        rows.map((job, index) => (
           <BoardJobItem
             key={job.id}
             job={job}
             containerId={status}
             index={index}
             reduceMotion={reduceMotion}
-            layoutItems={jobs}
+            layoutItems={rows}
           />
         ))
       ) : (
@@ -130,6 +133,7 @@ export function BoardColumnDropArea({
           拖入此列
         </div>
       )}
+      <MoreJobs {...page} />
     </div>
   )
 }

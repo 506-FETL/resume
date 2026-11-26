@@ -16,6 +16,7 @@ import {
   isShareManagement,
   selectShareManagement,
 } from '@/lib/share-management-route'
+import { isTrackerPage, selectTrackerPage } from '@/lib/tracker-route'
 import { WORKSPACE_PATH } from '@/lib/workspace-path'
 import {
   isWorkspaceHome,
@@ -37,6 +38,9 @@ if (pathname === '/' && hasAuthCallback) {
 // 认证与界面并行加载；模块失败仍交给 App 的错误边界。
 const libraryRoute = isResumeLibrary(pathname)
 const assistantRoute = isAssistantPage(pathname)
+const trackerRoute = isTrackerPage(pathname)
+const loadWorkspaceApp = () => import('./workspace-app')
+const trackerApp = trackerRoute ? loadWorkspaceApp() : undefined
 const shareRoute = isShareManagement(pathname)
 const archiveRoute = isExperienceArchive(pathname)
 const gatedLibrary = Boolean(new URLSearchParams(search).get('jobId'))
@@ -46,7 +50,8 @@ if (
     libraryRoute ||
     archiveRoute ||
     assistantRoute ||
-    shareRoute) &&
+    shareRoute ||
+    trackerRoute) &&
   !hasAuthCallback
 ) {
   import('./components/auth-session/subscription')
@@ -55,6 +60,7 @@ if (
 
   if (shareRoute && !new URLSearchParams(search).has('jobId'))
     selectShareManagement(true)
+  if (trackerRoute) selectTrackerPage(true)
   if (assistantRoute) selectAssistantPage(true)
   if (libraryRoute && !gatedLibrary) selectResumeLibrary(true)
   if (archiveRoute)
@@ -83,7 +89,7 @@ async function loadPage() {
     return <PublicHomepage />
   }
 
-  const { default: WorkspaceApp } = await import('./workspace-app')
+  const { default: WorkspaceApp } = await (trackerApp ?? loadWorkspaceApp())
 
   document.title = 'GResume'
 

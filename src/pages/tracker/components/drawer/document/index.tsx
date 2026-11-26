@@ -1,49 +1,33 @@
+import { createDeferredComponent } from '@/components/deferred-content'
 import PreparationActions from './preparation-actions'
 import { jobContextUrl } from '@/lib/job-context'
 import type { ResumePreviewData } from '../types'
-import { FileText, RotateCcw } from 'lucide-react'
-import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { FileText } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
-import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
-import { ContentSkeleton, PaperSkeleton } from '@/components/loading-skeleton'
+import { PaperSkeleton } from '@/components/loading-skeleton'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { Spinner } from '@/components/ui/spinner'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
+import ResourcePicker from '../resource-picker'
 import {
   getTrackerResumeScope,
-  useTrackerResumeOptions,
   useTrackerResumePreview,
 } from '../../../lib/resume-resources'
 import useTrackerStore from '../../../store'
-import {
-  getTrackerErrorMessage,
-  normalizeResumePreviewData,
-} from '../../../utils'
+import { getTrackerErrorMessage } from '../../../utils'
 
-function SharedResumePreview({ data }: { data: ResumePreviewData }) {
-  const normalizedData = useMemo(
-    () => buildTemplateResumeData(normalizeResumePreviewData(data)),
-    [data],
-  )
-
-  return (
-    <div className='p-3 sm:p-4'>
-      <ScaledReadonlyPreview data={normalizedData} appearance={data} />
-    </div>
-  )
-}
+const SharedResumePreview = createDeferredComponent<{
+  data: ResumePreviewData
+}>(
+  () => import('./bound-preview'),
+  '简历预览',
+  <PaperSkeleton label='正在加载简历预览' className='mx-auto max-w-lg' />,
+  { wrapFallback: false },
+)
 
 export default function DrawerDocument() {
   const { jobId, resumeId } = useTrackerStore(
@@ -54,20 +38,17 @@ export default function DrawerDocument() {
   )
 
   const navigate = useNavigate()
-  const reduce = useReducedMotion()
 
   const {
-    data: resumes,
-    error: listError,
-    retry: retryList,
     scope,
-  } = useTrackerResumeOptions(true)
-
-  const {
     data: currentPreview,
     error: currentPreviewError,
     retry: retryPreview,
   } = useTrackerResumePreview(resumeId, true)
+
+  useEffect(() => {
+    if (resumeId) SharedResumePreview.preload().catch(() => {})
+  }, [resumeId])
 
   const [binding, setBinding] = useState(false)
   const bindingVersionRef = useRef(0)
@@ -116,10 +97,6 @@ export default function DrawerDocument() {
 
   if (!jobId) return null
 
-  const selectedResume = resumes?.find(
-    (resume) => resume.resume_id === resumeId,
-  )
-
   return (
     <section className='min-w-0 space-y-4 border-t pt-5'>
       <header className='flex flex-wrap items-end justify-between gap-3'>
@@ -130,77 +107,41 @@ export default function DrawerDocument() {
           </h3>
           <p className='truncate text-xs text-muted-foreground'>
             {resumeId
-              ? selectedResume?.display_name || '已绑定简历'
+              ? currentPreview?.display_name || '已绑定简历'
               : '选择简历后，可在这里预览和继续编辑'}
           </p>
         </div>
-        {resumes && resumes.length > 0 && (
-          <div className='w-full min-w-0 space-y-1.5 sm:w-60'>
-            <Label
-              htmlFor='tracker-resume-select'
-              className='flex items-center gap-1.5 text-xs text-muted-foreground'
-            >
-              {binding && <Spinner aria-hidden />}
-              <span aria-live='polite'>
-                {binding ? '正在更新绑定…' : '绑定简历'}
-              </span>
-            </Label>
-            <Select
-              value={resumeId || ''}
-              onValueChange={handleResumeChange}
-              disabled={binding}
-            >
-              <SelectTrigger
-                id='tracker-resume-select'
-                className='w-full'
-                aria-busy={binding}
-              >
-                <SelectValue placeholder='选择一份简历' />
-              </SelectTrigger>
-              <SelectContent
-                style={
-                  reduce
-                    ? { animationDuration: '0s', transform: 'none' }
-                    : undefined
-                }
-              >
-                {resumes.map((resume) => (
-                  <SelectItem key={resume.resume_id} value={resume.resume_id}>
-                    {resume.display_name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        )}
-      </header>
-      {listError ? (
-        <div
-          role='alert'
-          className='flex flex-wrap items-center justify-between gap-2 text-sm text-muted-foreground'
-        >
-          <span className='min-w-0 break-words'>
-            简历列表加载失败：{listError}
-          </span>
-          <Button variant='outline' size='sm' onClick={retryList}>
-            <RotateCcw className='size-3.5' />
-            重试列表
-          </Button>
-        </div>
-      ) : !resumes ? (
-        <ContentSkeleton label='正在加载简历列表' className='p-0' rows={1} />
-      ) : resumes.length === 0 ? (
-        <div className='flex flex-wrap items-center justify-between gap-3'>
-          <p className='text-sm text-muted-foreground'>还没有可绑定的简历</p>
-          <Button
-            variant='outline'
-            size='sm'
-            onClick={() => navigate(jobContextUrl('/resume', jobId))}
+        <div className='w-full min-w-0 space-y-1.5 sm:w-60'>
+          <Label
+            htmlFor='tracker-resume-select'
+            className='flex items-center gap-1.5 text-xs text-muted-foreground'
           >
-            前往我的简历
-          </Button>
+            {binding && <Spinner aria-hidden />}
+            <span aria-live='polite'>
+              {binding ? '正在更新绑定…' : '绑定简历'}
+            </span>
+          </Label>
+          <ResourcePicker
+            id='tracker-resume-select'
+            value={resumeId || ''}
+            label={currentPreview?.display_name}
+            disabled={binding}
+            onChange={(option) => handleResumeChange(option.value)}
+            emptyMessage={
+              <div className='space-y-2'>
+                <p>还没有可绑定的简历</p>
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => navigate(jobContextUrl('/resume', jobId))}
+                >
+                  前往我的简历
+                </Button>
+              </div>
+            }
+          />
         </div>
-      ) : null}
+      </header>
       <PreparationActions />
       {resumeId && (
         <AnimatedContent

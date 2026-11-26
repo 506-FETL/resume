@@ -32,13 +32,12 @@ export default function SubmissionJd({
   onRetry: () => void
 }) {
   const resource = useTrackerStore((state) => state.submissionJdsById[recordId])
-  const revision = useTrackerStore((state) => state.submissionRevision)
   const data = resource?.data
   const error = resource?.error
 
   useEffect(() => {
     if (enabled) useTrackerStore.getState().loadSubmissionJd(recordId)
-  }, [recordId, enabled, revision])
+  }, [recordId, enabled, resource?.revision])
 
   return (
     <AnimatedContent

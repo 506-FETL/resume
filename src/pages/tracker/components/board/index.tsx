@@ -1,3 +1,4 @@
+import { useTrackerOverview } from '../../hooks/use-tracker-overview'
 import type { RefCallback } from 'react'
 import type { ApplicationStatus, JobApplication } from '../../types'
 import type { CrossListDropResult } from '@/components/ui/cross-list-drag'
@@ -37,6 +38,13 @@ function BoardView({ jobs }: { jobs: JobApplication[] }) {
     })),
   )
 
+  const {
+    visibleStageCounts,
+    busy: countsBusy,
+    error: countsError,
+  } = useTrackerOverview()
+
+  const complete = useTrackerStore((state) => state.scopeComplete)
   const reduceMotion = useReducedMotion()
   const scrollContainerRef = useRef<HTMLDivElement>(null)
   const columnElementsRef = useRef<Map<string, HTMLDivElement>>(new Map())
@@ -201,6 +209,13 @@ function BoardView({ jobs }: { jobs: JobApplication[] }) {
           <div className='flex min-h-0 flex-1 items-stretch gap-2 pb-2'>
             {BOARD_COLUMNS.map((column) => {
               const columnJobs = groupedJobs[column.status]
+
+              const columnCount = complete
+                ? columnJobs.length
+                : countsBusy || countsError
+                  ? '—'
+                  : (visibleStageCounts[column.status] ?? 0)
+
               const highlighted = isColumnHighlighted(column.status)
               const isRejectedColumn = column.status === 'rejected'
               const collapsed = isRejectedColumn && rejectedCollapsed
@@ -258,7 +273,7 @@ function BoardView({ jobs }: { jobs: JobApplication[] }) {
                           {column.label}
                         </span>
                         <Badge variant='secondary' className='mt-1'>
-                          {columnJobs.length}
+                          {columnCount}
                         </Badge>
                       </Button>
                     ) : (
@@ -305,7 +320,7 @@ function BoardView({ jobs }: { jobs: JobApplication[] }) {
                             <Badge
                               variant={highlighted ? 'default' : 'secondary'}
                             >
-                              {columnJobs.length}
+                              {columnCount}
                             </Badge>
                           </div>
                         </div>

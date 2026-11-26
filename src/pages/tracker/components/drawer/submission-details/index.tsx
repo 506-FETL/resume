@@ -46,6 +46,17 @@ export default function SubmissionDetails({
   const save = async () => {
     if (!reason.trim()) return setError('请填写更正原因')
 
+    if (
+      !saved &&
+      date === record.submitted_on &&
+      (channel.trim() || null) === record.channel &&
+      (note.trim() || null) === record.note
+    ) {
+      setOpen(false)
+
+      return
+    }
+
     const scope = getTrackerAccountScope()
     let confirmed = saved
 

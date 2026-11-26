@@ -5,7 +5,7 @@ import { DURATION } from '@/lib/motion'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Button } from '@/components/ui/button'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { Skeleton } from '@/components/ui/skeleton'
+import ResourcePicker from '../resource-picker'
 import {
   Dialog,
   DialogContent,
@@ -32,6 +32,7 @@ export function SubmissionForm({
   jobId,
   requestId,
   correctingRecord,
+  opener,
   onClose,
 }: SubmissionFormProps) {
   const {
@@ -41,18 +42,13 @@ export function SubmissionForm({
     open,
     close,
     job,
-    resumes,
-    resumeError,
-    retry,
+    resumeName,
     kind,
     setKind,
     resumeId,
-    setResumeId,
+    pickResume,
     versionId,
     setVersionId,
-    versions,
-    versionsError,
-    retryVersions,
     file,
     setFile,
     date,
@@ -85,7 +81,7 @@ export function SubmissionForm({
         onCloseAutoFocus={(event) => {
           event.preventDefault()
 
-          const target = returnFocusRef.current
+          const target = opener?.isConnected ? opener : returnFocusRef.current
 
           if (target instanceof HTMLElement && target.isConnected)
             target.focus({ preventScroll: true })
@@ -195,113 +191,25 @@ export function SubmissionForm({
               {kind === 'platform' && (
                 <div className='space-y-2'>
                   <Label htmlFor='submission-resume'>已保存的简历</Label>
-                  {resumeError ? (
-                    <Alert variant='destructive'>
-                      <AlertDescription>{resumeError}</AlertDescription>
-                      <Button
-                        variant='outline'
-                        className='mt-2 w-fit'
-                        onClick={retry}
-                      >
-                        重试
-                      </Button>
-                    </Alert>
-                  ) : !resumes ? (
-                    <Select disabled>
-                      <SelectTrigger
-                        id='submission-resume'
-                        className='w-full'
-                        aria-busy='true'
-                      >
-                        <SelectValue placeholder='正在加载简历…' />
-                      </SelectTrigger>
-                    </Select>
-                  ) : resumes.length === 0 ? (
-                    <p>
-                      {correcting
+                  <ResourcePicker
+                    id='submission-resume'
+                    value={resumeId}
+                    label={resumeName ?? undefined}
+                    onChange={pickResume}
+                    emptyMessage={
+                      correcting
                         ? '没有可用的已保存简历，可上传原件。'
-                        : '没有可用的已保存简历，可上传原件，也可取消附上原件后直接记录投递。'}
-                    </p>
-                  ) : (
-                    <Select value={resumeId} onValueChange={setResumeId}>
-                      <SelectTrigger id='submission-resume' className='w-full'>
-                        <SelectValue placeholder='选择简历' />
-                      </SelectTrigger>
-                      <SelectContent
-                        style={
-                          reduce
-                            ? { animationDuration: '0s', transform: 'none' }
-                            : undefined
-                        }
-                      >
-                        {resumes.map((resume) => (
-                          <SelectItem
-                            key={resume.resume_id}
-                            value={resume.resume_id}
-                          >
-                            {resume.display_name}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  )}
-                  <Label htmlFor='submission-version'>已保存版本</Label>
-                  <Select
-                    value={versionId || 'current'}
-                    onValueChange={(value) =>
-                      setVersionId(value === 'current' ? '' : value)
+                        : '没有可用的已保存简历，可上传原件，也可取消附上原件后直接记录投递。'
                     }
-                  >
-                    <SelectTrigger id='submission-version' className='w-full'>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent
-                      style={
-                        reduce
-                          ? { animationDuration: '0s', transform: 'none' }
-                          : undefined
-                      }
-                    >
-                      <SelectItem value='current'>
-                        云端当前已保存内容
-                      </SelectItem>
-                      {versions?.map((version) => (
-                        <SelectItem key={version.id} value={String(version.id)}>
-                          V{version.version_no}
-                          {version.version_name
-                            ? ` · ${version.version_name}`
-                            : ''}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  {versionsError ? (
-                    <div
-                      role='alert'
-                      className='flex flex-wrap items-center gap-2 text-xs'
-                    >
-                      <span className='text-destructive'>
-                        历史版本加载失败：{versionsError}
-                        。仍可使用云端当前内容。
-                      </span>
-                      <Button
-                        type='button'
-                        variant='outline'
-                        size='sm'
-                        onClick={retryVersions}
-                      >
-                        重新读取历史版本
-                      </Button>
-                    </div>
-                  ) : versions === null && resumeId ? (
-                    <span
-                      role='status'
-                      aria-label='正在加载历史版本'
-                      className='block'
-                    >
-                      <Skeleton className='h-3 w-28' />
-                    </span>
-                  ) : null}
+                  />
+                  <Label htmlFor='submission-version'>已保存版本</Label>
+                  <ResourcePicker
+                    key={resumeId}
+                    id='submission-version'
+                    resumeId={resumeId}
+                    value={versionId}
+                    onChange={(option) => setVersionId(option.value)}
+                  />
                   <p className='text-xs text-muted-foreground'>
                     未保存的编辑不会进入留档。
                   </p>
@@ -383,7 +291,11 @@ export function SubmissionForm({
   )
 }
 
-export default function SubmissionDialog() {
+export default function SubmissionDialog({
+  opener,
+}: {
+  opener?: HTMLElement | null
+}) {
   const current = useTrackerStore((state) => state.submissionQueue[0])
 
   if (!current) return null
@@ -391,6 +303,7 @@ export default function SubmissionDialog() {
   return (
     <SubmissionForm
       key={current.id}
+      opener={opener}
       jobId={current.jobId}
       requestId={current.id}
       onClose={() => useTrackerStore.getState().finishSubmission()}

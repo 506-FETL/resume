@@ -1,5 +1,6 @@
-import type { TrackerCompany } from '../../../types'
-import { useEffect } from 'react'
+import type { TrackerCompanyOption } from '@/lib/supabase/resume/tracker-companies'
+import { useEffect, useMemo, useState } from 'react'
+import { Combobox as BaseCombobox } from '@base-ui/react/combobox'
 import { AnimatePresence } from 'motion/react'
 import { RotateCcw } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -22,7 +23,6 @@ import { useDelayedBusy } from '@/hooks/use-delayed-busy'
 import { Spinner } from '@/components/ui/spinner'
 import { DURATION, EASE } from '@/lib/motion'
 import useTrackerStore from '../../../store'
-import { selectTrackerListJobs } from '../../../store/selectors'
 
 export function CompanyPicker({
   id,
@@ -45,19 +45,93 @@ export function CompanyPicker({
   inputClassName?: string
   feedbackPlacement?: 'below' | 'inline'
 }) {
-  const { companies, companiesLoading, companiesError, loadCompanies, jobs } =
-    useTrackerStore(
-      useShallow((state) => ({
-        companies: state.companies,
-        companiesLoading: state.companiesLoading,
-        companiesError: state.companiesError,
-        loadCompanies: state.loadCompanies,
-        jobs: selectTrackerListJobs(state),
-      })),
-    )
+  const {
+    companies,
+    companiesLoading,
+    companiesError,
+    loadCompanies,
+    complete,
+    initialized,
+    boundName,
+    nextName,
+    hints,
+    loadHints,
+  } = useTrackerStore(
+    useShallow((state) => ({
+      companies: state.companies,
+      companiesLoading: state.companiesLoading,
+      companiesError: state.companiesError,
+      loadCompanies: state.loadCompanies,
+      initialized: state.companiesInitialized,
+      complete: state.companyOptionsComplete,
+      nextName: state.companyNextName,
+      hints: state.companyHints,
+      loadHints: state.loadCompanyHints,
+      boundName: value
+        ? state.jobs.find((job) => job.tracker_company_id === value)?.company
+        : '',
+    })),
+  )
 
   const reduce = useReducedMotion()
-  const selected = companies.find((company) => company.id === value) ?? null
+  const [open, setOpen] = useState(false)
+  const [query, setQuery] = useState('')
+  const [limit, setLimit] = useState(30)
+  const { contains } = BaseCombobox.useFilter({ multiple: true })
+
+  const matches = useMemo(
+    () =>
+      query
+        ? companies.filter((company) => contains(company.name, query))
+        : companies,
+    [companies, query, contains],
+  )
+
+  const shown = useMemo(() => matches.slice(0, limit), [matches, limit])
+  const more = matches.length > limit || !complete
+
+  const nextPage = () => {
+    if (more && shown.length === limit) setLimit(limit + 30)
+  }
+
+  const selected = useMemo(() => {
+    if (!value) return null
+
+    return (
+      companies.find((company) => company.id === value) ?? {
+        id: value,
+        name: name || boundName || '',
+      }
+    )
+  }, [value, companies, name, boundName])
+
+  const duplicates = useMemo(() => {
+    const names = new Set<string>()
+    const repeated = new Set<string>()
+
+    for (const company of companies) {
+      if (names.has(company.name)) repeated.add(company.name)
+
+      names.add(company.name)
+    }
+
+    if (nextName && names.has(nextName)) repeated.add(nextName)
+
+    return repeated
+  }, [companies, nextName])
+
+  const sameNames = useMemo(
+    () =>
+      shown
+        .filter((company) => duplicates.has(company.name))
+        .map((company) => company.id),
+    [shown, duplicates],
+  )
+
+  useEffect(() => {
+    if (open) loadHints(sameNames)
+  }, [open, sameNames, loadHints])
+
   const inlineFeedback = feedbackPlacement === 'inline'
   const showLoading = useDelayedBusy(companiesLoading)
 
@@ -68,19 +142,56 @@ export function CompanyPicker({
       : 'ready'
 
   useEffect(() => {
-    loadCompanies()
-  }, [loadCompanies])
+    if (
+      open &&
+      !complete &&
+      !companiesLoading &&
+      !companiesError &&
+      matches.length < limit
+    )
+      loadCompanies()
+  }, [
+    open,
+    complete,
+    companiesLoading,
+    companiesError,
+    matches.length,
+    limit,
+    loadCompanies,
+  ])
 
   return (
     <div className='flex min-w-0 flex-col gap-2'>
       <Combobox
         items={companies}
+        filteredItems={shown}
+        onOpenChange={(next) => {
+          setOpen(next)
+
+          if (!next) {
+            setQuery('')
+            setLimit(30)
+          }
+        }}
+        onInputValueChange={(input, details) => {
+          if (
+            details.reason === 'input-change' ||
+            details.reason === 'clear-press'
+          ) {
+            setQuery(input)
+            setLimit(30)
+          }
+        }}
+        onItemHighlighted={(_, details) => {
+          if (details.index === shown.length - 1) nextPage()
+        }}
         value={selected}
-        itemToStringLabel={(company: TrackerCompany) => company.name}
-        itemToStringValue={(company: TrackerCompany) => company.id}
-        isItemEqualToValue={(left: TrackerCompany, right: TrackerCompany) =>
-          left.id === right.id
-        }
+        itemToStringLabel={(company: TrackerCompanyOption) => company.name}
+        itemToStringValue={(company: TrackerCompanyOption) => company.id}
+        isItemEqualToValue={(
+          left: TrackerCompanyOption,
+          right: TrackerCompanyOption,
+        ) => left.id === right.id}
         onValueChange={(company) =>
           onChange(company?.id ?? null, company?.name ?? '')
         }
@@ -96,7 +207,9 @@ export function CompanyPicker({
           }
           showClear={Boolean(allLabel)}
           disabled={disabled}
-          aria-busy={companiesLoading}
+          aria-busy={
+            open && (companiesLoading || (!initialized && !companiesError))
+          }
           aria-invalid={inlineFeedback && Boolean(companiesError)}
           aria-describedby={`${id}-status`}
         >
@@ -118,7 +231,7 @@ export function CompanyPicker({
                   disabled={disabled}
                   onClick={() => {
                     document.getElementById(id)?.focus()
-                    loadCompanies(true)
+                    loadCompanies()
                   }}
                 >
                   <RotateCcw className='size-3.5' aria-hidden />
@@ -140,16 +253,25 @@ export function CompanyPicker({
                 ? '公司加载失败，请重试'
                 : '没有匹配的公司'}
           </ComboboxEmpty>
-          <ComboboxList>
-            {(company: TrackerCompany) => (
+          <ComboboxList
+            onScroll={(event) => {
+              const list = event.currentTarget
+
+              if (
+                !complete &&
+                !companiesError &&
+                list.scrollTop + list.clientHeight >= list.scrollHeight - 24
+              )
+                nextPage()
+            }}
+          >
+            {(company: TrackerCompanyOption) => (
               <ComboboxItem key={company.id} value={company}>
                 <span className='min-w-0 truncate'>{company.name}</span>
-                {companies.some(
-                  (row) => row.id !== company.id && row.name === company.name,
-                ) && (
+                {duplicates.has(company.name) && (
                   <span className='shrink-0 text-xs text-muted-foreground'>
-                    {jobs.find((job) => job.tracker_company_id === company.id)
-                      ?.position ?? `暂无岗位 · ${company.id.slice(0, 6)}`}
+                    {hints[company.id] ??
+                      `${hints[company.id] === null ? '暂无岗位' : '公司编号'} · ${company.id.slice(0, 6)}`}
                   </span>
                 )}
               </ComboboxItem>
@@ -182,7 +304,7 @@ export function CompanyPicker({
                   size='sm'
                   onClick={() => {
                     document.getElementById(id)?.focus()
-                    loadCompanies(true)
+                    loadCompanies()
                   }}
                 >
                   重试

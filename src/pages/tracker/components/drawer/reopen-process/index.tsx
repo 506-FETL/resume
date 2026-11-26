@@ -29,11 +29,14 @@ import {
   getTrackerAccountScope,
   isTrackerAccountScopeCurrent,
 } from '../../../lib/account-scope'
+import { openTrackerTarget } from '../../../store/open-target'
 import WorkflowDateField from '../workflow-date-field'
 
 function ReopenForm({
   request,
+  opener,
 }: {
+  opener?: HTMLElement | null
   request: {
     jobId: string
     eventId: string
@@ -41,7 +44,7 @@ function ReopenForm({
   }
 }) {
   const reduce = useReducedMotion()
-  const returnFocusRef = useRef(document.activeElement)
+  const returnFocusRef = useRef(opener ?? document.activeElement)
   const pendingJobRef = useRef<string | null>(null)
   const [open, setOpen] = useState(true)
   const [target, setTarget] = useState(request.target)
@@ -93,11 +96,7 @@ function ReopenForm({
           event.preventDefault()
           useTrackerStore.getState().finishReopen()
 
-          const job = useTrackerStore
-            .getState()
-            .jobs.find((row) => row.id === pendingJobRef.current)
-
-          if (job) useTrackerStore.getState().openJobDrawer(job)
+          if (pendingJobRef.current) openTrackerTarget(pendingJobRef.current)
           else if (
             returnFocusRef.current instanceof HTMLElement &&
             returnFocusRef.current.isConnected
@@ -194,8 +193,14 @@ function ReopenForm({
   )
 }
 
-export default function ReopenProcessDialog() {
+export default function ReopenProcessDialog({
+  opener,
+}: {
+  opener?: HTMLElement | null
+}) {
   const request = useTrackerStore((state) => state.reopenQueue[0])
 
-  return request ? <ReopenForm key={request.eventId} request={request} /> : null
+  return request ? (
+    <ReopenForm key={request.eventId} request={request} opener={opener} />
+  ) : null
 }

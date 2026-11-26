@@ -65,33 +65,28 @@ export function sortJobs(
 ): JobApplication[] {
   const dir = sortDir === 'asc' ? 1 : -1
 
-  const time = (value: string) => {
-    const t = new Date(value).getTime()
+  if (sortBy === 'company') {
+    const collator = new Intl.Collator('zh-Hans-CN')
 
-    return Number.isNaN(t) ? 0 : t
+    return [...jobs].sort(
+      (a, b) => collator.compare(a.company, b.company) * dir,
+    )
   }
 
-  // rejected 不在 APPLICATION_STATUS_ORDER 中，按“走完全部阶段之后”排到末尾
-  const statusRank = (status: ApplicationStatus) => {
-    const idx = APPLICATION_STATUS_ORDER.indexOf(status)
+  const ranks = jobs.map((job) => {
+    if (sortBy === 'days') return { job, rank: getDaysInStage(job) }
+    if (sortBy === 'status') {
+      const index = APPLICATION_STATUS_ORDER.indexOf(job.status)
 
-    return idx === -1 ? APPLICATION_STATUS_ORDER.length : idx
-  }
-
-  return [...jobs].sort((a, b) => {
-    switch (sortBy) {
-      case 'updated':
-        return (time(a.updated_at) - time(b.updated_at)) * dir
-      case 'created':
-        return (time(a.created_at) - time(b.created_at)) * dir
-      case 'days':
-        return (getDaysInStage(a) - getDaysInStage(b)) * dir
-      case 'company':
-        return a.company.localeCompare(b.company, 'zh-Hans-CN') * dir
-      case 'status':
-        return (statusRank(a.status) - statusRank(b.status)) * dir
-      default:
-        return 0
+      return { job, rank: index < 0 ? APPLICATION_STATUS_ORDER.length : index }
     }
+
+    const time = Date.parse(
+      sortBy === 'updated' ? job.updated_at : job.created_at,
+    )
+
+    return { job, rank: Number.isNaN(time) ? 0 : time }
   })
+
+  return ranks.sort((a, b) => (a.rank - b.rank) * dir).map(({ job }) => job)
 }

@@ -22,6 +22,7 @@ import {
   isShareManagement,
   selectShareManagement,
 } from '@/lib/share-management-route'
+import { isTrackerPage, selectTrackerPage } from '@/lib/tracker-route'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
 import {
   isExperienceArchive,
@@ -124,6 +125,12 @@ function App() {
     )
   }, [archiveRoute, location.key])
 
+  const trackerPage = isTrackerPage(location.pathname)
+
+  useEffect(() => {
+    selectTrackerPage(trackerPage)
+  }, [trackerPage])
+
   const shareManagement = isShareManagement(location.pathname)
 
   useEffect(() => {
@@ -211,6 +218,7 @@ function App() {
                     isResumeLibrary(location.pathname) ||
                     archiveRoute ||
                     shareManagement ||
+                    trackerPage ||
                     assistantPage ? (
                       <DashboardOpening
                         fullBleed={assistantPage && authStatus !== 'anonymous'}

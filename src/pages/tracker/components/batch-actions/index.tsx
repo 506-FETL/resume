@@ -1,3 +1,4 @@
+import { useBatchWrites } from './use-batch-writes'
 import type { ApplicationStatus } from '../../types'
 import { Archive, ArrowRightLeft, Trash2, X } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
@@ -32,7 +33,6 @@ import {
 import {
   getTrackerAccountScope,
   isTrackerAccountScopeCurrent,
-  isTrackerAccountScopeError,
 } from '../../lib/account-scope'
 import useTrackerStore from '../../store'
 import { getTrackerErrorMessage } from '../../utils'
@@ -42,25 +42,15 @@ export default function BatchActions({
 }: {
   selectableCount: number
 }) {
-  const {
-    isSelectMode,
-    selectedIds,
-    selectAll,
-    exitSelectMode,
-    deleteJob,
-    changeJobStatus,
-    saveJobFields,
-  } = useTrackerStore(
-    useShallow((state) => ({
-      isSelectMode: state.isSelectMode,
-      selectedIds: state.selectedIds,
-      selectAll: state.selectAll,
-      exitSelectMode: state.exitSelectMode,
-      deleteJob: state.deleteJob,
-      changeJobStatus: state.changeJobStatus,
-      saveJobFields: state.saveJobFields,
-    })),
-  )
+  const { isSelectMode, selectedIds, selectAll, exitSelectMode } =
+    useTrackerStore(
+      useShallow((state) => ({
+        isSelectMode: state.isSelectMode,
+        selectedIds: state.selectedIds,
+        selectAll: state.selectAll,
+        exitSelectMode: state.exitSelectMode,
+      })),
+    )
 
   const reduce = useReducedMotion()
   const statusTriggerRef = useRef<HTMLButtonElement>(null)
@@ -73,7 +63,23 @@ export default function BatchActions({
   const [confirmationCount, setConfirmationCount] = useState(0)
   const [pendingBatchDelete, setPendingBatchDelete] = useState(false)
 
+  const [selectingAll, setSelectingAll] = useState(false)
   const selectedCount = selectedIds.size
+
+  const handleSelectAll = async () => {
+    const scope = getTrackerAccountScope()
+
+    setSelectingAll(true)
+
+    try {
+      await selectAll()
+    } catch (error) {
+      if (isTrackerAccountScopeCurrent(scope))
+        toast.error(getTrackerErrorMessage(error))
+    } finally {
+      setSelectingAll(false)
+    }
+  }
 
   const handleExitSelectMode = () => {
     document
@@ -83,61 +89,7 @@ export default function BatchActions({
     exitSelectMode()
   }
 
-  const handleDeleteSelectedJobs = async () => {
-    const { selectedIds: currentSelectedIds } = useTrackerStore.getState()
-
-    if (currentSelectedIds.size === 0) return
-
-    const ids = new Set(currentSelectedIds)
-
-    try {
-      await Promise.all(Array.from(ids).map((id) => deleteJob(id)))
-      toast.success(`已删除 ${ids.size} 个职位`)
-    } catch (error) {
-      if (isTrackerAccountScopeError(error)) return
-
-      console.error('Failed to delete jobs:', error)
-      toast.error('删除失败', { description: getTrackerErrorMessage(error) })
-    }
-  }
-
-  const runBatchStatusChange = async (newStatus: ApplicationStatus) => {
-    const state = useTrackerStore.getState()
-    const scope = getTrackerAccountScope()
-
-    const targets = state.jobs.filter(
-      (job) => state.selectedIds.has(job.id) && job.status !== newStatus,
-    )
-
-    if (targets.length === 0) return
-
-    try {
-      await Promise.all(
-        targets.map((job) => changeJobStatus(job.id, newStatus)),
-      )
-
-      if (!isTrackerAccountScopeCurrent(scope)) return
-
-      const latest = useTrackerStore.getState()
-
-      const remaining = targets.filter(
-        (job) =>
-          latest.jobs.find((row) => row.id === job.id)?.status !== newStatus,
-      )
-
-      if (remaining.length)
-        useTrackerStore.setState({
-          selectedIds: new Set(remaining.map((job) => job.id)),
-        })
-      else handleExitSelectMode()
-    } catch (error) {
-      if (isTrackerAccountScopeError(error)) return
-
-      toast.error('批量更新失败', {
-        description: getTrackerErrorMessage(error),
-      })
-    }
-  }
+  const { apply, busy } = useBatchWrites(handleExitSelectMode)
 
   // 批量改到终态「已结束」需二次确认，与看板拖拽/抽屉单条路径一致
   const handleBatchStatusChange = (newStatus: ApplicationStatus) => {
@@ -149,31 +101,7 @@ export default function BatchActions({
       return
     }
 
-    runBatchStatusChange(newStatus)
-  }
-
-  const handleBatchArchive = async () => {
-    const state = useTrackerStore.getState()
-
-    const targets = state.jobs.filter(
-      (job) => state.selectedIds.has(job.id) && !job.archived,
-    )
-
-    if (targets.length === 0) return
-
-    try {
-      await Promise.all(
-        targets.map((job) => saveJobFields(job.id, { archived: true })),
-      )
-
-      handleExitSelectMode()
-    } catch (error) {
-      if (isTrackerAccountScopeError(error)) return
-
-      toast.error('批量归档失败', {
-        description: getTrackerErrorMessage(error),
-      })
-    }
+    apply(newStatus)
   }
 
   return (
@@ -204,20 +132,23 @@ export default function BatchActions({
                 selectedCount > 0 && 'border-primary/40 bg-primary/5',
               )}
             >
-              <span className='font-medium'>
-                已选
+              <span aria-live='polite' className='font-medium'>
+                {busy ? '正在处理' : '已选'}
                 <span className='mx-1 text-primary'>{selectedCount}</span>/{' '}
                 {selectableCount}
               </span>
               <Button
-                variant='ghost'
+                variant='secondary'
                 size='sm'
                 className='h-7'
-                onClick={selectAll}
+                disabled={selectingAll || busy}
+                onClick={handleSelectAll}
               >
-                {selectedCount === selectableCount && selectableCount > 0
-                  ? '取消全选'
-                  : '全选当前筛选'}
+                {selectingAll
+                  ? '正在全选…'
+                  : selectedCount === selectableCount && selectableCount > 0
+                    ? '取消全选'
+                    : '全选'}
               </Button>
               {selectedCount > 0 && (
                 <div className='flex flex-wrap items-center gap-2 sm:ml-auto'>
@@ -225,6 +156,7 @@ export default function BatchActions({
                     <DropdownMenuTrigger asChild>
                       <Button
                         ref={statusTriggerRef}
+                        disabled={busy}
                         variant='outline'
                         size='sm'
                         className='h-7 gap-1'
@@ -252,13 +184,15 @@ export default function BatchActions({
                     variant='outline'
                     size='sm'
                     className='h-7 gap-1'
-                    onClick={() => handleBatchArchive()}
+                    disabled={busy}
+                    onClick={() => apply('archive')}
                   >
                     <Archive className='size-3.5' />
                     归档
                   </Button>
                   <Button
                     ref={deleteTriggerRef}
+                    disabled={busy}
                     variant='destructive'
                     size='sm'
                     className='h-7'
@@ -318,7 +252,7 @@ export default function BatchActions({
               onClick={() => {
                 setBatchStatusOpen(false)
 
-                if (pendingBatchStatus) runBatchStatusChange(pendingBatchStatus)
+                if (pendingBatchStatus) apply(pendingBatchStatus)
               }}
             >
               确认
@@ -358,7 +292,7 @@ export default function BatchActions({
               className='bg-destructive text-destructive-foreground hover:bg-destructive/90'
               onClick={() => {
                 setPendingBatchDelete(false)
-                handleDeleteSelectedJobs()
+                apply('delete')
               }}
             >
               确认删除

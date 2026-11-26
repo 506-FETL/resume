@@ -1,10 +1,9 @@
 import type { CompanyProcessPolicy, JobApplication } from '../../../types'
 import { Building2 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useRef, useState } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { toast } from 'sonner'
-import { useShallow } from 'zustand/react/shallow'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { AnimatedContent } from '@/components/motion/animated-content'
 import { PresenceDiv } from '@/components/motion/presence-item'
@@ -33,50 +32,32 @@ import { APPLICATION_STATUS_CONFIG } from '../../../const'
 import { isTrackerAccountScopeError } from '../../../lib/account-scope'
 import useTrackerStore from '../../../store'
 import { getTrackerErrorMessage } from '../../../utils'
+import {
+  useCompanyMembers,
+  useCompanyFacts,
+  invalidateCompany,
+} from '../../../lib/company-reads'
+import { openTrackerTarget } from '../../../store/open-target'
 import { COMPANY_POLICY_LABELS } from '../../../store/companies'
 
 export function CompanyDetails({ job }: { job: JobApplication }) {
-  const {
-    companies,
-    companiesLoading,
-    companiesError,
-    loadCompanies,
-    updateCompanyPolicy,
-    jobs,
-    openJobDrawer,
-  } = useTrackerStore(
-    useShallow((state) => ({
-      companies: state.companies,
-      companiesLoading: state.companiesLoading,
-      companiesError: state.companiesError,
-      loadCompanies: state.loadCompanies,
-      updateCompanyPolicy: state.updateCompanyPolicy,
-      jobs: state.jobs,
-      openJobDrawer: state.openJobDrawer,
-    })),
-  )
-
-  const company = companies.find((row) => row.id === job.tracker_company_id)
-
-  const companyJobs = jobs.filter(
-    (row) => row.tracker_company_id === job.tracker_company_id,
-  )
-
-  const activeCount = companyJobs.filter((row) =>
-    ['applied', 'assessment', 'screen', 'written', 'interview'].includes(
-      row.status,
-    ),
-  ).length
-
   const [open, setOpen] = useState(false)
+  const id = job.tracker_company_id
+  const memberResult = useCompanyMembers(id, open)
+  const factResult = useCompanyFacts(id, open)
+  const company = factResult?.data
+  const companiesLoading = !company && !factResult?.error
+  const companiesError = factResult?.error
+  const companyJobs = memberResult?.data
+
+  const updateCompanyPolicy = useTrackerStore(
+    (state) => state.updateCompanyPolicy,
+  )
+
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<unknown>(null)
-  const nextJobRef = useRef<JobApplication | null>(null)
+  const nextJobRef = useRef<string | null>(null)
   const reduce = useReducedMotion()
-
-  useEffect(() => {
-    if (open) loadCompanies()
-  }, [open, loadCompanies])
 
   const changePolicy = async (policy: CompanyProcessPolicy) => {
     if (!company) return
@@ -85,7 +66,7 @@ export function CompanyDetails({ job }: { job: JobApplication }) {
     setError(null)
 
     try {
-      await updateCompanyPolicy(company.id, policy)
+      await updateCompanyPolicy(id, policy)
       toast.success('公司规则已更新')
     } catch (nextError) {
       if (!isTrackerAccountScopeError(nextError)) setError(nextError)
@@ -95,9 +76,7 @@ export function CompanyDetails({ job }: { job: JobApplication }) {
   }
 
   const conflict =
-    error instanceof TrackerProcessError
-      ? jobs.find((row) => row.id === error.conflictJobId)
-      : null
+    error instanceof TrackerProcessError ? error.conflictJobId : null
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -117,13 +96,11 @@ export function CompanyDetails({ job }: { job: JobApplication }) {
 
           event.preventDefault()
           nextJobRef.current = null
-          openJobDrawer(nextJob)
+          openTrackerTarget(nextJob)
         }}
       >
         <DialogHeader className='shrink-0 pr-7'>
-          <DialogTitle className='pr-6 break-words'>
-            {company?.name ?? job.company}
-          </DialogTitle>
+          <DialogTitle className='pr-6 break-words'>{job.company}</DialogTitle>
           <DialogDescription>
             管理公司规则，查看同公司下的岗位流程。
           </DialogDescription>
@@ -155,7 +132,7 @@ export function CompanyDetails({ job }: { job: JobApplication }) {
                   <Button
                     variant='outline'
                     size='sm'
-                    onClick={() => loadCompanies(true)}
+                    onClick={() => invalidateCompany(id, 'facts')}
                   >
                     重试
                   </Button>
@@ -188,7 +165,7 @@ export function CompanyDetails({ job }: { job: JobApplication }) {
                   </SelectContent>
                 </Select>
                 <p className='text-xs text-muted-foreground'>
-                  当前 {activeCount}{' '}
+                  当前 {company.active}{' '}
                   个进行中，包含归档岗位。已保存、已录用和已结束不占名额。
                 </p>
               </Field>
@@ -201,7 +178,7 @@ export function CompanyDetails({ job }: { job: JobApplication }) {
                 <Button
                   variant='outline'
                   size='sm'
-                  onClick={() => loadCompanies(true)}
+                  onClick={() => invalidateCompany(id, 'facts')}
                 >
                   重新加载
                 </Button>
@@ -241,9 +218,23 @@ export function CompanyDetails({ job }: { job: JobApplication }) {
           </AnimatePresence>
           <div className='space-y-2'>
             <h3 className='text-sm font-semibold'>
-              同公司岗位 · {companyJobs.length}
+              同公司岗位{companyJobs && ` · ${companyJobs.length}`}
             </h3>
-            {companyJobs.map((row) => (
+            {memberResult?.error ? (
+              <div role='alert'>
+                {memberResult.error}
+                <Button
+                  variant='outline'
+                  size='sm'
+                  onClick={() => invalidateCompany(id, 'members')}
+                >
+                  重试
+                </Button>
+              </div>
+            ) : !companyJobs ? (
+              <ContentSkeleton label='正在加载同公司岗位' rows={2} />
+            ) : null}
+            {companyJobs?.map((row) => (
               <Button
                 key={row.id}
                 variant={row.id === job.id ? 'secondary' : 'outline'}
@@ -251,7 +242,7 @@ export function CompanyDetails({ job }: { job: JobApplication }) {
                 onClick={() => {
                   setOpen(false)
 
-                  if (row.id !== job.id) nextJobRef.current = row
+                  if (row.id !== job.id) nextJobRef.current = row.id
                 }}
               >
                 <span className='min-w-0'>

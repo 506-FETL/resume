@@ -31,7 +31,6 @@ export interface TrackerStore
   submissionQueue: { id: string; jobId: string; resolve: () => void }[]
   requestSubmission: (jobId: string) => Promise<void>
   finishSubmission: () => void
-  submissionRevision: number
   correctJobStatus: ReturnType<
     typeof createTrackerPersistence
   >['changeJobStatus']
@@ -66,6 +65,7 @@ export interface TrackerStore
   sortDir: TrackerSortDir
 
   // Drawer
+  drawerWorkflowRead: Promise<void> | null
   selectedJob: JobApplication | null
   drawerOpen: boolean
   addDrawerOpen: boolean
@@ -85,7 +85,7 @@ export interface TrackerStore
   enterSelectMode: () => void
   exitSelectMode: () => void
   toggleSelect: (id: string) => void
-  selectAll: () => void
+  selectAll: () => Promise<void>
   openJobDrawer: (job: JobApplication) => void
   closeJobDrawer: () => void
   openAddDrawer: (sourceJob?: JobApplication) => void

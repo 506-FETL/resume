@@ -5,6 +5,7 @@ import type {
   JobFieldsPatch,
   WorkflowSaveStatus,
 } from './types'
+import { isJobPendingFollowUp } from '../../utils/follow-up'
 import type { JobApplication } from '../../types'
 import {
   assertTrackerAccountScope,
@@ -88,6 +89,43 @@ export function createPersistenceRuntime(
           ? { ...state.selectedJob, ...next }
           : state.selectedJob,
     }))
+
+    if (!current || 'workflowLoaded' in patch) return
+
+    const merged = { ...current, ...patch }
+
+    const pendingChanged =
+      isJobPendingFollowUp(current) !== isJobPendingFollowUp(merged)
+
+    const filterFields = [
+      'archived',
+      'focused_at',
+      'tracker_company_id',
+      'company',
+      'position',
+      'salary',
+      'location',
+      'status',
+      'next_action_date',
+    ] as const
+
+    if (
+      pendingChanged ||
+      filterFields.some(
+        (field) => field in patch && current[field] !== merged[field],
+      )
+    )
+      get().rememberJob(merged)
+    if (
+      patch.updated_at &&
+      (pendingChanged ||
+        filterFields.some((field) => field in patch) ||
+        'has_submission' in patch ||
+        'unresolved_submissions' in patch ||
+        (merged.has_submission &&
+          ('activities' in patch || 'stage_details' in patch)))
+    )
+      get().refreshJobCounts()
   }
 
   const saveState = (

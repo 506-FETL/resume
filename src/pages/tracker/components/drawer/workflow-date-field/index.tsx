@@ -3,7 +3,7 @@ import { CalendarIcon, X } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
+import { TrackerCalendar } from '../deferred-sections'
 import {
   Popover,
   PopoverContent,
@@ -65,7 +65,7 @@ export default function WorkflowDateField({
               animationTimingFunction: `cubic-bezier(${(open ? EASE.out : EASE.in).join(',')})`,
             }}
           >
-            <Calendar
+            <TrackerCalendar
               mode='single'
               selected={value ? dayjs(value).toDate() : undefined}
               onSelect={(date) => {

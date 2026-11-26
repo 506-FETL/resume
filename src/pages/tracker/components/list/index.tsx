@@ -1,59 +1,29 @@
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { memo, useMemo } from 'react'
-import { useShallow } from 'zustand/react/shallow'
+import { memo } from 'react'
+import { MoreJobs } from '../more-jobs'
 import { PresenceDiv } from '@/components/motion/presence-item'
-import { useIsMobile } from '@/hooks/use-mobile'
+import { useJobWindow } from '../../hooks/use-job-window'
 import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
-import useTrackerStore from '../../store'
+import { useSortedJobs } from '../../hooks/use-sorted-jobs'
 import type { JobApplication } from '../../types'
-import { sortJobs } from '../../utils'
 import { JobCard } from './job-card'
-import { CompanyGroupTitle, JobTable } from './job-table'
+import { CompanyGroupTitle } from './job-table/company-group-title'
 
 function ListView({ jobs }: { jobs: JobApplication[] }) {
   const reduceMotion = useReducedMotion()
-  const isMobile = useIsMobile()
 
-  const { sortBy, sortDir, groupByCompany } = useTrackerStore(
-    useShallow((state) => ({
-      sortBy: state.sortBy,
-      sortDir: state.sortDir,
-      groupByCompany: state.groupByCompany,
-    })),
-  )
-
-  const filteredJobs = useMemo(
-    () => sortJobs(jobs, sortBy, sortDir),
-    [jobs, sortBy, sortDir],
-  )
-
-  const displayJobs = useMemo(() => {
-    if (!groupByCompany) return filteredJobs
-
-    const groups = new Map<string, typeof filteredJobs>()
-
-    for (const job of filteredJobs) {
-      const group = groups.get(job.tracker_company_id) ?? []
-
-      group.push(job)
-      groups.set(job.tracker_company_id, group)
-    }
-
-    return [...groups.values()].flat()
-  }, [filteredJobs, groupByCompany])
-
-  if (!isMobile)
-    return <JobTable jobs={displayJobs} groupByCompany={groupByCompany} />
+  const { displayJobs, groupByCompany } = useSortedJobs(jobs)
+  const { rows, ...page } = useJobWindow(displayJobs)
 
   return (
     <div className='grid min-w-0 grid-cols-1 content-start'>
       <AnimatePresence initial={false} mode='popLayout'>
-        {displayJobs.map((job, index) => (
+        {rows.map((job, index) => (
           <PresenceDiv
             key={job.id}
             layout={reduceMotion ? false : 'position'}
-            layoutDependency={displayJobs}
+            layoutDependency={rows}
             initial={reduceMotion ? false : { opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{
@@ -85,6 +55,7 @@ function ListView({ jobs }: { jobs: JobApplication[] }) {
           </PresenceDiv>
         ))}
       </AnimatePresence>
+      <MoreJobs {...page} />
     </div>
   )
 }

@@ -13,25 +13,32 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
+import { createDeferredComponent } from '@/components/deferred-content'
 import useTrackerStore from '../../../store'
 import { submissionMaterialKey } from '../../../store/submissions'
 import { SubmissionJdContent } from '../submission-jd'
 
+const PlatformPreview = createDeferredComponent(
+  () => import('./platform'),
+  '投递简历预览',
+  <PaperSkeleton label='正在加载投递原件' className='mx-auto max-w-lg' />,
+  { wrapFallback: false },
+)
+
 export default function MaterialPreview({
   record,
   revisionId,
+  opener,
   onClose,
 }: {
   record: JobSubmission
+  opener?: HTMLElement | null
   revisionId?: string
   onClose: () => void
 }) {
   const reduce = useReducedMotion()
-  const returnFocusRef = useRef(document.activeElement)
+  const returnFocusRef = useRef(opener ?? document.activeElement)
   const [open, setOpen] = useState(true)
-  const revision = useTrackerStore((state) => state.submissionRevision)
 
   const resource = useTrackerStore(
     (state) =>
@@ -53,8 +60,20 @@ export default function MaterialPreview({
   }, [open, onClose, reduce])
 
   useEffect(() => {
-    useTrackerStore.getState().loadSubmissionMaterial(record.id, revisionId)
-  }, [record.id, revisionId, revision])
+    const state = useTrackerStore.getState()
+
+    if (
+      !state.submissionMaterialsByKey[
+        submissionMaterialKey(record.id, revisionId)
+      ]?.error
+    )
+      state.loadSubmissionMaterial(record.id, revisionId)
+  }, [record.id, revisionId, resource?.revision])
+
+  useEffect(() => {
+    if (!revisionId && record.material_kind === 'platform')
+      PlatformPreview.preload().catch(() => {})
+  }, [record.material_kind, revisionId])
 
   useEffect(() => {
     if (material?.kind !== 'file') {
@@ -167,12 +186,7 @@ export default function MaterialPreview({
                 )}
                 {material.kind === 'platform' && (
                   <div className='min-w-0 rounded-lg bg-muted/30 p-3'>
-                    <ScaledReadonlyPreview
-                      data={buildTemplateResumeData(material.snapshot)}
-                      appearance={material.snapshot}
-                      projectionReferenceDate={material.projectionReferenceDate}
-                      definition={material.definition}
-                    />
+                    <PlatformPreview material={material} />
                   </div>
                 )}
                 {material.kind === 'file' && url && (

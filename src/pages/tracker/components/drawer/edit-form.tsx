@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import { Button } from '@/components/ui/button'
 import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import supabase from '@/lib/supabase/client'
 import { COMMON_CITIES, COMMON_POSITIONS } from '../../const'
 import { isTrackerAccountScopeError } from '../../lib/account-scope'
 import useTrackerStore, { getTrackerConflictAction } from '../../store'
@@ -42,6 +43,32 @@ export default function DrawerEditForm({
         ),
       })),
     )
+
+  const referralId = selectedJob?.referred_from_job_id
+  const owner = selectedJob?.user_id
+  const [remotePosition, setRemotePosition] = useState('')
+
+  useEffect(() => {
+    setRemotePosition('')
+
+    if (!referralId || !owner || referralSource) return
+
+    let active = true
+
+    supabase
+      .from('company')
+      .select('position')
+      .eq('id', referralId)
+      .eq('user_id', owner)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (active && data) setRemotePosition(data.position)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [referralId, owner, referralSource])
 
   const [saving, setSaving] = useState(false)
 
@@ -137,7 +164,8 @@ export default function DrawerEditForm({
         </Field>
         {selectedJob?.referred_from_job_id && (
           <p className='text-xs text-muted-foreground'>
-            来自「{referralSource?.position ?? '原岗位'}」的转岗 / 推荐。
+            来自「{referralSource?.position || remotePosition || '原岗位'}
+            」的转岗 / 推荐。
           </p>
         )}
 

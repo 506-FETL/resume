@@ -1,8 +1,16 @@
+import { DrawerEditForm, DrawerStageDetail } from './deferred-sections'
 import { useSearchParams } from 'react-router-dom'
 import type { ComponentProps } from 'react'
 import type { ApplicationStatus, DrawerTab } from '../../types'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { useCallback, useId, useLayoutEffect, useRef, useState } from 'react'
+import {
+  useEffect,
+  useCallback,
+  useId,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react'
 import { toast } from 'sonner'
 import { useShallow } from 'zustand/react/shallow'
 import type { Drawer } from '@/components/ui/drawer'
@@ -95,6 +103,17 @@ export function useJobDrawer() {
     setViewingStage(null)
     setConfirmOpen(false)
   }, [selectedJob?.id, drawerOpen, routeJobId, routeTab])
+
+  useEffect(() => {
+    if (!drawerOpen) return
+
+    if (isEditing) DrawerEditForm.preload().catch(() => {})
+    else if (
+      activeTab === 'interview' &&
+      (viewingStage ?? selectedJob?.status) !== 'applied'
+    )
+      DrawerStageDetail.preload().catch(() => {})
+  }, [activeTab, drawerOpen, isEditing, selectedJob?.status, viewingStage])
 
   const handleOpenChange = (
     newOpen: boolean,

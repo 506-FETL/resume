@@ -1,6 +1,5 @@
 import type { ApplicationStatus } from '../../types'
 import { ArrowDown, ArrowUp, ArrowUpDown, ListFilter } from 'lucide-react'
-import { useMemo } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,8 +21,7 @@ import {
   TRACKER_SORT_OPTIONS,
 } from '../../const'
 import useTrackerStore from '../../store'
-import { selectTrackerListJobs } from '../../store/selectors'
-import { filterJobs } from '../../utils'
+import { useTrackerOverview } from '../../hooks/use-tracker-overview'
 
 const ALL_VALUE = '__all__'
 
@@ -35,32 +33,16 @@ const ALL_FILTER_STATUSES: (ApplicationStatus | null)[] = [
 
 export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
   const {
-    jobs,
     filterStatus,
     metricFilter,
     setFilterStatus,
-    showArchived,
-    focusedOnly,
-    filterCompanyId,
-    searchKeyword,
-    loading,
-    error,
-    isInitialized,
     groupByCompany,
     setGroupByCompany,
   } = useTrackerStore(
     useShallow((state) => ({
-      jobs: selectTrackerListJobs(state),
       filterStatus: state.filterStatus,
       metricFilter: state.metricFilter,
       setFilterStatus: state.setFilterStatus,
-      showArchived: state.showArchived,
-      focusedOnly: state.focusedOnly,
-      filterCompanyId: state.filterCompanyId,
-      searchKeyword: state.searchKeyword,
-      loading: state.loading,
-      error: state.error,
-      isInitialized: state.isInitialized,
       groupByCompany: state.groupByCompany,
       setGroupByCompany: state.setGroupByCompany,
     })),
@@ -88,38 +70,14 @@ export default function FilterMenu({ mobile = false }: { mobile?: boolean }) {
 
   const directionLabel = sortDir === 'asc' ? '升序' : '降序'
 
-  const scopedJobs = useMemo(
-    () =>
-      filterJobs(
-        filterCompanyId
-          ? jobs.filter((job) => job.tracker_company_id === filterCompanyId)
-          : jobs,
-        null,
-        searchKeyword,
-        showArchived,
-        null,
-        focusedOnly,
-      ),
-    [jobs, searchKeyword, showArchived, filterCompanyId, focusedOnly],
-  )
+  const { stats, stageCounts, busy, error } = useTrackerOverview()
 
-  const counts = useMemo(() => {
-    const result = new Map<ApplicationStatus, number>()
-
-    for (const job of scopedJobs)
-      result.set(job.status, (result.get(job.status) ?? 0) + 1)
-
-    return result
-  }, [scopedJobs])
-
-  const unavailable = loading || !isInitialized || Boolean(error)
-
-  const getCount = (status: (typeof ALL_FILTER_STATUSES)[number]) =>
-    unavailable
+  const getCount = (status: ApplicationStatus | null) =>
+    busy || error
       ? '—'
       : status === null
-        ? scopedJobs.length
-        : (counts.get(status) ?? 0)
+        ? stats.total
+        : (stageCounts[status] ?? 0)
 
   return (
     <DropdownMenu>

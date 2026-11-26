@@ -2,7 +2,7 @@ import type { PersistenceRuntime } from './runtime'
 import type { Runtime, JobFieldsPatch, WorkflowField } from './types'
 import { WORKFLOW_SAVE_DELAY, sameValue } from './values'
 import type { InterviewSubStage, StageDetail } from '../../types'
-import { updateCompany } from '@/lib/supabase/resume'
+import { updateCompany } from '@/lib/supabase/resume/company/mutations'
 import {
   createTrackerAccountGuard,
   getTrackerAccountScope,

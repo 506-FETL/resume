@@ -39,25 +39,57 @@ export function trackerProcessError(error: {
   )
 }
 
-export async function listTrackerCompanies(): Promise<TrackerCompany[]> {
+export interface TrackerCompanyOption {
+  id: string
+  name: string
+}
+
+export async function listTrackerCompanies(
+  owner: string,
+  from: number,
+  size: number,
+): Promise<TrackerCompanyOption[]> {
   const { data, error } = await supabase
     .from('tracker_companies')
-    .select('*')
+    .select('id,name')
+    .eq('user_id', owner)
     .order('name')
+    .order('id')
+    .range(from, from + size)
 
   if (error) throw trackerProcessError(error)
 
   return data
 }
 
+export async function readCompanyPositionHints(owner: string, ids: string[]) {
+  const { data, error } = await supabase
+    .from('tracker_companies')
+    .select('id,company(position)')
+    .eq('user_id', owner)
+    .in('id', ids)
+    .order('created_at', { referencedTable: 'company', ascending: false })
+    .order('id', { referencedTable: 'company', ascending: false })
+    .limit(1, { referencedTable: 'company' })
+
+  if (error) throw trackerProcessError(error)
+
+  return Object.fromEntries(
+    data.map((row) => [row.id, row.company[0]?.position ?? null]),
+  )
+}
+
 export async function updateTrackerCompanyPolicy(
   id: string,
   policy: CompanyProcessPolicy,
-): Promise<TrackerCompany> {
-  const { data, error } = await supabase.rpc('update_tracker_company_policy', {
-    p_company_id: id,
-    p_policy: policy,
-  })
+): Promise<Pick<TrackerCompany, 'process_policy'>> {
+  const { data, error } = await supabase
+    .rpc('update_tracker_company_policy', {
+      p_company_id: id,
+      p_policy: policy,
+    })
+    .select('process_policy')
+    .single<Pick<TrackerCompany, 'process_policy'>>()
 
   if (error) throw trackerProcessError(error)
 

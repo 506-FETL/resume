@@ -1,9 +1,10 @@
+import { companyJobsChanged } from '../../lib/company-reads'
 import type { PersistenceRuntime } from './runtime'
 import type { WorkflowDrafts } from './workflow-drafts'
 import type { Runtime, JobFieldsPatch, WorkflowField } from './types'
 import { sameValue } from './values'
 import type { JobApplication } from '../../types'
-import { updateCompany } from '@/lib/supabase/resume'
+import { updateCompany } from '@/lib/supabase/resume/company/mutations'
 import {
   createTrackerAccountGuard,
   getTrackerAccountScope,
@@ -85,6 +86,20 @@ export function createFieldWrites(
 
       bump(runtime, 'updated_at')
       merge(id, accepted)
+
+      if (
+        ['status', 'archived', 'position', 'recruitment_batch'].some(
+          (key) => key in accepted,
+        )
+      ) {
+        companyJobsChanged(
+          current.tracker_company_id,
+          current.status,
+          accepted.status ?? current.status,
+        )
+
+        if ('position' in accepted) core.get().resetCompanyOptions()
+      }
 
       return find(id)!
     } catch (error) {
@@ -211,6 +226,7 @@ export function createFieldWrites(
       requestFlush(runtime)
       await persistDirty(id, runtime)
 
+      const original = find(id)!
       const versions = { ...runtime.versions }
       const saved = await save()
       const accepted: JobFieldsPatch = {}
@@ -225,6 +241,25 @@ export function createFieldWrites(
       }
 
       merge(id, accepted)
+
+      const current = find(id)!
+
+      if (current.tracker_company_id !== original.tracker_company_id) {
+        core.get().resetCompanyOptions()
+        companyJobsChanged(original.tracker_company_id, original.status)
+
+        companyJobsChanged(
+          current.tracker_company_id,
+          undefined,
+          current.status,
+        )
+      } else {
+        companyJobsChanged(
+          current.tracker_company_id,
+          original.status,
+          current.status,
+        )
+      }
 
       return find(id)!
     })

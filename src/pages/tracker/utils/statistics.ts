@@ -36,9 +36,15 @@ export function resolveTrackerMetricStatus(
     )
   if (metric !== 'pending') return metric
 
-  const [pendingJob] = [...jobs]
-    .filter(isJobPendingFollowUp)
-    .sort(comparePendingFollowUpUrgency)
+  let pendingJob: JobApplication | undefined
+
+  for (const job of jobs) {
+    if (
+      isJobPendingFollowUp(job) &&
+      (!pendingJob || comparePendingFollowUpUrgency(job, pendingJob) < 0)
+    )
+      pendingJob = job
+  }
 
   return pendingJob?.status ?? null
 }

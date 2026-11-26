@@ -36,7 +36,7 @@ type SubmissionResources = {
     string,
     SubmissionResource<SubmissionData[K]>
   >
-} & { submissionRevision: number }
+}
 
 export function submissionMaterialKey(recordId: string, revisionId?: string) {
   return `${recordId}:${revisionId ?? 'current'}`
@@ -140,14 +140,9 @@ export function createTrackerSubmissions(
           : { kind: 'needs-resolution', legacy: updated }
 
         return {
-          submissionRevision: state.submissionRevision + 1,
           submissionsByJob: {
             ...state.submissionsByJob,
             [record.job_id]: { ...invalidateResource(previous), data },
-          },
-          submissionJdsById: {
-            ...state.submissionJdsById,
-            [record.id]: invalidateResource(state.submissionJdsById[record.id]),
           },
           submissionHistoriesById: {
             ...state.submissionHistoriesById,

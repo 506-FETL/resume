@@ -1,7 +1,6 @@
-import type { ResumeOption } from '../../types'
+import ResourcePicker from '../../resource-picker'
 import type { AddJobFormData } from '../types'
 import { Field, FieldLabel } from '@/components/ui/field'
-import { Spinner } from '@/components/ui/spinner'
 import {
   Select,
   SelectContent,
@@ -20,16 +19,12 @@ interface AddJobStageSectionProps {
   formData: AddJobFormData
   onChange: (field: keyof AddJobFormData, value: string) => void
   onResumeChange: (resumeId: string | null) => void
-  resumes: ResumeOption[]
-  loadingResumes: boolean
 }
 
 export function AddJobStageSection({
   formData,
   onChange,
   onResumeChange,
-  resumes,
-  loadingResumes,
 }: AddJobStageSectionProps) {
   return (
     <div className='grid min-w-0 gap-4 sm:grid-cols-2'>
@@ -60,37 +55,11 @@ export function AddJobStageSection({
       </Field>
       <Field>
         <FieldLabel htmlFor='resume-id'>准备中的简历</FieldLabel>
-        <Select
+        <ResourcePicker
+          id='resume-id'
           value={formData.resume_id || ''}
-          onValueChange={(v) => onResumeChange(v || null)}
-          disabled={loadingResumes}
-        >
-          <SelectTrigger id='resume-id'>
-            <SelectValue
-              placeholder={
-                loadingResumes ? (
-                  <Spinner aria-label='正在加载简历选项' />
-                ) : (
-                  '选择简历'
-                )
-              }
-            />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {resumes.map((r) => (
-                <SelectItem key={r.resume_id} value={r.resume_id}>
-                  {r.display_name}
-                </SelectItem>
-              ))}
-            </SelectGroup>
-            {resumes.length === 0 && !loadingResumes && (
-              <div className='px-2 py-1.5 text-sm text-muted-foreground'>
-                暂无简历
-              </div>
-            )}
-          </SelectContent>
-        </Select>
+          onChange={(option) => onResumeChange(option.value)}
+        />
       </Field>
     </div>
   )

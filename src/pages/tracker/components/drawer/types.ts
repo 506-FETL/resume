@@ -7,15 +7,9 @@ import type {
   VisibilityFormType,
 } from '@/lib/schema'
 
-export interface ResumeOption {
-  id: string
-  resume_id: string
-  display_name: string
-  type: string
-}
-
 export type ResumePreviewData = Partial<ResumeSchema> &
   Pick<Partial<PersistedResumeSnapshot>, 'spacing' | 'font' | 'theme'> & {
+    display_name?: string
     type?: ResumeType
     template_binding?: ResumeTemplateBinding
     order?: ORDERType[]

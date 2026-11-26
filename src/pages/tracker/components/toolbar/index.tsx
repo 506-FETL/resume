@@ -1,17 +1,14 @@
-import { Archive, CheckSquare, Flag, Search, X } from 'lucide-react'
+import { Archive, CheckSquare, Flag } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useShallow } from 'zustand/react/shallow'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
+import { TrackerSearch } from './search'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import { TRACKER_SEARCH_INPUT_ID } from '../../const'
-import { useTrackerFilterActions } from '../../hooks/use-tracker-filter-actions'
 import useTrackerStore from '../../store'
-import { selectTrackerListJobs } from '../../store/selectors'
 import BatchActions from '../batch-actions'
 import { ViewToggle } from '../header/view-toggle'
 import { CompanyPicker } from '../drawer/company-picker'
@@ -23,15 +20,13 @@ import SortMenu from './sort-menu'
 export default function TrackerToolbar({
   visibleCount,
 }: {
-  visibleCount: number
+  visibleCount: number | null
 }) {
   const {
-    jobs,
+    counts,
     error,
     isInitialized,
     viewMode,
-    searchKeyword,
-    setSearchKeyword,
     showArchived,
     setShowArchived,
     isSelectMode,
@@ -44,12 +39,10 @@ export default function TrackerToolbar({
     setGroupByCompany,
   } = useTrackerStore(
     useShallow((state) => ({
-      jobs: selectTrackerListJobs(state),
+      counts: state.historyCounts,
       error: state.error,
       isInitialized: state.isInitialized,
       viewMode: state.viewMode,
-      searchKeyword: state.searchKeyword,
-      setSearchKeyword: state.setSearchKeyword,
       showArchived: state.showArchived,
       setShowArchived: state.setShowArchived,
       isSelectMode: state.isSelectMode,
@@ -63,13 +56,11 @@ export default function TrackerToolbar({
     })),
   )
 
-  const { clearSearch } = useTrackerFilterActions()
-
   const reduce = useReducedMotion()
   const isMobile = useIsMobile()
   const effectiveViewMode = isMobile ? 'list' : viewMode
 
-  const archivedCount = jobs.filter((job) => job.archived).length
+  const archivedCount = counts?.archivedTotal ?? null
 
   const busy = !isInitialized && !error
 
@@ -113,7 +104,9 @@ export default function TrackerToolbar({
           !showArchived && 'text-muted-foreground',
         )}
         style={actionTransition}
-        aria-label={`已归档，${archivedCount} 个职位`}
+        aria-label={
+          archivedCount === null ? '已归档' : `已归档，${archivedCount} 个职位`
+        }
         aria-pressed={showArchived}
         onClick={() => setShowArchived(!showArchived)}
       >
@@ -140,62 +133,27 @@ export default function TrackerToolbar({
   return (
     <div className='shrink-0 py-1 md:border-b md:py-3 [@media(max-height:500px)]:max-h-[calc(100%-5rem)] [@media(max-height:500px)]:overflow-y-auto [@media(max-height:500px)]:overscroll-contain'>
       <div className='flex flex-col gap-2 md:gap-3'>
-        <div className='hidden shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 md:flex'>
-          <OverviewBar />
-          <div className='ml-auto flex shrink-0 items-center gap-3'>
-            <ViewToggle />
-            {!isMobile && actionTools}
+        {!isMobile && (
+          <div className='hidden shrink-0 flex-wrap items-center justify-between gap-x-4 gap-y-2 md:flex'>
+            <OverviewBar />
+            <div className='ml-auto flex shrink-0 items-center gap-3'>
+              <ViewToggle />
+              {actionTools}
+            </div>
           </div>
-        </div>
+        )}
         <span className='sr-only' role='status'>
           {busy
             ? '正在加载职位'
             : error && !isInitialized
               ? '职位数量暂不可用'
-              : `当前显示 ${visibleCount} 个职位`}
+              : visibleCount === null
+                ? '职位数量暂不可用'
+                : `当前显示 ${visibleCount} 个职位`}
         </span>
         <div className='flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-3 md:gap-x-3'>
           <div className='flex min-w-0 basis-full items-center gap-2 md:max-w-lg md:flex-[1_1_18rem]'>
-            <div className='relative min-w-0 flex-1'>
-              <Search className='pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground' />
-              <Input
-                id={TRACKER_SEARCH_INPUT_ID}
-                type='search'
-                aria-label='搜索职位'
-                value={searchKeyword}
-                placeholder='搜索职位…'
-                className={cn(
-                  'pl-9 pr-9 shadow-none [&::-webkit-search-cancel-button]:appearance-none',
-                  isMobile
-                    ? 'h-11 rounded-xl border-transparent bg-muted/50 dark:bg-muted/50'
-                    : 'rounded-lg',
-                )}
-                onChange={(event) => setSearchKeyword(event.target.value)}
-              />
-              <AnimatePresence initial={false}>
-                {searchKeyword && (
-                  <PresenceDiv
-                    className={cn(
-                      'absolute right-1',
-                      isMobile ? 'top-1.5' : 'top-0.5',
-                    )}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                    transition={{ duration: reduce ? 0 : DURATION.fast }}
-                  >
-                    <Button
-                      size='icon-sm'
-                      variant='ghost'
-                      aria-label='清空搜索'
-                      onClick={clearSearch}
-                    >
-                      <X className='size-3.5' />
-                    </Button>
-                  </PresenceDiv>
-                )}
-              </AnimatePresence>
-            </div>
+            <TrackerSearch isMobile={isMobile} />
             <FilterMenu mobile={isMobile} />
           </div>
           {isMobile && (
@@ -259,7 +217,7 @@ export default function TrackerToolbar({
           {isMobile && actionTools}
         </div>
       </div>
-      <BatchActions selectableCount={visibleCount} />
+      <BatchActions selectableCount={visibleCount ?? 0} />
     </div>
   )
 }

@@ -1,3 +1,5 @@
+import { MoreJobs } from '../../../more-jobs'
+import { useJobWindow } from '../../../../hooks/use-job-window'
 import type { JobApplication } from '../../../../types'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -36,6 +38,8 @@ export function JobTable({ jobs, groupByCompany = false }: JobTableProps) {
   const {
     isSelectMode,
     selectedIds,
+    scopeComplete,
+    loading,
     selectAll,
     changeJobStatus,
     saveJobFields,
@@ -47,6 +51,8 @@ export function JobTable({ jobs, groupByCompany = false }: JobTableProps) {
     useShallow((state) => ({
       isSelectMode: state.isSelectMode,
       selectedIds: state.selectedIds,
+      scopeComplete: state.scopeComplete,
+      loading: state.loading,
       selectAll: state.selectAll,
       changeJobStatus: state.changeJobStatus,
       saveJobFields: state.saveJobFields,
@@ -65,12 +71,16 @@ export function JobTable({ jobs, groupByCompany = false }: JobTableProps) {
     status: JobApplication['status']
   } | null>(null)
 
+  const { rows, ...page } = useJobWindow(jobs)
+
   const allSelected =
-    jobs.length > 0 && jobs.every((job) => selectedIds.has(job.id))
+    scopeComplete &&
+    jobs.length > 0 &&
+    jobs.every((job) => selectedIds.has(job.id))
 
   const layoutKey = useMemo(
-    () => ({ jobs, isSelectMode }),
-    [jobs, isSelectMode],
+    () => ({ jobs: rows, isSelectMode }),
+    [rows, isSelectMode],
   )
 
   const commitStatus = useCallback(
@@ -141,7 +151,13 @@ export function JobTable({ jobs, groupByCompany = false }: JobTableProps) {
                   <Checkbox
                     checked={allSelected}
                     aria-label='选择全部'
-                    onCheckedChange={() => selectAll()}
+                    disabled={loading}
+                    onCheckedChange={() =>
+                      selectAll().catch((error) => {
+                        if (!isTrackerAccountScopeError(error))
+                          toast.error(getTrackerErrorMessage(error))
+                      })
+                    }
                   />
                 </th>
               )}
@@ -179,7 +195,7 @@ export function JobTable({ jobs, groupByCompany = false }: JobTableProps) {
           </thead>
           <tbody className='relative'>
             <AnimatePresence initial={false} mode='popLayout'>
-              {jobs.flatMap((job, index) => [
+              {rows.flatMap((job, index) => [
                 ...(groupByCompany &&
                 jobs[index - 1]?.tracker_company_id !== job.tracker_company_id
                   ? [
@@ -231,6 +247,7 @@ export function JobTable({ jobs, groupByCompany = false }: JobTableProps) {
             </AnimatePresence>
           </tbody>
         </table>
+        <MoreJobs {...page} />
       </div>
       <AlertDialog
         open={pendingStatus !== null}

@@ -1,4 +1,16 @@
-import type { JobApplication } from '../../types'
+import type {
+  TrackerCounts,
+  TrackerHistoryCounts,
+  TrackerLane,
+} from '@/lib/supabase/resume/company/tracker-pages'
+import type {
+  JobApplication,
+  ViewMode,
+  ApplicationStatus,
+  TrackerMetricKey,
+  TrackerSortBy,
+  TrackerSortDir,
+} from '../../types'
 
 export type WorkflowSaveStatus =
   | 'idle'
@@ -21,6 +33,30 @@ export type JobPatchFactory = (job: JobApplication) => JobFieldsPatch
 export type WorkflowField = 'stage_details' | 'interview_sub_stages'
 
 export interface PersistenceState {
+  viewMode: ViewMode
+  showArchived: boolean
+  filterCompanyId: string | null
+  focusedOnly: boolean
+  filterStatus: ApplicationStatus | null
+  metricFilter: TrackerMetricKey | null
+  searchKeyword: string
+  groupByCompany: boolean
+  isSelectMode: boolean
+  sortBy: TrackerSortBy
+  sortDir: TrackerSortDir
+  viewJobIds: Set<string>
+  baseScopeComplete: boolean
+  scopeComplete: boolean
+  pageMore: Partial<Record<TrackerLane, boolean>>
+  pageLoading: Partial<Record<TrackerLane, boolean>>
+  pageErrors: Partial<Record<TrackerLane, string>>
+  historyCounts: TrackerHistoryCounts | null
+  countsKey: string | null
+  counts: TrackerCounts | null
+  countsError: string | null
+  resetCompanyOptions: () => void
+  rememberJob: (job: JobApplication) => void
+  refreshJobCounts: () => Promise<void>
   jobs: JobApplication[]
   selectedJob: JobApplication | null
   saveStates: Record<string, WorkflowSaveState>
