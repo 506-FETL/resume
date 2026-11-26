@@ -36,7 +36,11 @@ export function AuthRequired({
       className='h-full min-h-0'
     >
       {authStatus === 'unknown' ? (
-        <RouteSkeleton pathname={location.pathname} label='正在确认登录状态' />
+        <RouteSkeleton
+          pathname={location.pathname}
+          location={location}
+          label='正在确认登录状态'
+        />
       ) : authStatus === 'anonymous' ? (
         <div className='mx-auto flex min-h-80 w-full max-w-5xl items-center px-2 py-6 sm:min-h-105 sm:px-6'>
           <Empty className='min-h-80 rounded-2xl border bg-card px-6'>

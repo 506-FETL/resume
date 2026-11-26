@@ -33,11 +33,13 @@ export function experienceError(error: unknown) {
   return error instanceof Error ? error.message : '暂时无法完成，请重试。'
 }
 
+const sourceDateFormatter = new Intl.DateTimeFormat('zh-CN', {
+  month: 'short',
+  day: 'numeric',
+  hour: '2-digit',
+  minute: '2-digit',
+})
+
 export function formatSourceDate(value: string) {
-  return new Intl.DateTimeFormat('zh-CN', {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  }).format(new Date(value))
+  return sourceDateFormatter.format(new Date(value))
 }

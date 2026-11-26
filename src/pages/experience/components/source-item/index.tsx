@@ -1,3 +1,4 @@
+import type { RefObject } from 'react'
 import { AnimatePresence } from 'motion/react'
 import { Trash2 } from 'lucide-react'
 import { PresenceDiv } from '@/components/motion/presence-item'
@@ -21,28 +22,42 @@ export default function SourceItem({
   source,
   view,
   disabled,
-  onOpen,
+  scrollRef,
 }: {
   source: ExperienceSource
   view: ExperienceView
   disabled: boolean
-  onOpen: () => void
+  scrollRef: RefObject<HTMLDivElement | null>
 }) {
   const appearance = EXPERIENCE_SOURCE_APPEARANCE[source.kind]
   const Icon = appearance.icon
   const status = source.status !== 'ready' ? STATUS_LABEL[source.status] : null
 
-  const { selectionMode, selectedSources, toggleSource, requestDelete } =
-    useExperiencePageStore()
+  const selectionMode = useExperiencePageStore((state) => state.selectionMode)
+
+  const selected = useExperiencePageStore((state) =>
+    state.selectedSources.some((item) => item.id === source.id),
+  )
+
+  const { toggleSource, requestDelete, select, setListScroll } =
+    useExperiencePageStore.getState()
 
   const reduced = useReducedMotion()
-  const selected = selectedSources.some((item) => item.id === source.id)
 
   const label = selectionMode
     ? `${selected ? '取消选择' : '选择'}${source.name}`
     : `打开${source.name}`
 
-  const activate = () => (selectionMode ? toggleSource(source) : onOpen())
+  function activate() {
+    if (selectionMode) {
+      toggleSource(source)
+
+      return
+    }
+
+    setListScroll(scrollRef.current?.scrollTop ?? 0)
+    select(source.id)
+  }
 
   const action = (
     <div

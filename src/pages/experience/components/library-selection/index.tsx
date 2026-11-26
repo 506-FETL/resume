@@ -15,14 +15,16 @@ export default function LibrarySelection({
   sources: ExperienceSourceTarget[]
   disabled: boolean
 }) {
-  const {
-    selectionMode,
-    selectedSources,
-    deleting,
-    togglePage,
-    clearSelection,
-    requestDelete,
-  } = useExperiencePageStore()
+  const selectionMode = useExperiencePageStore((state) => state.selectionMode)
+
+  const selectedSources = useExperiencePageStore(
+    (state) => state.selectedSources,
+  )
+
+  const deleting = useExperiencePageStore((state) => state.deleting)
+
+  const { togglePage, clearSelection, requestDelete } =
+    useExperiencePageStore.getState()
 
   const reduced = useReducedMotion()
   const selectedIds = new Set(selectedSources.map((source) => source.id))

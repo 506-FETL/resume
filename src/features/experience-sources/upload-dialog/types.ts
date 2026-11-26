@@ -25,6 +25,7 @@ export type UploadJob = {
 }
 
 export interface ExperienceUploadDialogProps {
+  returnFocusTo?: HTMLElement | null
   open: boolean
   onOpenChange: (open: boolean) => void
   onComplete?: (references: ExperienceSourceReference[]) => void

@@ -58,7 +58,7 @@ export function useExperienceNavigation() {
 
         const target = sourceId
           ? library.querySelector<HTMLButtonElement>(
-              `[data-source-id="${sourceId}"]`,
+              `[data-source-id="${CSS.escape(sourceId)}"]`,
             )
           : null
 

@@ -36,6 +36,7 @@ export interface ExperienceStore {
     offset?: number,
     refresh?: boolean,
     blockIds?: string[],
+    limit?: number,
   ) => Promise<ExperienceSourceReadResult>
   originals: Record<string, Blob>
   original: (sourceId: string, versionId: string) => Promise<Blob>

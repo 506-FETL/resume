@@ -45,9 +45,11 @@ export default defineConfig({
         '**/*.ts',
         '**/content/**',
       ],
-      // 简历库入口只决定是否复用已加载的页面；实际页面仍按路由下载。
+      // 两个薄入口只决定是否复用已加载的页面，实际页面仍按路由下载。
       importMode: (file) =>
-        file.endsWith('/src/pages/resume/index.tsx') ? 'sync' : 'async',
+        /\/src\/pages\/(resume|experience)\/index\.tsx$/.test(file)
+          ? 'sync'
+          : 'async',
       extendRoute(route, parent) {
         if (!parent && route.path === '/') return { path: WORKSPACE_PATH }
       },

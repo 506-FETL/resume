@@ -12,7 +12,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 
-export function deferLibraryDialog<Props extends object>(
+export function deferDialog<Props extends object>(
   load: () => Promise<{ default: ComponentType<Props> }>,
   title: string,
 ) {
@@ -20,7 +20,9 @@ export function deferLibraryDialog<Props extends object>(
     open,
     onClose,
     children,
+    loadingTitle = title,
   }: {
+    loadingTitle?: string
     open: boolean
     onClose: () => void
     children: (
@@ -67,7 +69,7 @@ export function deferLibraryDialog<Props extends object>(
             }}
           >
             <DialogHeader>
-              <DialogTitle>{title}</DialogTitle>
+              <DialogTitle>{loadingTitle}</DialogTitle>
               <DialogDescription>
                 {retry ? '暂时无法打开，请重试。' : '正在加载…'}
               </DialogDescription>
@@ -77,7 +79,7 @@ export function deferLibraryDialog<Props extends object>(
                 重试
               </Button>
             ) : (
-              <FormSkeleton label={`正在加载${title}`} />
+              <FormSkeleton label={`正在加载${loadingTitle}`} />
             )}
           </DialogContent>
         </Dialog>

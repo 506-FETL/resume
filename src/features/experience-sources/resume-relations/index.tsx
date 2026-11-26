@@ -20,68 +20,44 @@ import {
   setExperienceRelations,
 } from '@/lib/experience-sources/api'
 import type { ExperienceSourceReference } from '@/lib/experience-sources/types'
-import supabase from '@/lib/supabase/client'
+import { useResumeOptions } from './use-resume-options'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
 import { experienceError } from '../utils'
 
-type ResumeOption = { resume_id: string; display_name: string | null }
-
 export function ExperienceResumeRelations({
   open,
+  returnFocusTo,
   onOpenChange,
   reference,
 }: {
   open: boolean
+  returnFocusTo?: HTMLElement | null
   onOpenChange: (open: boolean) => void
   reference: ExperienceSourceReference
 }) {
-  const [options, setOptions] = useState<ResumeOption[]>([])
   const [targetId, setTargetId] = useState('')
 
   const [references, setReferences] = useState<
     ExperienceSourceReference[] | null
   >(null)
 
-  const [loading, setLoading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [attempt, setAttempt] = useState(0)
   const ownerId = useExperienceSourcesStore((state) => state.ownerId)
 
+  const {
+    options,
+    hasMore,
+    loading,
+    error: optionsError,
+    loadMore,
+    retry,
+  } = useResumeOptions(open, ownerId)
+
   const linked = references?.some(
     (item) => item.sourceId === reference.sourceId,
   )
-
-  useEffect(() => {
-    if (!open || !ownerId) return
-
-    let active = true
-
-    setLoading(true)
-    setError(null)
-
-    supabase
-      .from('resume_config')
-      .select('resume_id,display_name')
-      .eq('user_id', ownerId)
-      .order('updated_at', { ascending: false })
-      .then(({ data, error: cause }) => {
-        if (!active) return
-        if (cause) {
-          setError(cause.message)
-          setLoading(false)
-
-          return
-        }
-
-        setOptions(data ?? [])
-        setLoading(false)
-      })
-
-    return () => {
-      active = false
-    }
-  }, [open, ownerId, attempt])
 
   useEffect(() => {
     if (!open || !targetId) return
@@ -132,7 +108,11 @@ export function ExperienceResumeRelations({
   }
 
   return (
-    <ResponsiveDialog open={open} onOpenChange={onOpenChange}>
+    <ResponsiveDialog
+      returnFocusTo={returnFocusTo}
+      open={open}
+      onOpenChange={onOpenChange}
+    >
       <ResponsiveDialogHeader className='px-6 pt-6'>
         <ResponsiveDialogTitle>关联到简历</ResponsiveDialogTitle>
         <ResponsiveDialogDescription>
@@ -142,12 +122,17 @@ export function ExperienceResumeRelations({
       <div className='space-y-3 px-6 py-4'>
         <Select
           value={targetId}
-          onValueChange={setTargetId}
-          disabled={loading || saving}
+          onValueChange={(id) => {
+            setReferences(null)
+            setTargetId(id)
+          }}
+          disabled={!options.length || saving}
         >
           <SelectTrigger className='w-full' aria-label='选择关联简历'>
             <SelectValue
-              placeholder={loading ? '正在读取简历' : '选择一份云端简历'}
+              placeholder={
+                loading && !options.length ? '正在读取简历' : '选择一份云端简历'
+              }
             />
           </SelectTrigger>
           <SelectContent>
@@ -158,7 +143,26 @@ export function ExperienceResumeRelations({
             ))}
           </SelectContent>
         </Select>
-        {!loading && !options.length && !error && (
+        {optionsError ? (
+          <div role='alert' className='flex items-center gap-2 text-sm'>
+            {optionsError}
+            <Button variant='outline' size='sm' onClick={retry}>
+              重试读取简历
+            </Button>
+          </div>
+        ) : (
+          hasMore && (
+            <Button
+              variant='outline'
+              size='sm'
+              disabled={loading || saving}
+              onClick={loadMore}
+            >
+              {loading ? '正在读取简历' : '加载更多简历'}
+            </Button>
+          )
+        )}
+        {!loading && !options.length && !optionsError && (
           <p className='text-sm text-muted-foreground'>
             还没有云端简历，请先在「我的简历」中创建。
           </p>

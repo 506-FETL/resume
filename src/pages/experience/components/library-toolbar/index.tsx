@@ -12,8 +12,11 @@ import { useExperiencePageStore } from '../../store'
 import type { ExperienceFilter } from '../../types'
 
 export default function LibraryToolbar() {
-  const { query, filter, view, deleting, setQuery, setFilter, setView } =
-    useExperiencePageStore()
+  const query = useExperiencePageStore((state) => state.query)
+  const filter = useExperiencePageStore((state) => state.filter)
+  const view = useExperiencePageStore((state) => state.view)
+  const deleting = useExperiencePageStore((state) => state.deleting)
+  const { setQuery, setFilter, setView } = useExperiencePageStore.getState()
 
   return (
     <div className='grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 @min-[700px]/workspace:grid-cols-[auto_minmax(0,1fr)_auto]'>

@@ -115,7 +115,7 @@ export function getExperienceOperation(
   return request({ action: 'operation', operationId }, { signal })
 }
 
-export async function saveExperienceSource(options: {
+type SaveOptions = {
   operationId: string
   sourceId?: string
   conversationId?: string
@@ -123,25 +123,42 @@ export async function saveExperienceSource(options: {
   extracted: ExtractedExperienceFile
   file?: File
   signal?: AbortSignal
-}): Promise<ExperienceSaveResult> {
-  const { file, signal, ...input } = options
+  firstAttempt?: boolean
+}
 
-  const [previous, bytes] = await Promise.all([
-    getExperienceOperation(input.operationId, signal),
-    file
-      ? file.arrayBuffer()
-      : Promise.resolve(new TextEncoder().encode(input.extracted.text).buffer),
-  ])
+async function confirmedSave(
+  options: SaveOptions,
+  operation: ExperienceOperation | null,
+) {
+  if (!operation) return
+
+  const bytes = options.file
+    ? await options.file.arrayBuffer()
+    : new TextEncoder().encode(options.extracted.text).buffer
 
   const contentHash = await hashExperienceBytes(bytes)
-  const requestHash = await hashExperienceRequest({ ...input, contentHash })
+  const requestHash = await hashExperienceRequest({ ...options, contentHash })
 
-  if (previous && requestHash !== previous.requestHash)
+  if (requestHash !== operation.requestHash)
     throw new ExperienceSourceError(
       '本次操作内容已改变，请重新发起保存。',
       'operation_conflict',
     )
-  if (previous?.status === 'ready' && previous.result) return previous.result
+
+  if (operation.status === 'ready' && operation.result) return operation.result
+}
+
+export async function saveExperienceSource(
+  options: SaveOptions,
+): Promise<ExperienceSaveResult> {
+  const { file, signal, firstAttempt, ...input } = options
+
+  if (!firstAttempt) {
+    const previous = await getExperienceOperation(input.operationId, signal)
+    const saved = await confirmedSave(options, previous)
+
+    if (saved) return saved
+  }
 
   try {
     return await request({ action: 'save', ...input }, { file, signal })
@@ -157,13 +174,9 @@ export async function saveExperienceSource(options: {
       signal,
     ).catch(() => null)
 
-    if (operation && requestHash !== operation.requestHash)
-      throw new ExperienceSourceError(
-        '本次操作内容已改变，请重新发起保存。',
-        'operation_conflict',
-      )
-    if (operation?.status === 'ready' && operation.result)
-      return operation.result
+    const saved = await confirmedSave(options, operation)
+
+    if (saved) return saved
 
     throw new ExperienceSourceError(
       '保存结果暂未确认，请保留本次资料并重试。',

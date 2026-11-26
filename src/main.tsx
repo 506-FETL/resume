@@ -3,6 +3,10 @@ import { createRoot } from 'react-dom/client'
 import { dashboardShell } from '@/components/layout/load-dashboard-shell'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
 import {
+  isExperienceArchive,
+  selectExperienceArchive,
+} from '@/lib/experience-route'
+import {
   isResumeLibrary,
   resumeLibraryPage,
   selectResumeLibrary,
@@ -27,14 +31,20 @@ if (pathname === '/' && hasAuthCallback) {
 
 // 认证与界面并行加载；模块失败仍交给 App 的错误边界。
 const libraryRoute = isResumeLibrary(pathname)
+const archiveRoute = isExperienceArchive(pathname)
 const gatedLibrary = Boolean(new URLSearchParams(search).get('jobId'))
 
-if ((isWorkspaceHome(pathname) || libraryRoute) && !hasAuthCallback) {
+if (
+  (isWorkspaceHome(pathname) || libraryRoute || archiveRoute) &&
+  !hasAuthCallback
+) {
   import('./components/auth-session/subscription')
     .then(({ startAuthSession }) => startAuthSession())
     .catch(() => {})
 
   if (libraryRoute && !gatedLibrary) selectResumeLibrary(true)
+  if (archiveRoute)
+    selectExperienceArchive(window.history.state?.key ?? 'default')
   if (isWorkspaceHome(pathname)) selectWorkspaceData(true)
 } else if (!isPublicHome) {
   import('./components/auth-session').catch(() => {})

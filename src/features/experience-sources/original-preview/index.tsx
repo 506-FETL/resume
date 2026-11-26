@@ -17,8 +17,10 @@ import { experiencePreviewKind } from '../../../../supabase/functions/shared/exp
 export default function ExperienceOriginalPreview({
   sourceId,
   version,
+  preparedOriginal,
 }: {
   sourceId: string
+  preparedOriginal?: Promise<Blob>
   version: ExperienceSourceVersion
 }) {
   const generation = useExperienceSourcesStore((state) => state.generation)
@@ -40,9 +42,12 @@ export default function ExperienceOriginalPreview({
     setText(null)
     setError(null)
 
-    useExperienceSourcesStore
-      .getState()
-      .original(sourceId, version.id)
+    const request =
+      !attempt && preparedOriginal
+        ? preparedOriginal
+        : useExperienceSourcesStore.getState().original(sourceId, version.id)
+
+    request
       .then(async (next) => {
         const originalText = isText ? await next.text() : null
 
@@ -58,7 +63,15 @@ export default function ExperienceOriginalPreview({
     return () => {
       active = false
     }
-  }, [sourceId, version.id, generation, kind, isText, attempt])
+  }, [
+    sourceId,
+    version.id,
+    generation,
+    kind,
+    isText,
+    attempt,
+    preparedOriginal,
+  ])
 
   if (!kind)
     return (

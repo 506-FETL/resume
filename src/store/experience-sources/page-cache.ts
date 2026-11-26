@@ -1,6 +1,56 @@
 import type { ExperienceStore, SourcePage } from './types'
 import type { ExperienceSource } from '@/lib/experience-sources/types'
 
+export function renameSourcePages(
+  state: ExperienceStore,
+  source: ExperienceSource,
+) {
+  const pages = { ...state.pages }
+  const stalePages = { ...state.stalePages }
+
+  for (const [key, page] of Object.entries(pages)) {
+    const [query, offset, kind] = JSON.parse(key) as [
+      string,
+      number,
+      string | null,
+    ]
+
+    const firstKey = JSON.stringify([query, 0, kind])
+    const first = state.pages[firstKey]
+    const previous = first?.items.find((item) => item.id === source.id)
+
+    const canPromote =
+      !query &&
+      previous?.kind === source.kind &&
+      !state.stalePages[firstKey] &&
+      first.items.every(
+        (item) =>
+          item.id === source.id ||
+          Date.parse(source.updatedAt) > Date.parse(item.updatedAt),
+      )
+
+    if (canPromote && offset === 0) {
+      pages[key] = {
+        ...page,
+        items: [source, ...page.items.filter((item) => item.id !== source.id)],
+      }
+
+      continue
+    }
+
+    if (!canPromote) stalePages[key] = true
+    if (page.items.some((item) => item.id === source.id))
+      pages[key] = {
+        ...page,
+        items: page.items.map((item) =>
+          item.id === source.id ? source : item,
+        ),
+      }
+  }
+
+  return { pages, stalePages }
+}
+
 export function getCachedSourcePage(
   state: Pick<ExperienceStore, 'pages' | 'stalePages'>,
   query: string,

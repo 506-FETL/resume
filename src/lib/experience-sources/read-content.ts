@@ -1,6 +1,5 @@
 import { useExperienceSourcesStore } from '@/store/experience-sources'
 import type { ExperienceSourceReadResult } from './types'
-import { readExperienceSource } from './api'
 import type { readExperienceFile } from './read-file'
 
 type FileContent = Awaited<ReturnType<typeof readExperienceFile>>
@@ -92,15 +91,24 @@ export async function readExperienceContent(options: {
       }
 
       if (offset || blockIds) {
+        if (!offset && blockIds) {
+          const blocks = result.blocks.filter((block) =>
+            blockIds.includes(block.id),
+          )
+
+          if (blocks.length === blockIds.length && blocks.length <= limit)
+            return { ...result, blocks, hasMore: false }
+        }
+
         const page = await wait(
-          readExperienceSource({
+          state.read(
             sourceId,
-            versionId: result.version.id,
+            result.version.id,
             offset,
-            limit,
+            options.refresh,
             blockIds,
-            signal: controller.signal,
-          }),
+            limit,
+          ),
         )
 
         controller.signal.throwIfAborted()

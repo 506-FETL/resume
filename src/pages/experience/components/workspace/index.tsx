@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import { motion } from 'motion/react'
 import { CONTENT_SWITCH } from '@/lib/motion'
 import { useExperiencePageStore } from '../../store'
@@ -8,6 +9,12 @@ import ReadingView from '../reading-view'
 export default function ExperienceWorkspace() {
   const navigation = useExperienceNavigation()
   const detailOpen = useExperiencePageStore((state) => state.detailOpen)
+
+  const visitedLibraryRef = useRef(!detailOpen)
+
+  useEffect(() => {
+    if (!detailOpen) visitedLibraryRef.current = true
+  }, [detailOpen])
 
   const transition = {
     ...(navigation.exiting ? CONTENT_SWITCH.exit : CONTENT_SWITCH.enter),
@@ -32,7 +39,9 @@ export default function ExperienceWorkspace() {
         onAnimationComplete={navigation.finishExit}
         className='min-h-0 min-w-0 flex-1 flex-col'
       >
-        <ExperienceLibrary scrollRef={navigation.scrollRef} />
+        {(!detailOpen || visitedLibraryRef.current) && (
+          <ExperienceLibrary scrollRef={navigation.scrollRef} />
+        )}
       </motion.div>
       <motion.div
         ref={navigation.detailRef}

@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   ResponsiveDialog,
+  ResponsiveDialogDescription,
   ResponsiveDialogFooter,
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
@@ -37,6 +38,7 @@ export function ExperienceUploadDialog(props: ExperienceUploadDialogProps) {
 
 function UploadDialogContent({
   open,
+  returnFocusTo,
   onOpenChange,
   onComplete,
   initialTab = 'files',
@@ -80,6 +82,7 @@ function UploadDialogContent({
 
   async function run(job: UploadJob) {
     const generation = useExperienceSourcesStore.getState().generation
+    const firstAttempt = job.status === 'queued'
 
     const sameAccount = () =>
       useExperienceSourcesStore.getState().generation === generation
@@ -102,6 +105,7 @@ function UploadDialogContent({
 
       const result = await persistExperienceUpload({
         operationId: job.operationId,
+        firstAttempt,
         sourceId: job.sourceId,
         name: job.name,
         extracted: job.extracted,
@@ -241,6 +245,7 @@ function UploadDialogContent({
 
   return (
     <ResponsiveDialog
+      returnFocusTo={returnFocusTo}
       open={open}
       onOpenChange={onOpenChange}
       contentClassName='h-[min(40rem,60dvh)] max-h-[85dvh] sm:max-w-[560px] [--drawer-content-height:min(40rem,85dvh)]! [--drawer-content-max-height:85dvh]!'
@@ -249,6 +254,9 @@ function UploadDialogContent({
         <ResponsiveDialogTitle>
           {sourceId ? '上传新版本' : '添加职业档案'}
         </ResponsiveDialogTitle>
+        <ResponsiveDialogDescription className='sr-only'>
+          选择文件或粘贴文字，然后保存到职业档案。
+        </ResponsiveDialogDescription>
       </ResponsiveDialogHeader>
       <div className='min-h-0 flex-1 overflow-y-auto px-6 pb-4'>
         <Tabs

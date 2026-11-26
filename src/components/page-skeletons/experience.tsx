@@ -1,4 +1,4 @@
-import { Grid2X2, List, Search, Upload } from 'lucide-react'
+import { ArrowLeft, Grid2X2, List, Search, Upload } from 'lucide-react'
 import { PageHeader, PageLayout } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
 import { ButtonGroup } from '@/components/ui/button-group'
@@ -10,6 +10,24 @@ import {
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { EXPERIENCE_GRID_CLASS } from '@/pages/experience/const'
+
+export function ExperienceReadingSkeleton() {
+  return (
+    <PageLayout workspace aria-busy='true' aria-label='正在打开资料原文'>
+      <div className='shrink-0'>
+        <Button variant='ghost' size='sm' disabled>
+          <ArrowLeft />
+          返回资料库
+        </Button>
+      </div>
+      <div className='mx-auto w-full max-w-[65ch] space-y-4 px-1'>
+        <Skeleton className='h-8 w-1/2' />
+        <Skeleton className='h-4 w-1/3' />
+        <Skeleton className='aspect-[210/297] w-full' />
+      </div>
+    </PageLayout>
+  )
+}
 
 export function ExperienceRowsSkeleton({
   view = 'grid',

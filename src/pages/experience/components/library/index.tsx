@@ -15,7 +15,7 @@ import {
   EmptyMedia,
 } from '@/components/ui/empty'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
-import { CONTENT_SWITCH, DURATION, EASE } from '@/lib/motion'
+import { CONTENT_SWITCH } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { EXPERIENCE_GRID_CLASS } from '../../const'
 import { useExperienceList } from '../../hooks/use-experience-list'
@@ -23,27 +23,26 @@ import { useExperiencePageStore } from '../../store'
 import LibraryToolbar from '../library-toolbar'
 import LibrarySelection from '../library-selection'
 import DeleteSourcesDialog from '../delete-sources-dialog'
-import SourceItem from '../source-item'
+import { LibraryRows } from '../library-rows'
 
 export default function ExperienceLibrary({
   scrollRef,
 }: {
   scrollRef: RefObject<HTMLDivElement | null>
 }) {
-  const {
-    query,
-    filter,
-    offset,
-    view,
-    selectionMode,
-    selectedSources,
-    deleting,
-    setSelectionMode,
-    setOffset,
-    openUpload,
-    setListScroll,
-    select,
-  } = useExperiencePageStore()
+  const query = useExperiencePageStore((state) => state.query)
+  const filter = useExperiencePageStore((state) => state.filter)
+  const offset = useExperiencePageStore((state) => state.offset)
+  const view = useExperiencePageStore((state) => state.view)
+  const selectionMode = useExperiencePageStore((state) => state.selectionMode)
+  const deleting = useExperiencePageStore((state) => state.deleting)
+
+  const hasSelection = useExperiencePageStore(
+    (state) => !!state.selectedSources.length,
+  )
+
+  const { setSelectionMode, setOffset, openUpload } =
+    useExperiencePageStore.getState()
 
   const { page, error, loading, retry } = useExperienceList()
   const reduced = useReducedMotion()
@@ -51,20 +50,23 @@ export default function ExperienceLibrary({
   const snapshotRef = useRef<{
     page: NonNullable<typeof page>
     offset: number
+    query: string
+    filter: typeof filter
   } | null>(null)
 
   const focusPageRef = useRef(false)
   const visitedSourcesRef = useRef(new Set<string>())
 
-  if (page) snapshotRef.current = { page, offset }
+  if (page) snapshotRef.current = { page, offset, query, filter }
 
-  const displayed = page ? { page, offset } : snapshotRef.current
+  const displayed = snapshotRef.current
+  const sameFilters = displayed?.query === query && displayed.filter === filter
   const items = displayed?.page.items ?? []
   const filtered = !!query.trim() || filter !== 'all'
   const unresolved = !page && (loading || !!error)
 
   const empty =
-    !items.length && !error && !loading && !deleting && !selectedSources.length
+    !items.length && !error && !loading && !deleting && !hasSelection
 
   useEffect(() => {
     focusPageRef.current = false
@@ -72,22 +74,24 @@ export default function ExperienceLibrary({
 
   useEffect(() => {
     if (error) focusPageRef.current = false
-    if (!page || loading || error) return
+    if (!page || loading || error || deleting) return
     if (page.items.length === 0 && offset > 0) {
       setOffset(Math.max(0, Math.floor((page.total - 1) / 10) * 10))
 
       return
     }
-    if (focusPageRef.current) {
+    if (focusPageRef.current && page.items.length) {
       focusPageRef.current = false
 
       if (scrollRef.current) scrollRef.current.scrollTop = 0
 
       scrollRef.current
-        ?.querySelector<HTMLButtonElement>('[data-source-id]')
+        ?.querySelector<HTMLButtonElement>(
+          `[data-source-id="${CSS.escape(page.items[0].id)}"]`,
+        )
         ?.focus({ preventScroll: true })
     }
-  }, [page, loading, error, offset, setOffset, scrollRef])
+  }, [page, loading, error, deleting, offset, setOffset, scrollRef])
 
   useEffect(() => {
     page?.items.forEach((source) => visitedSourcesRef.current.add(source.id))
@@ -272,44 +276,13 @@ export default function ExperienceLibrary({
                   duration: reduced ? 0 : CONTENT_SWITCH.enter.duration,
                 }}
               >
-                <AnimatePresence mode='popLayout'>
-                  {items.map((source, index) => (
-                    <PresenceDiv
-                      key={source.id}
-                      className='min-w-0'
-                      layout={reduced ? false : 'position'}
-                      initial={
-                        visitedSourcesRef.current.has(source.id) || index > 5
-                          ? false
-                          : { opacity: 0, y: reduced ? 0 : 8 }
-                      }
-                      animate={{ opacity: 1, y: 0 }}
-                      exit={{
-                        opacity: 0,
-                        transition: {
-                          duration: reduced ? 0 : DURATION.fast,
-                          ease: EASE.in,
-                          delay: 0,
-                        },
-                      }}
-                      transition={{
-                        duration: reduced ? 0 : DURATION.base,
-                        ease: EASE.out,
-                        delay: reduced || index > 5 ? 0 : index * 0.03,
-                      }}
-                    >
-                      <SourceItem
-                        source={source}
-                        view={view}
-                        disabled={unresolved || deleting}
-                        onOpen={() => {
-                          setListScroll(scrollRef.current?.scrollTop ?? 0)
-                          select(source.id)
-                        }}
-                      />
-                    </PresenceDiv>
-                  ))}
-                </AnimatePresence>
+                <LibraryRows
+                  items={items}
+                  view={view}
+                  disabled={unresolved || deleting}
+                  visitedSourcesRef={visitedSourcesRef}
+                  scrollRef={scrollRef}
+                />
               </PresenceDiv>
             )}
           </AnimatePresence>
@@ -327,7 +300,9 @@ export default function ExperienceLibrary({
             <Button
               size='sm'
               variant='ghost'
-              disabled={loading || deleting || displayed.offset === 0}
+              disabled={
+                loading || deleting || !sameFilters || displayed.offset === 0
+              }
               onClick={() => changePage(Math.max(0, displayed.offset - 10))}
             >
               上一页
@@ -335,7 +310,9 @@ export default function ExperienceLibrary({
             <Button
               size='sm'
               variant='ghost'
-              disabled={loading || deleting || !displayed.page.hasMore}
+              disabled={
+                loading || deleting || !sameFilters || !displayed.page.hasMore
+              }
               onClick={() => changePage(displayed.offset + 10)}
             >
               下一页

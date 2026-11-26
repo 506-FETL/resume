@@ -130,8 +130,8 @@ export const useExperiencePageStore = create<ExperiencePageStore>(
         if (state.generation !== generation) controller.abort()
       })
 
-      const failed: ExperienceSourceTarget[] = []
-      let failureMessage = ''
+      const queue = targets.values()
+      const failures = new Map<string, string>()
 
       set({
         deleting: true,
@@ -139,8 +139,10 @@ export const useExperiencePageStore = create<ExperiencePageStore>(
         deleteProgress: { completed: 0, total: targets.length },
       })
 
-      try {
-        for (const [index, target] of targets.entries()) {
+      async function processTargets() {
+        for (const target of queue) {
+          if (controller.signal.aborted) return
+
           try {
             await useExperienceSourcesStore
               .getState()
@@ -148,22 +150,35 @@ export const useExperiencePageStore = create<ExperiencePageStore>(
           } catch (error) {
             if (controller.signal.aborted) return
 
-            failed.push(target)
-
-            failureMessage ||=
-              error instanceof Error ? error.message : '请稍后重试。'
+            failures.set(
+              target.id,
+              error instanceof Error ? error.message : '请稍后重试。',
+            )
           }
 
           if (controller.signal.aborted) return
 
           set((state) => ({
-            selectedSources: failed.some((item) => item.id === target.id)
+            selectedSources: failures.has(target.id)
               ? state.selectedSources
               : state.selectedSources.filter((item) => item.id !== target.id),
-            deleteProgress: { completed: index + 1, total: targets.length },
+            deleteProgress: {
+              completed: state.deleteProgress.completed + 1,
+              total: targets.length,
+            },
           }))
         }
+      }
 
+      try {
+        await Promise.all(
+          Array.from({ length: Math.min(2, targets.length) }, processTargets),
+        )
+
+        if (controller.signal.aborted) return
+
+        const failed = targets.filter((target) => failures.has(target.id))
+        const failureMessage = failed.length ? failures.get(failed[0].id) : ''
         const deleted = targets.length - failed.length
 
         set((state) => ({

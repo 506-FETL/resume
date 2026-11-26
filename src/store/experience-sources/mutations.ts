@@ -3,7 +3,8 @@ import * as api from '@/lib/experience-sources/api'
 import { ExperienceSourceError } from '@/lib/experience-sources/types'
 
 import type { ExperienceSlice } from './types'
-import { unknownDeletions } from './runtime'
+import { unknownDeletions, sourceReadKey } from './runtime'
+import { renameSourcePages } from './page-cache'
 
 export const createMutationsSlice: ExperienceSlice<
   'invalidate' | 'rename' | 'remove'
@@ -35,27 +36,46 @@ export const createMutationsSlice: ExperienceSlice<
     const source = await api.renameExperienceSource(sourceId, name)
 
     if (get().generation === generation) {
-      set((state) => ({
-        pages: Object.fromEntries(
-          Object.entries(state.pages).map(([key, page]) => [
-            key,
-            {
-              ...page,
-              items: page.items.map((item) =>
-                item.id === sourceId ? source : item,
-              ),
-            },
-          ]),
-        ),
-        reads: Object.fromEntries(
-          Object.entries(state.reads).map(([key, read]) => [
-            key,
-            read.source.id === sourceId ? { ...read, source } : read,
-          ]),
-        ),
-      }))
+      set((state) => {
+        const reads = { ...state.reads }
+        const staleReads = { ...state.staleReads }
 
-      get().invalidate(sourceId)
+        for (const [key, read] of Object.entries(reads)) {
+          if (read.source.id !== sourceId) continue
+
+          reads[key] = { ...read, source }
+
+          if (
+            !JSON.parse(key)[1] &&
+            read.version.id !== source.currentVersionId
+          )
+            staleReads[key] = true
+        }
+
+        if (source.currentVersionId) {
+          const exact = sourceReadKey(sourceId, source.currentVersionId)
+          const current = sourceReadKey(sourceId)
+
+          if (reads[exact] && !staleReads[exact]) {
+            reads[current] = reads[exact]
+            delete staleReads[current]
+          }
+        }
+
+        const metadata = Object.fromEntries(
+          Object.entries(state.metadata).filter(
+            ([, value]) => value.status !== 'loading',
+          ),
+        )
+
+        return {
+          ...renameSourcePages(state, source),
+          reads,
+          staleReads,
+          metadata: { ...metadata, [sourceId]: { status: 'ready', source } },
+          revision: state.revision + 1,
+        }
+      })
     }
 
     return source

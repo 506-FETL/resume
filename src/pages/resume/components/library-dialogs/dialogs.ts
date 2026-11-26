@@ -1,18 +1,18 @@
 import type { DerivedJobsDialogProps } from '@/components/jd-variant/components/tasks-dialog'
 import type { JdVariantDialogProps } from '@/components/jd-variant/components/generator-dialog'
-import { deferLibraryDialog } from './deferred'
+import { deferDialog } from '@/components/deferred-dialog'
 
-export const LibraryShareDialog = deferLibraryDialog(
+export const LibraryShareDialog = deferDialog(
   () => import('@/pages/share/components/quick-dialog'),
   '分享简历',
 )
 
-export const LibrarySyncDialog = deferLibraryDialog(
+export const LibrarySyncDialog = deferDialog(
   () => import('../sync-resumes-dialog'),
   '同步本地简历',
 )
 
-export const LibraryTasksDialog = deferLibraryDialog<DerivedJobsDialogProps>(
+export const LibraryTasksDialog = deferDialog<DerivedJobsDialogProps>(
   () =>
     import('@/components/jd-variant/components/tasks-dialog').then(
       ({ DerivedJobsDialog }) => ({ default: DerivedJobsDialog }),
@@ -20,7 +20,7 @@ export const LibraryTasksDialog = deferLibraryDialog<DerivedJobsDialogProps>(
   '岗位版本任务',
 )
 
-export const LibraryVariantDialog = deferLibraryDialog<JdVariantDialogProps>(
+export const LibraryVariantDialog = deferDialog<JdVariantDialogProps>(
   () =>
     import('@/components/jd-variant/components/generator-dialog').then(
       ({ JdVariantDialog }) => ({ default: JdVariantDialog }),

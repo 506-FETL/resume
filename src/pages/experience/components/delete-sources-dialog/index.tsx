@@ -13,15 +13,12 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useExperiencePageStore } from '../../store'
 
 export default function DeleteSourcesDialog() {
-  const {
-    deleteOpen,
-    deleteTargets,
-    deleting,
-    deleteProgress,
-    deleteError,
-    setDeleteOpen,
-    deleteSources,
-  } = useExperiencePageStore()
+  const deleteOpen = useExperiencePageStore((state) => state.deleteOpen)
+  const deleteTargets = useExperiencePageStore((state) => state.deleteTargets)
+  const deleting = useExperiencePageStore((state) => state.deleting)
+  const deleteProgress = useExperiencePageStore((state) => state.deleteProgress)
+  const deleteError = useExperiencePageStore((state) => state.deleteError)
+  const { setDeleteOpen, deleteSources } = useExperiencePageStore.getState()
 
   const reduced = useReducedMotion()
 

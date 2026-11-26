@@ -1,9 +1,11 @@
 import * as api from '@/lib/experience-sources/api'
+import { listArchivePage } from '@/lib/experience-sources/list-page'
 import type { ExperienceSourceReadResult } from '@/lib/experience-sources/types'
 
 import type { ExperienceSlice, SourcePage } from './types'
-import { pending } from './runtime'
+import { pending, sourceReadKey, sourceRequestKey } from './runtime'
 import { getCachedSourcePage } from './page-cache'
+import { takeExperiencePreload } from './preload'
 
 export const createReadsSlice: ExperienceSlice<'load' | 'read' | 'original'> = (
   set,
@@ -12,7 +14,7 @@ export const createReadsSlice: ExperienceSlice<'load' | 'read' | 'original'> = (
   async load(query = '', offset = 0, refresh = false, kind) {
     const state = get()
     const key = JSON.stringify([query, offset, kind])
-    const requestKey = `${state.generation}:${state.revision}:list:${key}`
+    const requestKey = sourceRequestKey(state, 'list', key)
 
     if (!state.ownerId) throw new Error('请先登录后使用职业档案。')
 
@@ -20,12 +22,19 @@ export const createReadsSlice: ExperienceSlice<'load' | 'read' | 'original'> = (
       ? getCachedSourcePage(state, query, offset, kind)
       : undefined
 
+    const opening = takeExperiencePreload<SourcePage>(requestKey)
+
     if (cached) return cached
+    if (!refresh && opening) return opening
     if (pending.has(requestKey))
       return pending.get(requestKey) as Promise<SourcePage>
 
-    const request = api
-      .listExperienceSources({ query, offset, limit: 10, kind })
+    // 搜索词可能包含私有资料名称，继续放在 POST 正文中。
+    const page = query
+      ? api.listExperienceSources({ query, offset, limit: 10, kind })
+      : listArchivePage(state.ownerId, offset, kind)
+
+    const request = page
       .then((result) => {
         if (get().generation !== state.generation)
           throw new Error('账户已切换，请重新读取。')
@@ -34,6 +43,14 @@ export const createReadsSlice: ExperienceSlice<'load' | 'read' | 'original'> = (
 
         set((current) => {
           const stalePages = { ...current.stalePages }
+          const firstKey = JSON.stringify([query, 0, kind])
+          const first = current.pages[firstKey]
+
+          if (first && !stalePages[firstKey] && first.total !== result.total) {
+            // 外部增删改变了分页边界，回到已有页时需要重新确认其内容。
+            for (const cachedKey of Object.keys(current.pages))
+              stalePages[cachedKey] = true
+          }
 
           delete stalePages[key]
 
@@ -48,25 +65,31 @@ export const createReadsSlice: ExperienceSlice<'load' | 'read' | 'original'> = (
 
     return request
   },
-  async read(sourceId, versionId, offset = 0, refresh = false, blockIds) {
+  async read(
+    sourceId,
+    versionId,
+    offset = 0,
+    refresh = false,
+    blockIds,
+    limit = 20,
+  ) {
     const state = get()
 
-    const key = JSON.stringify(
-      blockIds
-        ? [sourceId, versionId, blockIds]
-        : [sourceId, versionId, offset],
-    )
+    const key = sourceReadKey(sourceId, versionId, offset, blockIds, limit)
+    const requestKey = sourceRequestKey(state, 'read', key)
 
-    const requestKey = `${state.generation}:${state.revision}:read:${key}`
+    const opening =
+      takeExperiencePreload<ExperienceSourceReadResult>(requestKey)
 
     if (!state.ownerId) throw new Error('请先登录后使用职业档案。')
     if (!refresh && state.reads[key] && !state.staleReads[key])
       return state.reads[key]
+    if (!refresh && opening) return opening
     if (pending.has(requestKey))
       return pending.get(requestKey) as Promise<ExperienceSourceReadResult>
 
     const request = api
-      .readExperienceSource({ sourceId, versionId, offset, blockIds })
+      .readExperienceSource({ sourceId, versionId, offset, blockIds, limit })
       .then((result) => {
         if (get().generation !== state.generation)
           throw new Error('账户已切换，请重新读取。')
@@ -78,10 +101,12 @@ export const createReadsSlice: ExperienceSlice<'load' | 'read' | 'original'> = (
 
           const versionKey = versionId
             ? key
-            : JSON.stringify(
-                blockIds
-                  ? [sourceId, result.version.id, blockIds]
-                  : [sourceId, result.version.id, offset],
+            : sourceReadKey(
+                sourceId,
+                result.version.id,
+                offset,
+                blockIds,
+                limit,
               )
 
           delete staleReads[key]

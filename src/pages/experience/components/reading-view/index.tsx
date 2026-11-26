@@ -6,10 +6,8 @@ import type { RefObject } from 'react'
 import { ArrowLeft } from 'lucide-react'
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import {
-  getCachedSourcePage,
-  useExperienceSourcesStore,
-} from '@/store/experience-sources'
+import { useExperienceSourcesStore } from '@/store/experience-sources'
+import { getExperienceListSource } from '../../utils'
 import { useExperiencePageStore } from '../../store'
 import SourceDetail from '../source-detail'
 
@@ -18,20 +16,20 @@ export default function ReadingView({
 }: {
   backRef: RefObject<HTMLButtonElement | null>
 }) {
-  const { sourceId, versionId, blockId, query, filter, offset, closeDetail } =
-    useExperiencePageStore()
+  const sourceId = useExperiencePageStore((state) => state.sourceId)
+  const versionId = useExperiencePageStore((state) => state.versionId)
+  const blockId = useExperiencePageStore((state) => state.blockId)
+  const query = useExperiencePageStore((state) => state.query)
+  const filter = useExperiencePageStore((state) => state.filter)
+  const offset = useExperiencePageStore((state) => state.offset)
+  const { closeDetail } = useExperiencePageStore.getState()
 
   const reduced = useReducedMotion()
   const navigate = useNavigate()
   const location = useLocation()
 
   const source = useExperienceSourcesStore((state) =>
-    getCachedSourcePage(
-      state,
-      query,
-      offset,
-      filter === 'all' ? undefined : filter,
-    )?.items.find((item) => item.id === sourceId),
+    getExperienceListSource(state, { query, offset, filter }, sourceId),
   )
 
   function returnToLibrary() {

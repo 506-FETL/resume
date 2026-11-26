@@ -57,6 +57,14 @@ export async function listExperienceSources(
     .order('id')
     .range(input.offset, input.offset + input.limit - 1)
 
+  if (input.offset > 0 && error?.code === 'PGRST103') {
+    const remaining = await query.range(0, 0).limit(0)
+
+    if (remaining.error) throw remaining.error
+    if (remaining.count === null) throw error
+
+    return { items: [], total: remaining.count, hasMore: false }
+  }
   if (error) throw error
 
   return {

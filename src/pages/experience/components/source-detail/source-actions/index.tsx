@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { type ComponentProps, useEffect, useRef, useState } from 'react'
 import { useIsPresent } from 'motion/react'
 import {
   Download,
@@ -12,30 +12,39 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-
 import { Spinner } from '@/components/ui/spinner'
-
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-
-import { ExperienceUploadDialog } from '@/features/experience-sources'
-import { ExperienceResumeRelations } from '@/features/experience-sources/resume-relations'
+import { DeferredExperienceUploadDialog as ExperienceUploadDialog } from '@/features/experience-sources/deferred-upload-dialog'
+import type { ExperienceResumeRelations } from '@/features/experience-sources/resume-relations'
+import { deferDialog } from '@/components/deferred-dialog'
 import { experienceError } from '@/features/experience-sources/utils'
 import type {
   ExperienceSourceReadResult,
+  ExperienceSourceReference,
   ExperienceSource,
 } from '@/lib/experience-sources/types'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
 import { useExperiencePageStore } from '../../../store'
-
-import type { ExperienceSourceReference } from '@/lib/experience-sources/types'
 import { RenameSourceDialog } from '../rename-dialog'
 import { DeleteSourceDialog } from '../delete-dialog'
 import { CopySourceButton } from '../copy-source-button'
+
+const RelationsDialog = deferDialog<
+  ComponentProps<typeof ExperienceResumeRelations>
+>(
+  () =>
+    import('@/features/experience-sources/resume-relations').then(
+      ({ ExperienceResumeRelations }) => ({
+        default: ExperienceResumeRelations,
+      }),
+    ),
+  '关联到简历',
+)
 
 export function SourceActions({
   sourceId,
@@ -45,9 +54,9 @@ export function SourceActions({
   onRenamed,
 }: {
   sourceId: string
-  source?: ExperienceSource
-  detail: ExperienceSourceReadResult | null
-  reference: ExperienceSourceReference | null
+  source: ExperienceSource
+  detail: ExperienceSourceReadResult
+  reference: ExperienceSourceReference
   onRenamed: (source: ExperienceSource) => void
 }) {
   const [renameOpen, setRenameOpen] = useState(false)
@@ -105,8 +114,6 @@ export function SourceActions({
   async function download() {
     const generation = useExperienceSourcesStore.getState().generation
 
-    if (!detail) return
-
     const blob = await useExperienceSourcesStore
       .getState()
       .original(sourceId, detail.version.id)
@@ -117,7 +124,7 @@ export function SourceActions({
     const anchor = document.createElement('a')
 
     anchor.href = url
-    anchor.download = detail?.version.fileName ?? source?.name ?? '职业档案'
+    anchor.download = detail.version.fileName ?? source.name
     anchor.click()
     setTimeout(() => URL.revokeObjectURL(url), 1000)
   }
@@ -125,23 +132,20 @@ export function SourceActions({
   return (
     <>
       <div className='flex flex-wrap items-center gap-2'>
-        {(detail
-          ? detail.version.blockCount > 0
-          : source && !['image', 'file'].includes(source.kind)) && (
+        {detail.version.blockCount > 0 && (
           <Button
-            disabled={!reference || source?.status !== 'ready'}
+            disabled={source.status !== 'ready'}
             onClick={() => {
-              if (reference)
-                navigate('/assistant', {
-                  state: { experienceReferences: [reference] },
-                })
+              navigate('/assistant', {
+                state: { experienceReferences: [reference] },
+              })
             }}
           >
             <Sparkles />
             用于 AI 助手
           </Button>
         )}
-        {detail?.version.fileName && (
+        {detail.version.fileName && (
           <Button
             variant='outline'
             disabled={busy}
@@ -151,7 +155,7 @@ export function SourceActions({
             下载原件
           </Button>
         )}
-        {detail && !detail.version.fileName && (
+        {!detail.version.fileName && (
           <CopySourceButton sourceId={sourceId} versionId={detail.version.id} />
         )}
         <DropdownMenu>
@@ -181,7 +185,6 @@ export function SourceActions({
             }}
           >
             <DropdownMenuItem
-              disabled={!source}
               onSelect={() =>
                 requestDialog(() => {
                   setError(null)
@@ -206,7 +209,6 @@ export function SourceActions({
               上传新版本
             </DropdownMenuItem>
             <DropdownMenuItem
-              disabled={!reference}
               onSelect={() => requestDialog(() => setRelationOpen(true))}
             >
               <Link2 />
@@ -263,16 +265,22 @@ export function SourceActions({
           useExperiencePageStore.setState({ versionId: reference.versionId })
         }}
       />
-      {reference && (
-        <ExperienceResumeRelations
-          open={relationOpen}
-          onOpenChange={setRelationOpen}
-          reference={reference}
-        />
-      )}
+      <RelationsDialog
+        open={relationOpen}
+        onClose={() => setRelationOpen(false)}
+      >
+        {(Content, trigger) => (
+          <Content
+            open={relationOpen}
+            onOpenChange={setRelationOpen}
+            reference={reference}
+            returnFocusTo={trigger}
+          />
+        )}
+      </RelationsDialog>
       <RenameSourceDialog
         sourceId={sourceId}
-        sourceName={source?.name ?? ''}
+        sourceName={source.name}
         open={renameOpen}
         onOpenChange={setRenameOpen}
         onRenamed={onRenamed}

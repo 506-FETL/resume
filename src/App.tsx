@@ -18,6 +18,10 @@ import {
   selectResumeLibrary,
 } from '@/lib/resume-library-route'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
+import {
+  isExperienceArchive,
+  selectExperienceArchive,
+} from '@/lib/experience-route'
 import useUpgradeDialogStore from '@/store/upgrade-dialog'
 import useUserStore from '@/store/user'
 import {
@@ -107,6 +111,14 @@ function App() {
     )
   }, [location.pathname, location.search])
 
+  const archiveRoute = isExperienceArchive(location.pathname)
+
+  useEffect(() => {
+    selectExperienceArchive(
+      archiveRoute && !hasAuthCallback ? location.key : undefined,
+    )
+  }, [archiveRoute, location.key])
+
   const isAssistantRoute =
     location.pathname === '/assistant' ||
     location.pathname.startsWith('/assistant/')
@@ -175,10 +187,12 @@ function App() {
                 <Suspense
                   fallback={
                     isWorkspaceHome(location.pathname) ||
-                    isResumeLibrary(location.pathname) ? (
+                    isResumeLibrary(location.pathname) ||
+                    archiveRoute ? (
                       <DashboardOpening>
                         <RouteSkeleton
                           pathname={location.pathname}
+                          location={location}
                           guest={authStatus === 'anonymous'}
                         />
                       </DashboardOpening>
@@ -195,6 +209,7 @@ function App() {
                       fallback={
                         <RouteSkeleton
                           pathname={location.pathname}
+                          location={location}
                           guest={authStatus === 'anonymous'}
                         />
                       }

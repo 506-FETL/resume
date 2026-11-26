@@ -5,6 +5,7 @@ import { useExperienceSourcesStore } from '@/store/experience-sources'
 
 export async function persistExperienceUpload(options: {
   operationId: string
+  firstAttempt?: boolean
   sourceId?: string
   conversationId?: string
   name: string
@@ -44,6 +45,7 @@ export async function persistExperienceUpload(options: {
 
     return await saveExperienceSource({
       operationId: options.operationId,
+      firstAttempt: options.firstAttempt,
       sourceId: options.sourceId,
       conversationId: options.conversationId,
       name: options.name,
