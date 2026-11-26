@@ -2,7 +2,8 @@ import type { VersionMetadataDraft } from '../../../types'
 import dayjs from 'dayjs'
 import { CalendarIcon, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Calendar } from '@/components/ui/calendar'
+import type { ComponentProps } from 'react'
+import { createDeferredComponent } from '@/components/deferred-content'
 import {
   Field,
   FieldDescription,
@@ -15,18 +16,11 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
-import { LoadingRegion } from '@/components/loading-skeleton'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useHistoryMotion } from '../../../hooks/use-history-motion'
-import { useJobSummaries } from '../../../hooks/use-job-summaries'
+import { historyComponent } from '../../../utils/load-component'
+import VersionJobPicker from '../version-job-picker'
 import VersionTagInput from '../tag-input'
 
 interface VersionMetadataFieldsProps {
@@ -34,14 +28,19 @@ interface VersionMetadataFieldsProps {
   onChange: (patch: Partial<VersionMetadataDraft>) => void
 }
 
-// Select 不接受空字符串值，用哨兵表示「不关联」
-const NONE_COMPANY = '__none__'
+const Calendar = createDeferredComponent<
+  ComponentProps<typeof import('@/components/ui/calendar').Calendar>
+>(
+  historyComponent(() => import('@/components/ui/calendar'), 'Calendar'),
+  '投递日期',
+  <Skeleton className='h-72 w-64' />,
+  { wrapFallback: false },
+)
 
 export default function VersionMetadataFields({
   draft,
   onChange,
 }: VersionMetadataFieldsProps) {
-  const { options: jobOptions, loading, error, retry } = useJobSummaries()
   const { surfaceProps } = useHistoryMotion()
 
   return (
@@ -93,47 +92,10 @@ export default function VersionMetadataFields({
         />
       </Field>
 
-      <Field>
-        <FieldLabel>关联岗位</FieldLabel>
-        <Select
-          disabled={loading || Boolean(error)}
-          value={draft.companyId ?? NONE_COMPANY}
-          onValueChange={(value) =>
-            onChange({ companyId: value === NONE_COMPANY ? null : value })
-          }
-        >
-          <SelectTrigger>
-            <SelectValue placeholder='选择投递的岗位' />
-          </SelectTrigger>
-          <SelectContent
-            {...surfaceProps}
-            position='popper'
-            className={`${surfaceProps.className} history-popup-motion`}
-          >
-            <SelectItem value={NONE_COMPANY}>不关联</SelectItem>
-            {jobOptions.map((option) => (
-              <SelectItem key={option.id} value={option.id}>
-                {option.label}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {loading ? (
-          <LoadingRegion label='正在加载岗位选项'>
-            <Skeleton className='h-3.5 w-24' />
-          </LoadingRegion>
-        ) : error ? (
-          <div className='flex items-center gap-2' role='alert'>
-            <FieldDescription>{error}</FieldDescription>
-            <Button type='button' variant='ghost' size='sm' onClick={retry}>
-              重试
-            </Button>
-          </div>
-        ) : jobOptions.length === 0 ? (
-          <FieldDescription>暂无可关联的岗位。</FieldDescription>
-        ) : null}
-      </Field>
-
+      <VersionJobPicker
+        value={draft.companyId}
+        onChange={(companyId) => onChange({ companyId })}
+      />
       <Field>
         <FieldLabel>投递日期</FieldLabel>
         <div className='flex items-center gap-2'>
@@ -181,3 +143,5 @@ export default function VersionMetadataFields({
     </FieldGroup>
   )
 }
+
+export { VersionMetadataFields }

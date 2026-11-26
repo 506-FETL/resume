@@ -10,7 +10,6 @@ export const VERSION_SELECTOR = `
   milestone_name,
   source_type,
   tags,
-  snapshot,
   content_hash,
   base_updated_at,
   company_id,
@@ -21,26 +20,8 @@ export const VERSION_SELECTOR = `
 `
 
 // 列表用：不含 snapshot（侧边栏渲染用不到），大幅减小载荷
-export const VERSION_LIST_SELECTOR = `
-  id,
-  created_at,
-  updated_at,
-  user_id,
-  resume_id,
-  version_no,
-  version_name,
-  description,
-  milestone_name,
-  source_type,
-  tags,
-  content_hash,
-  base_updated_at,
-  company_id,
-  submitted_at,
-  status,
-  document_revision,
-  projection_reference_date
-`
+export const VERSION_LIST_SELECTOR =
+  'id,version_no,version_name,description,milestone_name,source_type,tags,created_at,company_id,submitted_at,projection_reference_date'
 
 export const RESUME_SELECTOR = `
   resume_id,
@@ -66,14 +47,6 @@ export const RESUME_SELECTOR = `
   font,
   theme,
   template_binding
-`
-
-export const RESUME_OPTION_SELECTOR = `
-  resume_id,
-  updated_at,
-  display_name,
-  description,
-  type
 `
 
 export const VERSION_SUMMARY_SELECTOR = `

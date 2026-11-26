@@ -1,36 +1,43 @@
-import { useCallback } from 'react'
-import { isOfflineResumeId } from '@/lib/offline-resume-manager'
+import { useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
+import { isCloudResumeId } from '@/lib/resume-id'
+import { prepareHistoryTarget } from '@/lib/history-route'
 import useCurrentResumeStore from '@/store/resume/current'
-import { useHistoryResumeOptions } from './use-history-options'
+import useUserStore from '@/store/user'
+import useHistoryStore from '../store'
+import { useResumeOptions } from '../store/options'
 
 export function useActiveHistoryResumeId() {
-  const currentResumeId = useCurrentResumeStore((state) => state.resumeId)
+  const owner = useUserStore((state) => state.currentUser?.id)
+  const currentId = useCurrentResumeStore((state) => state.resumeId)
+  const id = isCloudResumeId(currentId) ? currentId : null
+  const [params] = useSearchParams()
+  const jobId = params.get('jobId') || null
 
-  const setCurrentResume = useCurrentResumeStore(
-    (state) => state.setCurrentResume,
+  const missing = useHistoryStore(
+    (state) => state.resumeId === id && state.currentResumeMissing,
   )
 
-  const { resumeOptions, loading, error, reload } = useHistoryResumeOptions()
+  const activeResumeId = missing ? null : id
+  const hasOptions = useResumeOptions((state) => state.items.length > 0)
+  const ready = useResumeOptions((state) => state.ready)
+  const error = useResumeOptions((state) => state.error)
+  const load = useResumeOptions((state) => state.load)
 
-  const currentResume =
-    currentResumeId && !isOfflineResumeId(currentResumeId)
-      ? resumeOptions.find((option) => option.resumeId === currentResumeId)
-      : undefined
+  useEffect(() => {
+    if (owner) prepareHistoryTarget(owner, jobId, id)
+  }, [owner, jobId, id])
 
-  const activeResumeId = currentResume?.resumeId ?? null
+  useEffect(() => {
+    if (owner && !activeResumeId && !ready && !error && !hasOptions)
+      load(owner, 'probe')
+  }, [owner, activeResumeId, ready, error, hasOptions, load])
 
-  const selectResume = useCallback(
-    (resumeId: string) => {
-      const option = resumeOptions.find(
-        (option) => option.resumeId === resumeId,
-      )
-
-      if (!option || isOfflineResumeId(option.resumeId)) return
-
-      setCurrentResume(option.resumeId, option.type)
-    },
-    [resumeOptions, setCurrentResume],
-  )
-
-  return { activeResumeId, resumeOptions, loading, error, reload, selectResume }
+  return {
+    activeResumeId,
+    hasOptions,
+    loading: !activeResumeId && !ready && !hasOptions && !error,
+    error: hasOptions ? null : error,
+    reload: () => owner && load(owner, 'probe'),
+  }
 }

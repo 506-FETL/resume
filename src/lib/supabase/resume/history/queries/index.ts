@@ -7,7 +7,6 @@ export {
 
 export {
   getResumeHistoryResume,
-  listResumeHistoryOptions,
   listResumeHistoryShareOptions,
 } from './resumes'
 
@@ -20,6 +19,5 @@ export {
   getResumeHistoryVersionSnapshot,
   getResumeVersionForShare,
   listResumeHistoryVersionSummaries,
-  listResumeHistoryVersions,
   listResumeVersions,
 } from './versions'

@@ -16,7 +16,10 @@ import {
   applyResumeEntryIdPatches,
   collectMissingResumeEntryIdPatches,
 } from '@/lib/schema/resume/entry-id'
-import { updateResumeConfig } from '@/lib/supabase/resume/config'
+import {
+  saveRestoredResumeConfig,
+  updateResumeConfig,
+} from '@/lib/supabase/resume/config'
 import { getCurrentUser } from '@/lib/supabase/user'
 import { setLeaf } from '@/pages/optimize/utils/values'
 import { DocumentManager } from './manager'
@@ -163,12 +166,12 @@ export async function replaceAutomergeDocumentSnapshot(
     const payload = pickResumePayload(resolvedDoc ?? snapshot, snapshot)
     const { templateBinding, ...resumeConfig } = payload
 
-    await updateResumeConfig(resumeId, {
+    const record = await saveRestoredResumeConfig(resumeId, {
       ...resumeConfig,
       template_binding: templateBinding,
     })
 
-    return payload
+    return { snapshot: payload, record }
   } finally {
     manager.destroy()
   }

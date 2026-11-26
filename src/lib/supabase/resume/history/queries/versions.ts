@@ -3,14 +3,12 @@ import { collectPages } from '../../../pagination'
 import { getCurrentUser } from '../../../user'
 import type {
   ResumeHistoryShareReleaseRow,
-  ResumeHistoryVersionListRow,
   ResumeHistoryVersionRow,
   ResumeHistoryVersionSummaryRecord,
   ResumeSnapshot,
   ResumeVersionListItem,
 } from '../types'
 import {
-  VERSION_LIST_SELECTOR,
   VERSION_SHARE_RELEASE_SELECTOR,
   VERSION_SUMMARY_SELECTOR,
 } from './selectors'
@@ -35,29 +33,6 @@ export async function getFrozenVersionForRestore(
   if (error) throw error
 
   return data
-}
-
-export async function listResumeHistoryVersions(resumeId: string) {
-  const user = await getCurrentUser()
-
-  if (!user) {
-    throw new Error('用户未登陆')
-  }
-
-  return collectPages(async (from, to) => {
-    const { data, error } = await supabase
-      .from('resume_config_versions')
-      .select(VERSION_LIST_SELECTOR)
-      .eq('resume_id', resumeId)
-      .eq('user_id', user.id)
-      .eq('status', 'frozen')
-      .order('version_no', { ascending: false })
-      .range(from, to)
-
-    if (error) throw error
-
-    return (data ?? []) as ResumeHistoryVersionListRow[]
-  })
 }
 
 export async function listResumeVersions(
@@ -134,19 +109,25 @@ export async function getResumeVersionForShare(
   return getResumeHistoryVersionForShare(resumeId, versionId)
 }
 
-export async function getResumeHistoryVersionSnapshot(id: number) {
+export async function getResumeHistoryVersionSnapshot(
+  id: number,
+  resumeId?: string,
+) {
   const user = await getCurrentUser()
 
   if (!user) {
     throw new Error('用户未登陆')
   }
 
-  const { data, error } = await supabase
+  let query = supabase
     .from('resume_config_versions')
     .select('snapshot')
     .eq('id', id)
     .eq('user_id', user.id)
-    .single()
+
+  if (resumeId) query = query.eq('resume_id', resumeId).eq('status', 'frozen')
+
+  const { data, error } = await query.single()
 
   if (error) {
     throw error

@@ -1,189 +1,76 @@
-import { Spinner } from '@/components/ui/spinner'
+import { historyComponent } from '../../utils/load-component'
+import type { RefObject } from 'react'
 import type { ResumeDocumentState } from '@/components/resume/pagination/types'
-import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
 import { FileDown } from 'lucide-react'
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import CanonicalPagedDocument from '@/components/resume/pagination/canonical-paged-document'
-import { useResumePrint } from '@/components/resume/pagination/use-resume-print'
-import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
-import { ResumeTemplateRuntime } from '@/components/resume/runtime/ResumeTemplateRuntime'
-import { useResolvedResumeTemplate } from '@/hooks/use-resolved-resume-template'
-import { DEFAULT_RESUME_FONT_FAMILY_NAME } from '@/lib/schema'
-import useHistoryStore from '../../store'
+import { Spinner } from '@/components/ui/spinner'
 import HistoryActionButton from '../shared/history-action-button'
+import type PrintTask from './print-task'
 
-interface VersionPdfExportButtonProps {
-  versionId: number
-  /** 导出文件名（浏览器打印标题），如版本名 */
+const loadPrint = historyComponent(() => import('./print-task'), 'PrintTask')
+
+export interface VersionPrintProps {
+  documentRef: RefObject<HTMLDivElement | null>
+  documentState: ResumeDocumentState | null
   documentTitle: string
-  className?: string
-  compact?: boolean
 }
 
-/**
- * 导出单个历史版本为 PDF：点击时按需加载该版本快照，渲染进「离屏、未缩放」的 A4 打印节点，
- * 再用 react-to-print 打印（浏览器原生「另存为 PDF」）。appearance 取版本自身快照，
- * 保证导出的是该版本当时的样子，而非当前编辑内容。
- */
 export default function VersionPdfExportButton({
-  versionId,
+  documentRef,
+  documentState,
   documentTitle,
-  className,
-  compact = false,
-}: VersionPdfExportButtonProps) {
-  const loadVersionSnapshot = useHistoryStore(
-    (state) => state.loadVersionSnapshot,
-  )
-
-  const projectionReferenceDate =
-    useHistoryStore(
-      (state) =>
-        state.versions.find((version) => version.id === versionId)
-          ?.projection_reference_date,
-    ) ?? new Date().toISOString().slice(0, 10)
-
-  const printRef = useRef<HTMLDivElement>(null)
-  // 仅点击导出后挂载打印文档；命中快照缓存不代表需要提前渲染、测量 PDF。
-  const [snapshot, setSnapshot] = useState<ResumeSnapshot | null>(null)
-  const [loading, setLoading] = useState(false)
-  const shouldPrintRef = useRef(false)
-
-  const [documentState, setDocumentState] = useState<ResumeDocumentState>({
-    status: 'measuring',
-    signature: null,
-    fontFamily: DEFAULT_RESUME_FONT_FAMILY_NAME,
-    fontWeights: [400, 600, 700],
-    error: null,
-  })
-
-  const previewData = useMemo(
-    () => (snapshot ? buildTemplateResumeData(snapshot) : null),
-    [snapshot],
-  )
-
-  const { resource, retry, assetUrls } = useResolvedResumeTemplate({
-    binding: previewData?.templateBinding,
-    enabled: Boolean(snapshot),
-  })
-
-  const definition = resource.status === 'ready' ? resource.data : null
+  snapshotError,
+}: VersionPrintProps & { snapshotError: string | null }) {
+  const [pending, setPending] = useState(false)
+  const [Task, setTask] = useState<typeof PrintTask | null>(null)
+  const error = snapshotError || documentState?.error
 
   useEffect(() => {
-    if (snapshot && resource.status !== 'ready') {
-      setDocumentState({
-        status: resource.status === 'error' ? 'error' : 'measuring',
-        signature: null,
-        fontFamily: DEFAULT_RESUME_FONT_FAMILY_NAME,
-        fontWeights: [400, 600, 700],
-        error: resource.status === 'error' ? resource.error.message : null,
-      })
+    if (pending && error) {
+      toast.error(error)
+      setPending(false)
     }
-    if (resource.status === 'error') {
-      shouldPrintRef.current = false
-      toast.error(resource.error.message)
-    }
-  }, [resource, snapshot])
+  }, [error, pending])
 
-  const handlePrint = useResumePrint({
-    contentRef: printRef,
-    documentState,
-    documentTitle: documentTitle ? `${documentTitle}-简历` : '简历',
-  })
-
-  // 快照与 definition 就绪、且用户点击过导出后，触发打印
-  useEffect(() => {
-    if (
-      shouldPrintRef.current &&
-      snapshot &&
-      previewData &&
-      definition &&
-      documentState.status === 'ready'
-    ) {
-      shouldPrintRef.current = false
-      handlePrint().catch(() => undefined)
-    }
-  }, [documentState.status, handlePrint, definition, previewData, snapshot])
-
-  const handleExport = async () => {
-    if (snapshot && previewData && definition) {
-      if (documentState.status !== 'measuring') await handlePrint()
-      else shouldPrintRef.current = true
+  async function handleExport() {
+    if (error) {
+      toast.error(error)
 
       return
     }
 
-    shouldPrintRef.current = true
+    setPending(true)
 
-    if (snapshot) {
-      await retry?.()
+    try {
+      const module = await loadPrint()
 
-      return
+      setTask(() => module.default)
+    } catch {
+      toast.error('暂时无法加载 PDF 导出，请重试')
+      setPending(false)
     }
-
-    setLoading(true)
-
-    const snap = await loadVersionSnapshot(versionId).finally(() =>
-      setLoading(false),
-    )
-
-    if (!snap) {
-      shouldPrintRef.current = false
-
-      toast.error(
-        useHistoryStore.getState().snapshotErrors[versionId] ??
-          '版本内容暂时不可用，请重试',
-      )
-
-      return
-    }
-
-    shouldPrintRef.current = true
-    setSnapshot(snap)
   }
-
-  const preparing = documentState.status === 'measuring' && snapshot !== null
 
   return (
     <>
       <HistoryActionButton
         variant='outline'
-        label={loading ? '加载中…' : preparing ? '准备中…' : '导出 PDF'}
-        className={className}
-        compact={compact}
-        aria-busy={loading || preparing}
-        disabled={loading}
+        label={pending ? '准备中…' : '导出 PDF'}
+        compact
+        aria-busy={pending}
+        disabled={pending}
         onClick={handleExport}
       >
-        {loading || preparing ? <Spinner /> : <FileDown />}
+        {pending ? <Spinner /> : <FileDown />}
       </HistoryActionButton>
-
-      {snapshot && previewData && definition && (
-        <div
-          aria-hidden
-          className='pointer-events-none fixed top-0 opacity-0'
-          style={{ left: '-100000px' }}
-        >
-          <CanonicalPagedDocument
-            definition={definition}
-            appearance={snapshot}
-            contentVersion={JSON.stringify([
-              snapshot,
-              definition,
-              projectionReferenceDate,
-            ])}
-            documentRef={printRef}
-            onStateChange={setDocumentState}
-          >
-            <ResumeTemplateRuntime
-              data={previewData}
-              definition={definition}
-              assetUrls={assetUrls}
-              appearance={snapshot}
-              projectionReferenceDate={projectionReferenceDate}
-            />
-          </CanonicalPagedDocument>
-        </div>
+      {pending && Task && documentState?.status === 'ready' && (
+        <Task
+          documentRef={documentRef}
+          documentTitle={documentTitle}
+          documentState={documentState}
+          onComplete={setPending}
+        />
       )}
     </>
   )

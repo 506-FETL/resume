@@ -1,3 +1,4 @@
+import { restoreDialogFocus } from '@/lib/dialog-focus'
 import { Spinner } from '@/components/ui/spinner'
 import type {
   RestoreStrategy,
@@ -26,6 +27,7 @@ import {
 import { getVersionTitle } from '../../utils'
 
 interface RestoreVersionDialogProps {
+  returnFocusTo?: HTMLElement | null
   targetVersion: ResumeHistoryVersionListItem | null
   restoring: boolean
   restoreStrategy: RestoreStrategy | null
@@ -34,6 +36,7 @@ interface RestoreVersionDialogProps {
 }
 
 export default function RestoreVersionDialog({
+  returnFocusTo,
   targetVersion,
   restoring,
   restoreStrategy,
@@ -74,6 +77,7 @@ export default function RestoreVersionDialog({
       }}
     >
       <AlertDialogContent
+        onCloseAutoFocus={(event) => restoreDialogFocus(event, returnFocusTo)}
         className={cn(
           dialogMotion.contentClassName,
           'max-h-[calc(100dvh-2rem)] w-[calc(100vw-2rem)] overflow-y-auto wrap-anywhere',

@@ -1,3 +1,4 @@
+import { stableSerialize } from '@/lib/supabase/resume/history/snapshot'
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
 import {
   DEFAULT_APPLICATION_INFO,
@@ -184,28 +185,6 @@ export function getOrderedSections(
   const merged = ['basics', ...snapshot.order] as SnapshotSectionKey[]
 
   return Array.from(new Set(merged))
-}
-
-export function sortObjectKeys(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => sortObjectKeys(item))
-  }
-
-  if (value && typeof value === 'object') {
-    return Object.keys(value as Record<string, unknown>)
-      .sort()
-      .reduce<Record<string, unknown>>((result, key) => {
-        result[key] = sortObjectKeys((value as Record<string, unknown>)[key])
-
-        return result
-      }, {})
-  }
-
-  return value
-}
-
-export function stableSerialize(value: unknown) {
-  return JSON.stringify(sortObjectKeys(sanitizeDeep(value)))
 }
 
 export function areSnapshotsEqual(

@@ -6,32 +6,16 @@ function trimToNull(value: string | null | undefined) {
   return nextValue || null
 }
 
-function sanitizeSnapshot(value: unknown): unknown {
+export function sortObjectKeys(value: unknown): unknown {
   if (Array.isArray(value)) {
-    return value.map((item) => sanitizeSnapshot(item))
-  }
-
-  if (value && typeof value === 'object') {
-    return Object.fromEntries(
-      Object.entries(value as Record<string, unknown>)
-        .filter(([, item]) => item !== undefined)
-        .map(([key, item]) => [key, sanitizeSnapshot(item)]),
-    )
-  }
-
-  return value
-}
-
-function sortSnapshotKeys(value: unknown): unknown {
-  if (Array.isArray(value)) {
-    return value.map((item) => sortSnapshotKeys(item))
+    return value.map((item) => sortObjectKeys(item))
   }
 
   if (value && typeof value === 'object') {
     return Object.keys(value as Record<string, unknown>)
       .sort()
       .reduce<Record<string, unknown>>((result, key) => {
-        result[key] = sortSnapshotKeys((value as Record<string, unknown>)[key])
+        result[key] = sortObjectKeys((value as Record<string, unknown>)[key])
 
         return result
       }, {})
@@ -40,12 +24,12 @@ function sortSnapshotKeys(value: unknown): unknown {
   return value
 }
 
-function stableSerializeSnapshot(snapshot: ResumeSnapshot) {
-  return JSON.stringify(sortSnapshotKeys(sanitizeSnapshot(snapshot)))
+export function stableSerialize(value: unknown) {
+  return JSON.stringify(sortObjectKeys(value))
 }
 
 export async function createResumeSnapshotHash(snapshot: ResumeSnapshot) {
-  const content = stableSerializeSnapshot(snapshot)
+  const content = stableSerialize(snapshot)
 
   if (!globalThis.crypto?.subtle) {
     return content

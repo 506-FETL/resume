@@ -1,13 +1,17 @@
-import { isOfflineResumeId } from '@/lib/offline-resume-manager'
-import { getResumeHistoryVersionSnapshot } from '@/lib/supabase/resume/history/queries'
+import { isOfflineResumeId } from '@/lib/resume-id'
+import { getResumeHistoryVersionSnapshot } from '@/lib/supabase/resume/history/queries/versions'
 import useUserStore from '@/store/user'
-import { buildResumeSnapshot } from '../../utils'
-import { hydrate, isCurrent, readCurrentResume, readVersions } from './readers'
+import { buildResumeSnapshot } from '../../utils/snapshot'
+import { isCurrent, readCurrentResume } from './readers'
+import { initialTimeline, pageKey, showVersionPage } from './timeline'
 import type { Get, HistoryDataSlice, HistoryRuntime, Set } from './types'
 import { createVersionActions } from './version-actions'
 
 export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
   const runtime: HistoryRuntime = {
+    replaceKnownVersions: true,
+    pages: new Map(),
+    pageRequests: new Map(),
     requestId: 0,
     accountId: useUserStore.getState().currentUser?.id ?? null,
     snapshotRequests: new Map(),
@@ -20,20 +24,23 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
       runtime.accountId = nextAccountId
       runtime.requestId += 1
       runtime.snapshotRequests.clear()
+      runtime.replaceKnownVersions = true
+      runtime.pages.clear()
+      runtime.pageRequests.clear()
 
       set({
         snapshotGeneration: runtime.requestId,
         resumeId: null,
         currentResume: null,
-        versions: [],
+        mobilePanel: 'timeline',
+        timelineFocusTarget: null,
+        ...initialTimeline,
         snapshotCache: {},
         snapshotErrors: {},
         error: null,
         currentResumeLoading: false,
         currentResumeError: null,
-        versionsLoading: false,
-        versionsError: null,
-        versionsLoaded: false,
+        currentResumeMissing: false,
         savingCurrent: false,
         savingMetadata: false,
         restoring: false,
@@ -42,23 +49,20 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
     },
     resumeId: null,
     currentResume: null,
-    versions: [],
+    ...initialTimeline,
     snapshotGeneration: 0,
     snapshotCache: {},
     snapshotErrors: {},
     error: null,
     currentResumeLoading: false,
     currentResumeError: null,
-    versionsLoading: false,
-    versionsError: null,
-    versionsLoaded: false,
+    currentResumeMissing: false,
     async loadVersionSnapshot(id) {
-      const { snapshotCache, resumeId, versions } = get()
+      const { snapshotCache, resumeId } = get()
       const cached = snapshotCache[id]
 
       if (cached) return cached
-      if (!resumeId || !versions.some((version) => version.id === id))
-        return null
+      if (!resumeId) return null
       if (runtime.snapshotRequests.has(id))
         return runtime.snapshotRequests.get(id)!
 
@@ -70,10 +74,9 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
 
       const current = () =>
         isCurrent(runtime, get, generation, resumeId) &&
-        runtime.snapshotRequests.get(id) === request &&
-        get().versions.some((version) => version.id === id)
+        runtime.snapshotRequests.get(id) === request
 
-      const request = getResumeHistoryVersionSnapshot(id)
+      const request = getResumeHistoryVersionSnapshot(id, resumeId)
         .then((raw) => {
           if (!current()) return null
 
@@ -111,6 +114,9 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
       const sameResume = get().resumeId === resumeId
 
       runtime.snapshotRequests.clear()
+      runtime.replaceKnownVersions = true
+      runtime.pages.clear()
+      runtime.pageRequests.clear()
 
       set({
         snapshotGeneration: activeRequestId,
@@ -120,14 +126,17 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
         restoring: false,
         deletingVersionId: null,
         error: null,
+        versionSummaryReady: false,
+        snapshotCache: {},
+        snapshotErrors: {},
         ...(!sameResume && {
+          mobilePanel: 'timeline',
+          timelineFocusTarget: null,
           currentResume: null,
-          versions: [],
-          versionsLoaded: false,
-          snapshotCache: {},
-          snapshotErrors: {},
+          ...initialTimeline,
         }),
         currentResumeError: null,
+        currentResumeMissing: false,
         versionsError: null,
       })
 
@@ -143,18 +152,13 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
         return
       }
 
-      await hydrate(runtime, set, get, resumeId, activeRequestId)
+      await Promise.all([
+        readCurrentResume(runtime, set, get, resumeId, activeRequestId),
+        showVersionPage(runtime, set, get, initialTimeline.versionFilter, 0),
+      ])
     },
     async reload() {
-      const resumeId = get().resumeId
-
-      if (!resumeId) return
-
-      const activeRequestId = ++runtime.requestId
-
-      runtime.snapshotRequests.clear()
-      set({ snapshotGeneration: activeRequestId, error: null })
-      await hydrate(runtime, set, get, resumeId, activeRequestId)
+      await get().init(get().resumeId)
     },
     async reloadCurrentResume() {
       const { resumeId, currentResumeLoading } = get()
@@ -164,12 +168,13 @@ export function createHistoryDataSlice(set: Set, get: Get): HistoryDataSlice {
       await readCurrentResume(runtime, set, get, resumeId, runtime.requestId)
     },
     async reloadVersions() {
-      const { resumeId, versionsLoading } = get()
+      const { versionFilter, versionPage } = get()
 
-      if (!resumeId || versionsLoading) return
-
-      await readVersions(runtime, set, get, resumeId, runtime.requestId)
+      runtime.pages.delete(pageKey(versionFilter, versionPage))
+      await showVersionPage(runtime, set, get, versionFilter, versionPage)
     },
+    showVersionPage: (filter, page) =>
+      showVersionPage(runtime, set, get, filter, page),
     ...createVersionActions(runtime, set, get),
   }
 }

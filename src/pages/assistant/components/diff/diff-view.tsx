@@ -4,6 +4,7 @@ import {
   CodeBlockLine,
 } from '@/components/ui/code-block'
 import { cn } from '@/lib/utils'
+import type { DiffLine } from './compute-line-diff'
 import { computeLineDiff } from './compute-line-diff'
 
 export function DiffStat({
@@ -45,8 +46,18 @@ export function DiffView({
   after: unknown
   className?: string
 }) {
-  const lines = computeLineDiff(before, after)
+  return (
+    <DiffLines lines={computeLineDiff(before, after)} className={className} />
+  )
+}
 
+export function DiffLines({
+  lines,
+  className,
+}: {
+  lines: DiffLine[]
+  className?: string
+}) {
   return (
     <CodeBlock size='sm' className={className}>
       <CodeBlockContent wrap className='max-h-72'>

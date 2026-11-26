@@ -1,10 +1,7 @@
-import type {
-  HistoryCurrentResume,
-  HistoryResumeOption,
-  HistoryVersionGroup,
-} from '../types'
+import type { HistoryCurrentResume, HistoryVersionGroup } from '../types'
 import type {
   ResumeHistoryOptionRecord,
+  LatestHistoryVersion,
   ResumeHistoryResumeRecord,
   ResumeHistoryVersionListItem,
   ResumeHistoryVersionListRow,
@@ -40,19 +37,13 @@ export async function buildCurrentResume(
   const snapshot = buildResumeSnapshot(record)
 
   return {
-    resumeId: record.resume_id,
-    displayName: record.display_name?.trim() || '未命名简历',
-    description: record.description?.trim() || '',
-    updatedAt: record.updated_at,
-    type: normalizeResumeType(record.type),
+    ...buildHistoryResumeOption(record),
     snapshot,
     contentHash: await createResumeSnapshotHash(snapshot),
   }
 }
 
-export function buildHistoryResumeOption(
-  record: ResumeHistoryOptionRecord,
-): HistoryResumeOption {
+export function buildHistoryResumeOption(record: ResumeHistoryOptionRecord) {
   return {
     resumeId: record.resume_id,
     displayName: record.display_name?.trim() || '未命名简历',
@@ -113,16 +104,14 @@ export function getDateGroupLabel(value: string) {
 
 export function getCurrentSyncState(
   currentResume: HistoryCurrentResume | null,
-  versions: ResumeHistoryVersionListItem[],
+  latest: LatestHistoryVersion | null,
 ) {
-  if (!currentResume || versions.length === 0) {
+  if (!currentResume || !latest) {
     return {
       latestVersionNo: null,
       synced: false,
     }
   }
-
-  const latest = versions[0]
 
   // content_hash 为 null（迁移前旧数据）→ 保守显示「有未保存的更新」，不误报已同步
   const synced =

@@ -18,14 +18,6 @@ export interface HistoryCurrentResume {
   contentHash: string
 }
 
-export interface HistoryResumeOption {
-  resumeId: string
-  displayName: string
-  description: string
-  updatedAt: string | null
-  type: ResumeType
-}
-
 export interface VersionMetadataDraft {
   versionName: string
   milestoneName: string

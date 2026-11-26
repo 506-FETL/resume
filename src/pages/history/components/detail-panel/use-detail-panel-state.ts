@@ -4,7 +4,7 @@ import type {
   VersionMetadataDraft,
 } from '../../types'
 import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import useHistoryStore from '../../store'
 import {
   applyMetadataDraftPatch,
@@ -37,8 +37,6 @@ export interface HistoryDetailPanelState {
 export function useHistoryDetailPanelState(
   activeResumeId: string | null,
 ): HistoryDetailPanelState {
-  const versions = useHistoryStore((state) => state.versions)
-
   const updateVersionMetadata = useHistoryStore(
     (state) => state.updateVersionMetadata,
   )
@@ -58,12 +56,10 @@ export function useHistoryDetailPanelState(
 
   const [overviewOpen, setOverviewOpen] = useState(false)
 
-  const selectedVersion = useMemo(
-    () =>
-      typeof selectedEntry === 'number'
-        ? (versions.find((version) => version.id === selectedEntry) ?? null)
-        : null,
-    [selectedEntry, versions],
+  const selectedVersion = useHistoryStore((s) =>
+    typeof selectedEntry === 'number'
+      ? (s.versions.find((row) => row.id === selectedEntry) ?? null)
+      : null,
   )
 
   const resetEditingState = useCallback(() => {
@@ -95,15 +91,12 @@ export function useHistoryDetailPanelState(
   }, [activeResumeId, clearPendingDiscard, resetEditingState, showTimeline])
 
   useEffect(() => {
-    if (
-      typeof selectedEntry === 'number' &&
-      !versions.some((version) => version.id === selectedEntry)
-    ) {
+    if (typeof selectedEntry === 'number' && !selectedVersion) {
       setSelectedEntry('current')
       resetEditingState()
       clearPendingDiscard()
     }
-  }, [clearPendingDiscard, resetEditingState, selectedEntry, versions])
+  }, [clearPendingDiscard, resetEditingState, selectedEntry, selectedVersion])
 
   const hasDirtyEditDraft =
     editing && isMetadataDraftDirty(editDraft, selectedVersion)

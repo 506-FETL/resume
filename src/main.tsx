@@ -20,6 +20,7 @@ import {
   isTemplateGallery,
   selectTemplateGallery,
 } from '@/lib/template-gallery-route'
+import { isHistoryPage, selectHistoryPage } from '@/lib/history-route'
 import { isOptimizePage, selectOptimizePage } from '@/lib/optimize-route'
 import { isTrackerPage, selectTrackerPage } from '@/lib/tracker-route'
 import { WORKSPACE_PATH } from '@/lib/workspace-path'
@@ -47,10 +48,13 @@ const trackerRoute = isTrackerPage(pathname)
 const loadWorkspaceApp = () => import('./workspace-app')
 const galleryRoute = isTemplateGallery(pathname)
 
+const historyRoute = isHistoryPage(pathname)
 const optimizeRoute = isOptimizePage(pathname)
 
 const earlyWorkspaceApp =
-  trackerRoute || galleryRoute || optimizeRoute ? loadWorkspaceApp() : undefined
+  trackerRoute || galleryRoute || optimizeRoute || historyRoute
+    ? loadWorkspaceApp()
+    : undefined
 
 const shareRoute = isShareManagement(pathname)
 const archiveRoute = isExperienceArchive(pathname)
@@ -64,7 +68,8 @@ if (
     shareRoute ||
     trackerRoute ||
     galleryRoute ||
-    optimizeRoute) &&
+    optimizeRoute ||
+    historyRoute) &&
   !hasAuthCallback
 ) {
   import('./components/auth-session/subscription')
@@ -75,6 +80,8 @@ if (
     selectShareManagement(true)
   if (trackerRoute) selectTrackerPage(true)
   if (galleryRoute) selectTemplateGallery(true)
+  if (historyRoute)
+    selectHistoryPage(true, new URLSearchParams(search).get('jobId') || null)
   if (optimizeRoute)
     selectOptimizePage(true, new URLSearchParams(search).get('jobId') || null)
   if (assistantRoute) selectAssistantPage(true)

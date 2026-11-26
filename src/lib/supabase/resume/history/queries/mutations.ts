@@ -64,7 +64,7 @@ export async function createResumeHistoryVersion(
     throw error
   }
 
-  return data as ResumeHistoryVersionRow
+  return { ...data, snapshot: input.snapshot } as ResumeHistoryVersionRow
 }
 
 export async function updateResumeHistoryVersion(

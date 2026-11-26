@@ -100,3 +100,24 @@ export async function subscribeToResumeConfigUpdates(
     supabase.removeChannel(channel)
   }
 }
+
+export async function saveRestoredResumeConfig(
+  resumeId: string,
+  fields: Record<string, unknown>,
+) {
+  const owner = await getResumeOwnerId(resumeId)
+
+  const { data, error } = await supabase
+    .from('resume_config')
+    .update(fields)
+    .eq('resume_id', resumeId)
+    .eq('user_id', owner)
+    .select('resume_id,display_name,description,updated_at,type')
+    .single()
+
+  if (error) throw error
+
+  notifyResumeReadChanged(resumeId, { owner, label: data })
+
+  return data
+}

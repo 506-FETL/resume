@@ -20,12 +20,19 @@ export default function CurrentVersionCard({
 }: CurrentVersionCardProps) {
   const { reduceMotion, enter } = useHistoryMotion()
 
-  const { currentResume, versions, versionsLoaded, versionsError } =
-    useHistoryStore()
+  const currentResume = useHistoryStore((state) => state.currentResume)
+  const latestVersion = useHistoryStore((state) => state.latestVersion)
+  const versionTotal = useHistoryStore((state) => state.versionTotal)
+
+  const versionSummaryReady = useHistoryStore(
+    (state) => state.versionSummaryReady,
+  )
+
+  const versionsError = useHistoryStore((state) => state.versionsError)
 
   const { latestVersionNo, synced } = getCurrentSyncState(
     currentResume,
-    versions,
+    latestVersion,
   )
 
   if (!currentResume) return null
@@ -63,13 +70,13 @@ export default function CurrentVersionCard({
         </div>
         <div className='flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs leading-5 text-muted-foreground'>
           <span>
-            {!versionsLoaded ? (
+            {!versionSummaryReady ? (
               versionsError ? (
                 '版本状态暂不可用'
               ) : (
                 <Skeleton className='inline-block h-3 w-20' />
               )
-            ) : versions.length === 0 ? (
+            ) : versionTotal === 0 ? (
               '尚未保存版本'
             ) : synced ? (
               `已同步至 V${latestVersionNo}`

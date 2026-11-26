@@ -26,6 +26,7 @@ import {
   isTemplateGallery,
   selectTemplateGallery,
 } from '@/lib/template-gallery-route'
+import { isHistoryPage, selectHistoryPage } from '@/lib/history-route'
 import { isOptimizePage, selectOptimizePage } from '@/lib/optimize-route'
 import { isTrackerPage, selectTrackerPage } from '@/lib/tracker-route'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
@@ -136,6 +137,17 @@ function App() {
     if (!galleryPage || !hasAuthCallback) selectTemplateGallery(galleryPage)
   }, [galleryPage])
 
+  const historyPage = isHistoryPage(location.pathname)
+
+  const historyJobId = historyPage
+    ? new URLSearchParams(location.search).get('jobId') || null
+    : null
+
+  useEffect(() => {
+    if (!historyPage || !hasAuthCallback)
+      selectHistoryPage(historyPage, historyJobId)
+  }, [historyPage, historyJobId])
+
   const optimizePage = isOptimizePage(location.pathname)
 
   const optimizeJobId = optimizePage
@@ -243,6 +255,7 @@ function App() {
                     trackerPage ||
                     galleryPage ||
                     optimizePage ||
+                    historyPage ||
                     assistantPage ? (
                       <DashboardOpening
                         fullBleed={assistantPage && authStatus !== 'anonymous'}

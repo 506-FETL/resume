@@ -1,13 +1,7 @@
-import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
+import type { ComparisonChoice, VersionOption } from './use-comparison'
 import { ArrowRight, CheckCheck, RefreshCcw } from 'lucide-react'
 import { AnimatePresence, motion } from 'motion/react'
-import {
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useState,
-} from 'react'
+import { useLayoutEffect, useMemo, useState } from 'react'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import {
@@ -17,112 +11,57 @@ import {
   ResponsiveDialogHeader,
   ResponsiveDialogTitle,
 } from '@/components/ui/responsive-dialog'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
 import { Skeleton } from '@/components/ui/skeleton'
 import { staggerDelay } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import { DiffView } from '@/pages/assistant/components/diff/diff-view'
-import { diffSnapshots, totalChangedFields } from '../../compare'
+import { DiffLines } from '@/pages/assistant/components/diff/diff-view'
 import { useHistoryDialogMotion } from '../../hooks/use-history-dialog-motion'
-import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
-
-const CURRENT = 'current'
+import { useComparison, useDefaultBase } from './use-comparison'
+import VersionPicker from './version-picker'
+import { versionOptions } from './version-options'
 
 interface CompareDialogProps {
   open: boolean
   onOpenChange: (next: boolean) => void
-  baseId: string | null
-  targetId: string | null
-}
-
-interface ComparisonResult {
-  key: string
-  before: ResumeSnapshot | null
-  after: ResumeSnapshot | null
+  selectedVersion: VersionOption
+  returnFocusTo: HTMLElement | null
 }
 
 export default function CompareDialog({
   open,
   onOpenChange,
-  baseId,
-  targetId,
+  selectedVersion,
+  returnFocusTo,
 }: CompareDialogProps) {
-  const { versions, currentResume, loadVersionSnapshot } = useHistoryStore()
   const dialogMotion = useHistoryDialogMotion()
-  const { surfaceProps } = useHistoryMotion()
-  const [base, setBase] = useState(baseId ?? CURRENT)
-  const [target, setTarget] = useState(targetId ?? CURRENT)
-  const [result, setResult] = useState<ComparisonResult | null>(null)
-  const [retry, setRetry] = useState(0)
+  const [chosenBase, setChosenBase] = useState<ComparisonChoice>()
+  const [target, setTarget] = useState<ComparisonChoice>(selectedVersion)
+  const resumeId = useHistoryStore((s) => s.resumeId)
+  const versionTotal = useHistoryStore((s) => s.versionTotal)
+  const defaultBase = useDefaultBase(open && !chosenBase, selectedVersion)
+  const base = chosenBase ?? defaultBase.choice
+  const comparison = useComparison(open, base, target)
+  const { diffs, changed } = comparison
+  const failed = (defaultBase.error && !chosenBase) || comparison.failed
+  const loading = !failed && comparison.loading
 
-  // Sync before paint when opening, so a previous pair never flashes under the new selectors.
+  const pages = useMemo(
+    () => versionOptions(resumeId!, versionTotal),
+    [resumeId, versionTotal],
+  )
+
+  const requestKey = [
+    typeof base === 'object' ? base.id : base,
+    typeof target === 'object' ? target.id : target,
+  ].join(':')
+
   useLayoutEffect(() => {
     if (open) {
-      setBase(baseId ?? CURRENT)
-      setTarget(targetId ?? CURRENT)
+      setChosenBase(undefined)
+      setTarget(selectedVersion)
     }
-  }, [open, baseId, targetId])
-
-  const options = useMemo(
-    () => [
-      ...(currentResume ? [{ value: CURRENT, label: '当前内容' }] : []),
-      ...versions.map((version) => ({
-        value: String(version.id),
-        label: `第 ${version.version_no} 版 · ${new Date(version.created_at).toLocaleDateString()}`,
-      })),
-    ],
-    [versions, currentResume],
-  )
-
-  const resolveSnap = useCallback(
-    async (id: string): Promise<ResumeSnapshot | null> => {
-      if (id === CURRENT) return currentResume?.snapshot ?? null
-
-      return await loadVersionSnapshot(Number(id))
-    },
-    [currentResume, loadVersionSnapshot],
-  )
-
-  const requestKey = `${currentResume?.resumeId ?? ''}:${currentResume?.updatedAt ?? ''}:${base}:${target}:${retry}`
-
-  useEffect(() => {
-    if (!open) return
-
-    let cancelled = false
-
-    Promise.all([resolveSnap(base), resolveSnap(target)])
-      .then(([before, after]) => {
-        if (!cancelled) setResult({ key: requestKey, before, after })
-      })
-      .catch(() => {
-        if (!cancelled)
-          setResult({ key: requestKey, before: null, after: null })
-      })
-
-    return () => {
-      cancelled = true
-    }
-  }, [open, base, target, resolveSnap, requestKey])
-
-  const loading = result?.key !== requestKey
-  const failed = !loading && (!result?.before || !result.after)
-
-  const diffs = useMemo(
-    () =>
-      !loading && result?.before && result.after
-        ? diffSnapshots(result.before, result.after)
-        : [],
-    [loading, result],
-  )
-
-  const changed = totalChangedFields(diffs)
+  }, [open, selectedVersion])
 
   const resultState = loading
     ? 'loading'
@@ -134,6 +73,7 @@ export default function CompareDialog({
 
   return (
     <ResponsiveDialog
+      returnFocusTo={returnFocusTo}
       open={open}
       onOpenChange={onOpenChange}
       contentClassName={cn(dialogMotion.contentClassName, 'sm:max-w-3xl')}
@@ -147,45 +87,19 @@ export default function CompareDialog({
             对比两个简历版本的内容。
           </ResponsiveDialogDescription>
           <div className='grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2 pt-1'>
-            <Select value={base} onValueChange={setBase}>
-              <SelectTrigger
-                aria-label='对比基准版本'
-                className='h-8 min-w-0 w-full text-xs'
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent
-                {...surfaceProps}
-                position='popper'
-                className={`${surfaceProps.className} history-popup-motion`}
-              >
-                {options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <VersionPicker
+              value={base}
+              onChange={setChosenBase}
+              ariaLabel='对比基准版本'
+              pages={pages}
+            />
             <ArrowRight className='size-3.5 text-muted-foreground' />
-            <Select value={target} onValueChange={setTarget}>
-              <SelectTrigger
-                aria-label='对比目标版本'
-                className='h-8 min-w-0 w-full text-xs'
-              >
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent
-                {...surfaceProps}
-                position='popper'
-                className={`${surfaceProps.className} history-popup-motion`}
-              >
-                {options.map((option) => (
-                  <SelectItem key={option.value} value={option.value}>
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <VersionPicker
+              value={target}
+              onChange={setTarget}
+              ariaLabel='对比目标版本'
+              pages={pages}
+            />
           </div>
           <div
             className='flex h-4 items-center text-xs text-muted-foreground'
@@ -261,7 +175,10 @@ export default function CompareDialog({
                   <Button
                     variant='outline'
                     size='sm'
-                    onClick={() => setRetry((value) => value + 1)}
+                    onClick={() => {
+                      defaultBase.retry()
+                      comparison.retry()
+                    }}
                   >
                     <RefreshCcw data-icon='inline-start' />
                     重新加载
@@ -299,7 +216,7 @@ export default function CompareDialog({
                         <span className='text-xs text-muted-foreground'>
                           {field.label}
                         </span>
-                        <DiffView before={field.before} after={field.after} />
+                        <DiffLines lines={field.lines} />
                       </div>
                     ))}
                   </PresenceDiv>
@@ -312,3 +229,5 @@ export default function CompareDialog({
     </ResponsiveDialog>
   )
 }
+
+export { CompareDialog }

@@ -1,3 +1,4 @@
+import { historyComponent } from '../../utils/load-component'
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
 import { Briefcase, Send } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
@@ -6,8 +7,16 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { LoadingRegion } from '@/components/loading-skeleton'
 import { useJobSummaries } from '../../hooks/use-job-summaries'
 import HistoryMotionContent from '../motion-content'
-import VersionMetadataFields from '../shared/version-metadata-fields'
+import { createDeferredComponent } from '@/components/deferred-content'
 import MetricCard from './metric-card'
+
+const VersionMetadataFields = createDeferredComponent(
+  historyComponent(
+    () => import('../shared/version-metadata-fields'),
+    'VersionMetadataFields',
+  ),
+  '版本编辑表单',
+)
 
 interface HistoryVersionOverviewProps {
   state: HistoryDetailPanelState

@@ -1,22 +1,13 @@
 import type { ResumeSnapshot } from '@/lib/supabase/resume/history'
-import type {
-  DiffLine,
-  DiffStatValue,
-} from '@/pages/assistant/components/diff/compute-line-diff'
-import {
-  computeLineDiff,
-  diffStat,
-} from '@/pages/assistant/components/diff/compute-line-diff'
+import type { DiffLine } from '@/pages/assistant/components/diff/compute-line-diff'
+import { computeLineDiff } from '@/pages/assistant/components/diff/compute-line-diff'
 import { FIELD_LABEL_MAP, SECTION_LABEL_MAP } from './const'
 import { getOrderedSections } from './utils'
 
 export interface FieldDiff {
   key: string
   label: string
-  before: string
-  after: string
   lines: DiffLine[]
-  stat: DiffStatValue
 }
 
 export interface SectionDiff {
@@ -114,6 +105,8 @@ function diffValue(
   path: string[],
   out: FieldDiff[],
 ) {
+  if (before === after) return
+
   const b = unwrapItems(before)
   const a = unwrapItems(after)
   const shapeSource = a !== undefined && a !== null ? a : b
@@ -153,10 +146,7 @@ function diffValue(
   out.push({
     key: path.join('/') || 'value',
     label: path.join(' · ') || '内容',
-    before: beforeText,
-    after: afterText,
     lines,
-    stat: diffStat(lines),
   })
 }
 

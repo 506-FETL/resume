@@ -41,9 +41,27 @@ export interface ResumeHistoryVersionMeta {
 }
 
 // 轻量列表行（DB 返回，无 snapshot）与归一后的列表项
-export type ResumeHistoryVersionListRow = ResumeHistoryVersionMeta
+export type ResumeHistoryVersionListRow = Pick<
+  ResumeHistoryVersionMeta,
+  | 'id'
+  | 'version_no'
+  | 'version_name'
+  | 'description'
+  | 'milestone_name'
+  | 'source_type'
+  | 'tags'
+  | 'created_at'
+  | 'company_id'
+  | 'submitted_at'
+  | 'projection_reference_date'
+>
 
-export type ResumeHistoryVersionListItem = ResumeHistoryVersionMeta
+export type ResumeHistoryVersionListItem = ResumeHistoryVersionListRow
+
+export type LatestHistoryVersion = Pick<
+  ResumeHistoryVersionMeta,
+  'id' | 'version_no' | 'content_hash'
+>
 
 export type ResumeVersionListItem = Pick<
   ResumeHistoryVersionMeta,
@@ -102,13 +120,10 @@ export interface ResumeHistoryResumeRecord {
   template_binding: Record<string, unknown> | null
 }
 
-export interface ResumeHistoryOptionRecord {
-  resume_id: string
-  updated_at: string | null
-  display_name: string | null
-  description: string | null
-  type: ResumeType | null
-}
+export type ResumeHistoryOptionRecord = Pick<
+  ResumeHistoryResumeRecord,
+  'resume_id' | 'updated_at' | 'display_name' | 'description' | 'type'
+>
 
 export interface ResumeHistoryVersionSummaryRecord {
   id: number
@@ -150,6 +165,7 @@ export type RestoreResumeHistoryVersionInput = {
   >
   targetSnapshot: ResumeSnapshot
   currentUpdatedAt: string | null
+  currentContentHash?: string
 } & (
   | { strategy: 'with_backup'; currentSnapshot: ResumeSnapshot }
   | { strategy: 'without_backup'; currentSnapshot?: ResumeSnapshot }

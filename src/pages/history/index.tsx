@@ -1,4 +1,4 @@
-import { JobContextBar } from '@/components/job-context'
+import { JobContextBar } from '@/components/job-context/bar'
 import { History as HistoryIcon, RefreshCcw } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
@@ -18,28 +18,30 @@ import {
 import { HistoryWorkspaceSkeleton } from '@/components/page-skeletons/history'
 import { DURATION, EASE } from '@/lib/motion'
 import HistoryHeader from './components/header'
-import HistoryWorkspace from './components/workspace'
+import { createDeferredComponent } from '@/components/deferred-content'
 import { useActiveHistoryResumeId } from './hooks/use-active-resume-id'
 import { useHistoryMotion } from './hooks/use-history-motion'
+import { historyComponent } from './utils/load-component'
 import useHistoryStore from './store'
 import './motion.css'
+
+const HistoryWorkspace = createDeferredComponent(
+  historyComponent(() => import('./components/workspace'), 'HistoryWorkspace'),
+  '历史版本工作区',
+  <HistoryWorkspaceSkeleton />,
+  { wrapFallback: false },
+)
 
 function History() {
   useEffect(() => () => useHistoryStore.getState().resetJobOptions(), [])
 
-  const {
-    activeResumeId,
-    resumeOptions,
-    loading,
-    error,
-    reload,
-    selectResume,
-  } = useActiveHistoryResumeId()
+  const { activeResumeId, hasOptions, loading, error, reload } =
+    useActiveHistoryResumeId()
 
-  const currentResume = useHistoryStore((state) => state.currentResume)
-
-  const waitingForContent =
-    !currentResume || currentResume.resumeId !== activeResumeId
+  const waitingForContent = useHistoryStore(
+    (state) =>
+      !activeResumeId || state.currentResume?.resumeId !== activeResumeId,
+  )
 
   const reduceMotion = useReducedMotion()
   const { surfaceProps } = useHistoryMotion()
@@ -53,13 +55,7 @@ function History() {
       <div className='shrink-0 empty:hidden [@media(max-height:500px)]:[&>div]:flex-nowrap'>
         <JobContextBar />
       </div>
-      <HistoryHeader
-        activeResumeId={activeResumeId}
-        resumeOptions={resumeOptions}
-        loading={loading}
-        error={error}
-        onResumeChange={selectResume}
-      />
+      <HistoryHeader activeResumeId={activeResumeId} />
 
       <AnimatePresence mode='wait' initial={false}>
         <PresenceDiv
@@ -91,17 +87,17 @@ function History() {
                 <EmptyTitle>
                   {error
                     ? '简历列表暂时不可用'
-                    : resumeOptions.length > 0
+                    : hasOptions
                       ? '请选择一份简历'
                       : '暂无云端简历'}
                 </EmptyTitle>
-                {(error || resumeOptions.length === 0) && (
+                {(error || !hasOptions) && (
                   <EmptyDescription>
                     {error || '版本记录仅支持云端简历，请先创建或同步简历。'}
                   </EmptyDescription>
                 )}
               </EmptyHeader>
-              {(error || resumeOptions.length === 0) && (
+              {(error || !hasOptions) && (
                 <EmptyContent>
                   {error ? (
                     <Button variant='outline' onClick={reload}>
@@ -117,10 +113,7 @@ function History() {
               )}
             </Empty>
           ) : (
-            <HistoryWorkspace
-              activeResumeId={activeResumeId}
-              onReloadResumeOptions={reload}
-            />
+            <HistoryWorkspace activeResumeId={activeResumeId} />
           )}
         </PresenceDiv>
       </AnimatePresence>

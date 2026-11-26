@@ -1,7 +1,7 @@
 import type { HistorySelection } from '../../types'
 import { History, SearchX } from 'lucide-react'
 import { AnimatePresence, LayoutGroup, motion } from 'motion/react'
-import { useEffect, useId, useMemo, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { PresenceDiv } from '@/components/motion/presence-item'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
@@ -9,7 +9,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { staggerDelay } from '@/lib/motion'
 import {
   DEFAULT_VERSION_FILTER,
-  filterVersions,
+  type VersionFilterCriteria,
   isFilterActive,
 } from '../../filter'
 import { useHistoryMotion } from '../../hooks/use-history-motion'
@@ -21,6 +21,7 @@ import CurrentVersionCard from './current-version-card'
 import TimelineEmptyState from './empty-state'
 import TimelineLoadingState from './loading-state'
 import VersionCard from './version-card'
+import TimelinePagination from './pagination'
 import VersionFilterBar from './version-filter-bar'
 
 interface HistoryTimelineProps {
@@ -32,18 +33,31 @@ export default function HistoryTimeline({
   selectedEntry,
   onSelectEntry,
 }: HistoryTimelineProps) {
-  const {
-    resumeId,
-    currentResume,
-    currentResumeError,
-    currentResumeLoading,
-    versions,
-    versionsLoaded,
-    versionsLoading,
-    versionsError,
-    reloadCurrentResume,
-    reloadVersions,
-  } = useHistoryStore()
+  const resumeId = useHistoryStore((state) => state.resumeId)
+  const currentResume = useHistoryStore((state) => state.currentResume)
+
+  const currentResumeError = useHistoryStore(
+    (state) => state.currentResumeError,
+  )
+
+  const currentResumeLoading = useHistoryStore(
+    (state) => state.currentResumeLoading,
+  )
+
+  const timelineVersions = useHistoryStore((state) => state.timelineVersions)
+  const versionTotal = useHistoryStore((state) => state.versionTotal)
+  const matchingVersions = useHistoryStore((state) => state.matchingVersions)
+  const versionFilter = useHistoryStore((state) => state.versionFilter)
+  const showVersionPage = useHistoryStore((state) => state.showVersionPage)
+  const versionsLoaded = useHistoryStore((state) => state.versionsLoaded)
+  const versionsLoading = useHistoryStore((state) => state.versionsLoading)
+  const versionsError = useHistoryStore((state) => state.versionsError)
+
+  const reloadCurrentResume = useHistoryStore(
+    (state) => state.reloadCurrentResume,
+  )
+
+  const reloadVersions = useHistoryStore((state) => state.reloadVersions)
 
   const currentPending = !currentResume && !currentResumeError
   const versionsPending = !versionsLoaded && !versionsError
@@ -51,17 +65,39 @@ export default function HistoryTimeline({
   const { reduceMotion, enter, exit, layout } = useHistoryMotion()
   const layoutId = useId()
 
-  useEffect(() => {
-    setFilter(DEFAULT_VERSION_FILTER)
-  }, [resumeId])
+  const scrollRef = useRef<HTMLDivElement>(null)
 
-  const filteredVersions = useMemo(
-    () => filterVersions(versions, filter),
-    [versions, filter],
+  const keywordTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined,
   )
 
-  const groups = groupVersionsByDay(filteredVersions)
-  const hasFilter = filter.keyword.trim().length > 0 || isFilterActive(filter)
+  useEffect(() => {
+    setFilter(DEFAULT_VERSION_FILTER)
+
+    return () => clearTimeout(keywordTimerRef.current)
+  }, [resumeId])
+
+  function changeFilter(next: VersionFilterCriteria) {
+    clearTimeout(keywordTimerRef.current)
+    setFilter(next)
+
+    const apply = () => {
+      scrollRef.current?.scrollTo({ top: 0 })
+      showVersionPage(next, 0)
+    }
+
+    if (next.keyword && next.keyword !== filter.keyword)
+      keywordTimerRef.current = setTimeout(apply, 200)
+    else apply()
+  }
+
+  const groups = useMemo(
+    () => groupVersionsByDay(timelineVersions),
+    [timelineVersions],
+  )
+
+  const hasFilter =
+    versionFilter.keyword.trim().length > 0 || isFilterActive(versionFilter)
 
   const itemMotion = {
     initial: { opacity: 0, y: reduceMotion ? 0 : 8 },
@@ -79,10 +115,10 @@ export default function HistoryTimeline({
             版本记录
           </h2>
           <span className='text-xs tabular-nums text-muted-foreground'>
-            {versionsPending ? (
+            {versionTotal === null && !versionsError ? (
               <Skeleton className='h-3 w-14' />
-            ) : versionsLoaded ? (
-              `${versions.length} 个版本`
+            ) : versionTotal !== null ? (
+              `${versionTotal} 个版本`
             ) : (
               '—'
             )}
@@ -110,7 +146,7 @@ export default function HistoryTimeline({
         </div>
 
         <AnimatePresence initial={false}>
-          {versions.length > 0 && (
+          {(Boolean(versionTotal) || hasFilter) && (
             <PresenceDiv
               key='filter'
               initial={{ height: 0, opacity: 0 }}
@@ -120,7 +156,7 @@ export default function HistoryTimeline({
               className='shrink-0 overflow-hidden'
             >
               <div className='px-3 py-2'>
-                <VersionFilterBar criteria={filter} onChange={setFilter} />
+                <VersionFilterBar criteria={filter} onChange={changeFilter} />
                 <AnimatePresence initial={false}>
                   {hasFilter && (
                     <PresenceDiv
@@ -135,8 +171,11 @@ export default function HistoryTimeline({
                         aria-live='polite'
                         className='px-1 pt-2 text-xs text-muted-foreground'
                       >
-                        找到 {filteredVersions.length} 个版本，共{' '}
-                        {versions.length} 个
+                        {matchingVersions !== null
+                          ? `找到 ${matchingVersions} 个版本，共 ${versionTotal} 个`
+                          : versionsError
+                            ? '筛选结果暂不可用'
+                            : '正在查找版本…'}
                       </p>
                     </PresenceDiv>
                   )}
@@ -147,6 +186,7 @@ export default function HistoryTimeline({
         </AnimatePresence>
 
         <PresenceDiv
+          ref={scrollRef}
           layoutScroll
           className='scrollbar-thin-subtle min-h-0 flex-1 overflow-y-auto overscroll-contain px-2 pb-3 pt-1'
         >
@@ -198,10 +238,10 @@ export default function HistoryTimeline({
                 ])
               ) : versionsLoaded ? (
                 <PresenceDiv
-                  key={versions.length > 0 ? 'no-results' : 'empty'}
+                  key={hasFilter ? 'no-results' : 'empty'}
                   {...itemMotion}
                 >
-                  {versions.length > 0 ? (
+                  {hasFilter ? (
                     <div className='flex flex-col items-center gap-3 px-3 py-8 text-center'>
                       <SearchX className='size-6 text-muted-foreground/60' />
                       <p className='text-sm text-muted-foreground'>
@@ -210,7 +250,7 @@ export default function HistoryTimeline({
                       <Button
                         variant='outline'
                         size='sm'
-                        onClick={() => setFilter(DEFAULT_VERSION_FILTER)}
+                        onClick={() => changeFilter(DEFAULT_VERSION_FILTER)}
                       >
                         清除筛选
                       </Button>
@@ -223,6 +263,9 @@ export default function HistoryTimeline({
             </AnimatePresence>
           </PresenceDiv>
         </PresenceDiv>
+        <TimelinePagination
+          onNavigate={() => scrollRef.current?.scrollTo({ top: 0 })}
+        />
       </Card>
     </LayoutGroup>
   )

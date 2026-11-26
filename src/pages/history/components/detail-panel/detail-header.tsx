@@ -1,3 +1,5 @@
+import { historyComponent } from '../../utils/load-component'
+import type { ReactNode } from 'react'
 import type { RestoreStrategy } from '../../types'
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
 import {
@@ -28,35 +30,42 @@ import {
   getResumeTypeLabel,
   getVersionTitle,
 } from '../../utils'
-import CompareDialog from '../compare-dialog'
 import HistoryDialogs from '../dialogs'
-import VersionPdfExportButton from '../version-pdf-export'
+import { deferDialog } from '@/components/deferred-dialog'
 import HistoryActionButton from '../shared/history-action-button'
+
+const DeferredCompare = deferDialog(
+  historyComponent(() => import('../compare-dialog'), 'CompareDialog'),
+  '版本对比',
+)
 
 interface DetailHeaderProps {
   state: HistoryDetailPanelState
+  exportButton: ReactNode
 }
 
-export default function DetailHeader({ state }: DetailHeaderProps) {
+export default function DetailHeader({
+  state,
+  exportButton,
+}: DetailHeaderProps) {
   const { surfaceProps } = useHistoryMotion()
 
-  const {
-    currentResume,
-    versions,
-    versionsLoaded,
-    versionsLoading,
-    versionsError,
-    currentResumeLoading,
-    currentResumeError,
-    savingMetadata,
-    restoreVersion,
-    deleteVersion,
-  } = useHistoryStore()
+  const currentResume = useHistoryStore((s) => s.currentResume)
+  const latestVersion = useHistoryStore((s) => s.latestVersion)
+  const versionTotal = useHistoryStore((s) => s.versionTotal)
+  const versionSummaryReady = useHistoryStore((s) => s.versionSummaryReady)
+  const versionsError = useHistoryStore((s) => s.versionsError)
+  const currentResumeLoading = useHistoryStore((s) => s.currentResumeLoading)
+  const currentResumeError = useHistoryStore((s) => s.currentResumeError)
+  const savingMetadata = useHistoryStore((s) => s.savingMetadata)
+  const { restoreVersion, deleteVersion } = useHistoryStore.getState()
 
   const [restoreTargetId, setRestoreTargetId] = useState<number | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
   const [compareOpen, setCompareOpen] = useState(false)
   const { selectedEntry, selectedVersion, editing } = state
+  const restoreRef = useRef<HTMLButtonElement>(null)
+  const moreRef = useRef<HTMLButtonElement>(null)
   const editButtonRef = useRef<HTMLButtonElement>(null)
   const saveButtonRef = useRef<HTMLButtonElement>(null)
   const previousStateRef = useRef({ selectedEntry, editing })
@@ -99,7 +108,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
   }
 
   if (selectedEntry === 'current' && currentResume) {
-    const syncState = getCurrentSyncState(currentResume, versions)
+    const syncState = getCurrentSyncState(currentResume, latestVersion)
 
     return (
       <div className='flex min-w-0 flex-col gap-2 [@media(max-height:500px)]:gap-1'>
@@ -111,13 +120,13 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
             当前内容
           </Badge>
           <span className='text-xs text-muted-foreground'>
-            {!versionsLoaded ? (
+            {!versionSummaryReady ? (
               versionsError ? (
                 '版本状态暂不可用'
               ) : (
                 <Skeleton className='h-3 w-24' />
               )
-            ) : versions.length === 0 ? (
+            ) : versionTotal === 0 ? (
               '尚未保存版本'
             ) : syncState.synced ? (
               `已与 V${syncState.latestVersionNo} 同步`
@@ -143,23 +152,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
 
   const sourceMeta = SOURCE_META[selectedVersion.source_type]
 
-  const olderVersion = versions.find(
-    (version) => version.version_no < selectedVersion.version_no,
-  )
-
-  const fallbackVersion = versions.find(
-    (version) => version.id !== selectedVersion.id,
-  )
-
-  const compareBaseId = olderVersion
-    ? String(olderVersion.id)
-    : currentResume
-      ? 'current'
-      : fallbackVersion
-        ? String(fallbackVersion.id)
-        : null
-
-  const canCompare = versions.length >= 2 || Boolean(currentResume)
+  const canCompare = (versionTotal ?? 0) >= 2 || Boolean(currentResume)
 
   return (
     <div className='flex min-w-0 flex-col gap-3 [@media(max-height:500px)]:gap-1'>
@@ -209,29 +202,35 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
             <HistoryActionButton
               label='对比'
               disabled={!canCompare}
-              onClick={() => setCompareOpen(true)}
+              onClick={() => {
+                const prior = useHistoryStore
+                  .getState()
+                  .versions.find(
+                    (row) => row.version_no === selectedVersion.version_no - 1,
+                  )
+
+                if (prior)
+                  useHistoryStore.getState().loadVersionSnapshot(prior.id)
+
+                setCompareOpen(true)
+              }}
             >
               <GitCompare />
             </HistoryActionButton>
             <HistoryActionButton
+              ref={restoreRef}
               label='恢复此版本'
               variant='outline'
               disabled={
                 !currentResume ||
                 currentResumeLoading ||
-                versionsLoading ||
-                Boolean(currentResumeError || versionsError)
+                Boolean(currentResumeError)
               }
               onClick={() => setRestoreTargetId(selectedVersion.id)}
             >
               <RotateCcw />
             </HistoryActionButton>
-            <VersionPdfExportButton
-              key={`pdf-${selectedVersion.id}`}
-              versionId={selectedVersion.id}
-              documentTitle={getVersionTitle(selectedVersion)}
-              compact
-            />
+            {exportButton}
             <HistoryActionButton
               ref={editButtonRef}
               label='编辑信息'
@@ -244,6 +243,7 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
             <DropdownMenu key={`menu-${selectedVersion.id}`}>
               <DropdownMenuTrigger asChild>
                 <Button
+                  ref={moreRef}
                   variant='ghost'
                   size='icon-sm'
                   className='max-md:size-9'
@@ -269,13 +269,18 @@ export default function DetailHeader({ state }: DetailHeaderProps) {
           </>
         )}
       </div>
-      <CompareDialog
-        open={compareOpen}
-        onOpenChange={setCompareOpen}
-        baseId={compareBaseId}
-        targetId={String(selectedVersion.id)}
-      />
+      <DeferredCompare open={compareOpen} onClose={() => setCompareOpen(false)}>
+        {(Dialog, opener) => (
+          <Dialog
+            open={compareOpen}
+            onOpenChange={setCompareOpen}
+            selectedVersion={selectedVersion}
+            returnFocusTo={opener}
+          />
+        )}
+      </DeferredCompare>
       <HistoryDialogs
+        returnFocusTo={deleteTargetId ? moreRef.current : restoreRef.current}
         restoreTargetId={restoreTargetId}
         deleteTargetId={deleteTargetId}
         onCloseRestore={() => setRestoreTargetId(null)}

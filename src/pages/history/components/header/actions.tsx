@@ -9,14 +9,18 @@ export default function HistoryHeaderActions({
 }: {
   activeResumeId: string | null
 }) {
-  const {
-    currentResume,
-    currentResumeLoading,
-    currentResumeError,
-    versionsLoading,
-    versionsError,
-    versionsLoaded,
-  } = useHistoryStore()
+  const canSave = useHistoryStore((state) =>
+    Boolean(
+      state.currentResume &&
+      state.currentResume.resumeId === activeResumeId &&
+      !state.currentResumeLoading &&
+      !state.currentResumeError &&
+      state.versionSummaryReady &&
+      state.versionTotal !== null &&
+      (state.versionTotal === 0 || state.latestVersion !== null) &&
+      !state.savingCurrent,
+    ),
+  )
 
   const [saveDialogOpen, setSaveDialogOpen] = useState(false)
 
@@ -28,15 +32,7 @@ export default function HistoryHeaderActions({
     <>
       <Button
         className='shrink-0'
-        disabled={
-          !currentResume ||
-          currentResume.resumeId !== activeResumeId ||
-          currentResumeLoading ||
-          currentResumeError !== null ||
-          versionsLoading ||
-          versionsError !== null ||
-          !versionsLoaded
-        }
+        disabled={!canSave}
         onClick={() => setSaveDialogOpen(true)}
       >
         <Save data-icon='inline-start' />

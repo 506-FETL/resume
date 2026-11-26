@@ -2,7 +2,7 @@ import type { HistorySelection, RestoreStrategy } from '../../types'
 import type { ResumeHistoryVersionListItem } from '@/lib/supabase/resume/history'
 import { Eye, Flag, MoreHorizontal, RotateCcw, Trash2 } from 'lucide-react'
 import { motion } from 'motion/react'
-import { useState } from 'react'
+import { useRef, useState } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import {
@@ -34,7 +34,9 @@ export default function VersionCard({
   onSelectEntry,
 }: VersionCardProps) {
   const { reduceMotion, enter, surfaceProps } = useHistoryMotion()
-  const { restoreVersion, deleteVersion } = useHistoryStore()
+  const restoreVersion = useHistoryStore((state) => state.restoreVersion)
+  const deleteVersion = useHistoryStore((state) => state.deleteVersion)
+  const moreRef = useRef<HTMLButtonElement>(null)
   const [restoreTargetId, setRestoreTargetId] = useState<number | null>(null)
   const [deleteTargetId, setDeleteTargetId] = useState<number | null>(null)
   const sourceMeta = SOURCE_META[version.source_type]
@@ -123,6 +125,7 @@ export default function VersionCard({
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button
+              ref={moreRef}
               variant='ghost'
               size='icon-sm'
               className='-mr-1 -mt-1 shrink-0 text-muted-foreground'
@@ -160,6 +163,7 @@ export default function VersionCard({
         </DropdownMenu>
       </motion.article>
       <HistoryDialogs
+        returnFocusTo={moreRef.current}
         restoreTargetId={restoreTargetId}
         deleteTargetId={deleteTargetId}
         onCloseRestore={() => setRestoreTargetId(null)}

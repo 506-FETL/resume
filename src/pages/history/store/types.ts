@@ -1,58 +1,7 @@
-import type {
-  HistoryCurrentResume,
-  HistorySelection,
-  RestoreStrategy,
-  VersionMetadataDraft,
-} from '../types'
-import type {
-  ResumeHistoryVersionListItem,
-  ResumeHistoryVersionRecord,
-  ResumeSnapshot,
-} from '@/lib/supabase/resume/history'
+import type { HistoryDataSlice } from './history-data/types'
+import type { HistoryUiSlice } from './history-ui'
 import type { HistoryJobOptionsSlice } from './job-options'
 
-export interface HistoryStoreState extends HistoryJobOptionsSlice {
-  resetAccount: (accountId: string | null) => void
-  // Data slice
-  resumeId: string | null
-  currentResume: HistoryCurrentResume | null
-  versions: ResumeHistoryVersionListItem[]
-  snapshotGeneration: number
-  snapshotCache: Record<number, ResumeSnapshot>
-  snapshotErrors: Record<number, string>
-  error: string | null
-  currentResumeLoading: boolean
-  currentResumeError: string | null
-  versionsLoading: boolean
-  versionsError: string | null
-  versionsLoaded: boolean
-
-  init: (resumeId: string | null | undefined) => Promise<void>
-  reload: () => Promise<void>
-  reloadCurrentResume: () => Promise<void>
-  reloadVersions: () => Promise<void>
-  loadVersionSnapshot: (id: number) => Promise<ResumeSnapshot | null>
-  saveCurrentVersion: (
-    draft: VersionMetadataDraft,
-  ) => Promise<ResumeHistoryVersionRecord | null>
-  updateVersionMetadata: (
-    versionId: number,
-    draft: VersionMetadataDraft,
-  ) => Promise<ResumeHistoryVersionListItem | null>
-  restoreVersion: (
-    versionId: number,
-    strategy: RestoreStrategy,
-  ) => Promise<ResumeHistoryVersionRecord | null>
-  deleteVersion: (versionId: number) => Promise<boolean>
-
-  // UI slice
-  mobilePanel: 'timeline' | 'detail'
-  timelineFocusTarget: HistorySelection
-  showDetail: () => void
-  showTimeline: (target: HistorySelection) => void
-  clearTimelineFocus: () => void
-  savingCurrent: boolean
-  savingMetadata: boolean
-  restoring: boolean
-  deletingVersionId: number | null
-}
+export type HistoryStoreState = HistoryDataSlice &
+  HistoryUiSlice &
+  HistoryJobOptionsSlice

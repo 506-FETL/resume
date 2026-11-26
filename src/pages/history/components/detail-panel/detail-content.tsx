@@ -1,6 +1,7 @@
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
 import { ChevronDown } from 'lucide-react'
-import { useEffect, useRef } from 'react'
+import type { ResumeDocumentState } from '@/components/resume/pagination/types'
+import { useEffect, useRef, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import {
   Collapsible,
@@ -12,7 +13,9 @@ import AnimatedContent from '@/components/motion/animated-content'
 import { cn } from '@/lib/utils'
 import { useHistoryMotion } from '../../hooks/use-history-motion'
 import useHistoryStore from '../../store'
-import HistoryResumePreview from '../shared/history-resume-preview'
+import { HistoryPreview } from '../shared/history-resume-preview/deferred'
+import VersionPdfExportButton from '../version-pdf-export'
+import { getVersionTitle } from '../../utils/versions'
 import CurrentOverview from './current-overview'
 import DetailHeader from './detail-header'
 import HistoryVersionOverview from './history-overview'
@@ -26,6 +29,11 @@ export default function HistoryDetailContent({
   state,
 }: HistoryDetailContentProps) {
   const { reduceMotion, surfaceProps } = useHistoryMotion()
+  const documentRef = useRef<HTMLDivElement>(null)
+
+  const [documentState, setDocumentState] =
+    useState<ResumeDocumentState | null>(null)
+
   const scrollRef = useRef<HTMLDivElement>(null)
   const overviewTriggerRef = useRef<HTMLButtonElement>(null)
   const overviewContentRef = useRef<HTMLDivElement>(null)
@@ -86,7 +94,19 @@ export default function HistoryDetailContent({
   return (
     <div className='flex h-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden'>
       <div className='shrink-0 px-3 pt-4 pb-3 sm:px-5 sm:pt-5 [@media(max-height:500px)]:py-0'>
-        <DetailHeader state={state} />
+        <DetailHeader
+          state={state}
+          exportButton={
+            state.selectedVersion && (
+              <VersionPdfExportButton
+                documentRef={documentRef}
+                documentState={documentState}
+                documentTitle={getVersionTitle(state.selectedVersion)}
+                snapshotError={snapshotError}
+              />
+            )
+          }
+        />
       </div>
 
       <div className='flex min-h-0 flex-1 flex-col'>
@@ -165,7 +185,11 @@ export default function HistoryDetailContent({
               }
             >
               {resumeSnapshot ? (
-                <HistoryResumePreview
+                <HistoryPreview
+                  documentRef={documentRef}
+                  onDocumentStateChange={
+                    isCurrent ? undefined : setDocumentState
+                  }
                   snapshot={resumeSnapshot}
                   projectionReferenceDate={
                     isCurrent

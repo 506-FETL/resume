@@ -16,6 +16,7 @@ import {
   readJobContext,
   useJobContextStore,
 } from '@/lib/job-context'
+import { isHistoryPage, prepareHistoryTarget } from '@/lib/history-route'
 import { isOptimizePage, prepareOptimizeReport } from '@/lib/optimize-route'
 import useCurrentResumeStore from '@/store/resume/current'
 import useUserStore from '@/store/user'
@@ -35,7 +36,8 @@ export function JobContextGate({ children }: { children: ReactNode }) {
 
   const [attempt, setAttempt] = useState(0)
 
-  const includeDescription = !isOptimizePage(location.pathname)
+  const historyPage = isHistoryPage(location.pathname)
+  const includeDescription = !historyPage && !isOptimizePage(location.pathname)
 
   const key = `${userId}:${jobId}:${location.pathname}:${attempt}`
 
@@ -60,8 +62,11 @@ export function JobContextGate({ children }: { children: ReactNode }) {
             .getState()
             .setCurrentResume(context.resumeId, context.resumeType)
 
-        if (!includeDescription && context.resumeId)
-          prepareOptimizeReport(context.userId, jobId, context.resumeId)
+        if (!includeDescription && context.resumeId) {
+          if (historyPage)
+            prepareHistoryTarget(context.userId, jobId, context.resumeId)
+          else prepareOptimizeReport(context.userId, jobId, context.resumeId)
+        }
 
         setState({ key, error: null, ready: true })
       })
@@ -79,7 +84,7 @@ export function JobContextGate({ children }: { children: ReactNode }) {
       controller.abort()
       useJobContextStore.getState().setContext(null)
     }
-  }, [jobId, key, includeDescription])
+  }, [jobId, key, includeDescription, historyPage])
 
   if (!jobId) return children
   if (state.key !== key || (!state.ready && !state.error))

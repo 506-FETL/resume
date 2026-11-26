@@ -1,42 +1,34 @@
-import { useEffect, useMemo } from 'react'
+import { useEffect } from 'react'
 import useHistoryStore from '../store'
+import { useJobOptions } from '../store/options'
 
-export function useJobSummaries(companyId?: string | null) {
-  const resource = useHistoryStore((state) => {
-    if (companyId === null) return undefined
+export function historyJobLabel(job: { company: string; position: string }) {
+  return [job.company, job.position].filter(Boolean).join(' · ') || '未命名岗位'
+}
 
-    const all = state.jobOptions.all
+export function useJobSummaries(companyId: string | null) {
+  const cached = useJobOptions((state) =>
+    companyId ? state.items.find((job) => job.id === companyId) : undefined,
+  )
 
-    if (all && !all.loading && !all.error) return all
-
-    return (
-      state.jobOptions[companyId ?? 'all'] ?? (all?.loading ? all : undefined)
-    )
-  })
+  const resource = useHistoryStore((state) =>
+    companyId ? state.jobOptions[companyId] : undefined,
+  )
 
   const load = useHistoryStore((state) => state.loadJobOptions)
 
   useEffect(() => {
-    if (companyId !== null && !resource) load(companyId)
-  }, [companyId, resource, load])
+    if (companyId && !cached && !resource) load(companyId)
+  }, [companyId, cached, resource, load])
 
-  const options = useMemo(() => {
-    const jobs = resource?.items ?? []
-    const rows = companyId ? jobs.filter((job) => job.id === companyId) : jobs
-
-    return rows.map((job) => ({
-      id: job.id,
-      label:
-        [job.company, job.position].filter(Boolean).join(' · ') || '未命名岗位',
-    }))
-  }, [resource?.items, companyId])
+  const job = cached ?? resource?.items[0]
 
   return {
-    options,
-    loading: companyId !== null && (!resource || resource.loading),
-    error: resource?.error ?? null,
+    options: job ? [{ id: job.id, label: historyJobLabel(job) }] : [],
+    loading: Boolean(companyId && !cached && (!resource || resource.loading)),
+    error: cached ? null : (resource?.error ?? null),
     retry: () => {
-      if (companyId !== null) return load(companyId)
+      if (companyId) return load(companyId)
     },
   }
 }

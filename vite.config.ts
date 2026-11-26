@@ -63,6 +63,16 @@ export default defineConfig({
   build: {
     cssCodeSplit: true,
     minify: 'terser',
+    rollupOptions: {
+      output: {
+        onlyExplicitManualChunks: true,
+        // 详情与时间线共享预览上下文；重试工作区入口时，两者仍应引用同一份实例。
+        manualChunks(id) {
+          if (id.endsWith('/pages/history/components/workspace/index.tsx'))
+            return 'history-workspace'
+        },
+      },
+    },
   },
   optimizeDeps: {
     esbuildOptions: { minify: true },

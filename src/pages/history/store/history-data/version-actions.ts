@@ -4,14 +4,17 @@ import {
   updateResumeHistoryVersion,
 } from '@/lib/supabase/resume/history/queries'
 import { restoreResumeHistoryVersion } from '@/lib/supabase/resume/history/restore'
-import { createResumeSnapshotHash } from '@/lib/supabase/resume/history/snapshot'
+import type { ResumeHistoryVersionRecord } from '@/lib/supabase/resume/history/types'
 import { toast } from 'sonner'
 import {
   normalizeHistoryVersion,
   normalizeHistoryVersionListItem,
+  isMetadataDraftDirty,
   toVersionMutationPayload,
 } from '../../utils'
-import { hydrate, isCurrent } from './readers'
+import { buildHistoryResumeOption } from '../../utils/versions'
+import { isCurrent } from './readers'
+import { reconcileVersion } from './timeline-changes'
 import type { Get, HistoryDataSlice, HistoryRuntime, Set } from './types'
 
 export function createVersionActions(
@@ -25,18 +28,29 @@ export function createVersionActions(
   | 'restoreVersion'
   | 'deleteVersion'
 > {
+  function addCreatedVersion(created: ResumeHistoryVersionRecord) {
+    const { snapshot, ...version } = created
+
+    set((state) => ({
+      snapshotCache: { ...state.snapshotCache, [version.id]: snapshot },
+    }))
+
+    reconcileVersion(runtime, set, get, { after: version, latest: version })
+  }
+
   return {
     async saveCurrentVersion(draft) {
-      const { resumeId, currentResume, versions } = get()
+      const { resumeId, currentResume, latestVersion, versionTotal } = get()
 
       if (
         !resumeId ||
         !currentResume ||
-        !get().versionsLoaded ||
+        !get().versionSummaryReady ||
+        versionTotal === null ||
+        (versionTotal > 0 && !latestVersion) ||
+        get().savingCurrent ||
         get().currentResumeLoading ||
-        get().versionsLoading ||
-        get().currentResumeError ||
-        get().versionsError
+        get().currentResumeError
       )
         return null
 
@@ -45,14 +59,13 @@ export function createVersionActions(
       set({ savingCurrent: true })
 
       try {
-        const nextHash = await createResumeSnapshotHash(currentResume.snapshot)
-
-        if (!isCurrent(runtime, get, generation, resumeId)) return null
-
-        const latest = versions[0]
+        const nextHash = currentResume.contentHash
 
         // 内容与最新版本完全一致 → 不重复保存
-        if (latest?.content_hash && latest.content_hash === nextHash) {
+        if (
+          latestVersion?.content_hash &&
+          latestVersion.content_hash === nextHash
+        ) {
           toast.info('内容没有变化，已是最新版本')
 
           return null
@@ -71,16 +84,7 @@ export function createVersionActions(
 
         if (!isCurrent(runtime, get, generation, resumeId)) return null
 
-        // 列表存轻量项，snapshot 进缓存（避免刚保存又要重新拉一次）
-        const { snapshot: createdSnapshot, ...createdListItem } = created
-
-        set((state) => ({
-          versions: [createdListItem, ...state.versions],
-          snapshotCache: {
-            ...state.snapshotCache,
-            [created.id]: createdSnapshot,
-          },
-        }))
+        addCreatedVersion(created)
 
         toast.success('当前版本已保存')
 
@@ -101,6 +105,7 @@ export function createVersionActions(
       const targetVersion = versions.find((version) => version.id === versionId)
 
       if (!targetVersion) return null
+      if (!isMetadataDraftDirty(draft, targetVersion)) return targetVersion
 
       const generation = runtime.requestId
       const resumeId = get().resumeId
@@ -117,11 +122,10 @@ export function createVersionActions(
 
         if (!isCurrent(runtime, get, generation, resumeId)) return null
 
-        set((state) => ({
-          versions: state.versions.map((version) =>
-            version.id === updated.id ? updated : version,
-          ),
-        }))
+        reconcileVersion(runtime, set, get, {
+          before: targetVersion,
+          after: updated,
+        })
 
         toast.success('版本信息已更新')
 
@@ -146,9 +150,7 @@ export function createVersionActions(
         !currentResume ||
         !targetVersion ||
         get().currentResumeLoading ||
-        get().versionsLoading ||
-        get().currentResumeError ||
-        get().versionsError
+        get().currentResumeError
       )
         return null
 
@@ -163,23 +165,38 @@ export function createVersionActions(
           return null
 
         const restoredVersion = normalizeHistoryVersion(
-          await restoreResumeHistoryVersion({
-            resumeId,
-            targetVersion,
-            targetSnapshot,
-            currentSnapshot: currentResume.snapshot,
-            currentUpdatedAt: currentResume.updatedAt,
-            strategy,
-          }),
+          await restoreResumeHistoryVersion(
+            {
+              resumeId,
+              targetVersion,
+              targetSnapshot,
+              currentSnapshot: currentResume.snapshot,
+              currentContentHash: currentResume.contentHash,
+              currentUpdatedAt: currentResume.updatedAt,
+              strategy,
+            },
+            {
+              backupSaved(record) {
+                if (isCurrent(runtime, get, generation, resumeId))
+                  addCreatedVersion(normalizeHistoryVersion(record))
+              },
+              currentSaved(record, snapshot, contentHash) {
+                if (isCurrent(runtime, get, generation, resumeId))
+                  set({
+                    currentResume: {
+                      ...buildHistoryResumeOption(record),
+                      snapshot,
+                      contentHash,
+                    },
+                  })
+              },
+            },
+          ),
         )
 
         if (!isCurrent(runtime, get, generation, resumeId)) return null
 
-        const refreshed = await hydrate(runtime, set, get, resumeId, generation)
-
-        if (!isCurrent(runtime, get, generation, resumeId)) return null
-        if (!refreshed)
-          throw new Error('版本已恢复，部分内容刷新失败，请重试加载')
+        addCreatedVersion(restoredVersion)
 
         toast.success('已恢复至所选版本')
 
@@ -217,10 +234,8 @@ export function createVersionActions(
 
         delete snapshotCache[versionId]
 
-        set({
-          snapshotCache,
-          versions: versions.filter((version) => version.id !== versionId),
-        })
+        set({ snapshotCache })
+        reconcileVersion(runtime, set, get, { before: targetVersion })
 
         toast.success(`已删除 V${targetVersion.version_no}`)
 

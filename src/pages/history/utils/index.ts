@@ -8,9 +8,7 @@ export { normalizeHistoryVersionListItem } from './versions'
 
 export { normalizeHistoryVersion } from './versions'
 
-export { buildCurrentResume } from './versions'
-
-export { buildHistoryResumeOption } from './versions'
+export { buildHistoryResumeOption, buildCurrentResume } from './versions'
 
 export { getVersionTitle } from './versions'
 
@@ -34,9 +32,10 @@ export { getCurrentSyncState } from './versions'
 
 export { getOrderedSections } from './snapshot'
 
-export { sortObjectKeys } from './snapshot'
-
-export { stableSerialize } from './snapshot'
+export {
+  sortObjectKeys,
+  stableSerialize,
+} from '@/lib/supabase/resume/history/snapshot'
 
 export { areSnapshotsEqual } from './snapshot'
 

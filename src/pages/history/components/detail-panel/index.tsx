@@ -19,12 +19,10 @@ interface HistoryDetailPanelProps {
 }
 
 export default function HistoryDetailPanel({ state }: HistoryDetailPanelProps) {
-  const {
-    currentResume,
-    currentResumeError,
-    currentResumeLoading,
-    reloadCurrentResume,
-  } = useHistoryStore()
+  const currentResume = useHistoryStore((s) => s.currentResume)
+  const currentResumeError = useHistoryStore((s) => s.currentResumeError)
+  const currentResumeLoading = useHistoryStore((s) => s.currentResumeLoading)
+  const { reloadCurrentResume } = useHistoryStore.getState()
 
   const waitingForCurrent = state.selectedEntry === 'current' && !currentResume
 
@@ -51,7 +49,7 @@ export default function HistoryDetailPanel({ state }: HistoryDetailPanelProps) {
               <DetailPanelLoadingState />
             )
           ) : state.selectedEntry ? (
-            <HistoryDetailContent state={state} />
+            <HistoryDetailContent key={state.selectedEntry} state={state} />
           ) : (
             <Empty className='h-full'>
               <EmptyHeader>
@@ -72,3 +70,5 @@ export default function HistoryDetailPanel({ state }: HistoryDetailPanelProps) {
     </>
   )
 }
+
+export { HistoryDetailPanel }

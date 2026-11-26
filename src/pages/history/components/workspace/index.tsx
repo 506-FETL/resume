@@ -1,7 +1,14 @@
+import { historyComponent } from '../../utils/load-component'
 import { ArrowLeft, History as HistoryIcon, RefreshCcw } from 'lucide-react'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import { createDeferredComponent } from '@/components/deferred-content'
+import {
+  HistoryPaperContext,
+  useHistoryPaperCache,
+} from '../shared/history-resume-preview/paper'
+import { HistoryPreview } from '../shared/history-resume-preview/deferred'
 import { Button } from '@/components/ui/button'
 import {
   Empty,
@@ -18,30 +25,31 @@ import {
 import { CONTENT_SWITCH } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import useHistoryStore from '../../store'
-import HistoryDetailPanel from '../detail-panel'
 import { useHistoryDetailPanelState } from '../detail-panel/use-detail-panel-state'
 import HistoryTimeline from '../timeline'
 
+const HistoryDetailPanel = createDeferredComponent(
+  historyComponent(() => import('../detail-panel'), 'HistoryDetailPanel'),
+  '版本详情',
+  <HistoryDetailSkeleton />,
+  { wrapFallback: false },
+)
+
 interface HistoryWorkspaceProps {
   activeResumeId: string
-  onReloadResumeOptions: () => Promise<void>
 }
 
 export default function HistoryWorkspace({
   activeResumeId,
-  onReloadResumeOptions,
 }: HistoryWorkspaceProps) {
+  const paperCache = useHistoryPaperCache(activeResumeId)
   const detailPanelState = useHistoryDetailPanelState(activeResumeId)
 
-  const {
-    init,
-    reload,
-    error,
-    resumeId,
-    mobilePanel,
-    timelineFocusTarget,
-    clearTimelineFocus,
-  } = useHistoryStore()
+  const error = useHistoryStore((s) => s.error)
+  const resumeId = useHistoryStore((s) => s.resumeId)
+  const mobilePanel = useHistoryStore((s) => s.mobilePanel)
+  const timelineFocusTarget = useHistoryStore((s) => s.timelineFocusTarget)
+  const { reload, clearTimelineFocus } = useHistoryStore.getState()
 
   const reduceMotion = useReducedMotion()
   const workspaceRef = useRef<HTMLDivElement>(null)
@@ -145,14 +153,52 @@ export default function HistoryWorkspace({
     timelineInteractive,
   ])
 
-  useEffect(() => {
-    init(activeResumeId)
-  }, [activeResumeId, init])
+  const detailRequested =
+    resumeId === activeResumeId && (!narrow || mobilePanel === 'detail')
 
-  const handleReload = async () => {
-    await onReloadResumeOptions()
-    await reload()
-  }
+  const selected = detailPanelState.selectedEntry
+
+  const binding = useHistoryStore((s) => {
+    if (!detailRequested || s.resumeId !== activeResumeId) return undefined
+
+    return selected === 'current'
+      ? s.currentResume?.snapshot.templateBinding
+      : typeof selected === 'number'
+        ? s.snapshotCache[selected]?.templateBinding
+        : undefined
+  })
+
+  useEffect(() => {
+    if (!detailRequested || error) return
+
+    let active = true
+
+    import('@/store/resume/slices/document/template')
+      .then(({ preloadTemplate }) => {
+        if (active && binding) preloadTemplate(binding)
+      })
+      .catch(() => undefined)
+
+    return () => {
+      active = false
+    }
+  }, [binding, detailRequested, error])
+
+  useEffect(() => {
+    if (detailRequested && !error) {
+      HistoryDetailPanel.preload().catch(() => undefined)
+      HistoryPreview.preload().catch(() => undefined)
+
+      const selected = detailPanelState.selectedEntry
+
+      if (typeof selected === 'number') {
+        const { loadVersionSnapshot, snapshotErrors } =
+          useHistoryStore.getState()
+
+        if (!snapshotErrors[selected]) loadVersionSnapshot(selected)
+      }
+    }
+  }, [detailRequested, detailPanelState.selectedEntry, error])
 
   if (error) {
     return (
@@ -165,7 +211,7 @@ export default function HistoryWorkspace({
           <EmptyDescription>{error}</EmptyDescription>
         </EmptyHeader>
         <EmptyContent>
-          <Button variant='outline' onClick={handleReload}>
+          <Button variant='outline' onClick={reload}>
             <RefreshCcw data-icon='inline-start' />
             重试
           </Button>
@@ -265,8 +311,14 @@ export default function HistoryWorkspace({
           <ArrowLeft data-icon='inline-start' />
           返回版本列表
         </Button>
-        <HistoryDetailPanel state={detailPanelState} />
+        {detailVisible && (
+          <HistoryPaperContext value={paperCache}>
+            <HistoryDetailPanel state={detailPanelState} />
+          </HistoryPaperContext>
+        )}
       </motion.div>
     </div>
   )
 }
+
+export { HistoryWorkspace }

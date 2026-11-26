@@ -1,4 +1,3 @@
-import type { HistoryResumeOption } from '../../types'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
@@ -8,19 +7,9 @@ import HistoryHeaderSummary from './summary'
 
 interface HistoryHeaderProps {
   activeResumeId: string | null
-  resumeOptions: HistoryResumeOption[]
-  loading: boolean
-  error: string | null
-  onResumeChange: (resumeId: string) => void
 }
 
-export default function HistoryHeader({
-  activeResumeId,
-  resumeOptions,
-  loading,
-  error,
-  onResumeChange,
-}: HistoryHeaderProps) {
+export default function HistoryHeader({ activeResumeId }: HistoryHeaderProps) {
   const reduceMotion = useReducedMotion()
 
   return (
@@ -41,13 +30,7 @@ export default function HistoryHeader({
       </div>
 
       <div className='col-span-2 min-w-0 @min-[760px]/workspace:col-span-1 @min-[760px]/workspace:col-start-2 @min-[760px]/workspace:row-start-1 @min-[760px]/workspace:max-w-md [@media(max-height:500px)]:col-span-1 [@media(max-height:500px)]:col-start-1 [@media(max-height:500px)]:row-start-1'>
-        <HistoryResumeSelector
-          value={activeResumeId}
-          options={resumeOptions}
-          loading={loading}
-          error={error}
-          onChange={onResumeChange}
-        />
+        <HistoryResumeSelector value={activeResumeId} />
       </div>
     </motion.header>
   )

@@ -1,7 +1,6 @@
 import type { StoreApi } from 'zustand'
 import type { HistoryStoreState } from './types'
 import type { JobOptionSummary } from '@/lib/supabase/resume/company'
-import { listJobOptions } from '@/lib/supabase/resume/company'
 
 interface JobOptionsResource {
   items: JobOptionSummary[]
@@ -11,7 +10,7 @@ interface JobOptionsResource {
 
 export interface HistoryJobOptionsSlice {
   jobOptions: Record<string, JobOptionsResource | undefined>
-  loadJobOptions: (companyId?: string) => Promise<void>
+  loadJobOptions: (companyId: string) => Promise<void>
   resetJobOptions: () => void
 }
 
@@ -30,9 +29,8 @@ export function createHistoryJobOptionsSlice(
       set({ jobOptions: {} })
     },
     loadJobOptions(companyId) {
-      const key = companyId ?? 'all'
-      const active = pending.get(key) ?? pending.get('all')
-      const previous = get().jobOptions[key]
+      const active = pending.get(companyId)
+      const previous = get().jobOptions[companyId]
 
       if (active) return active
       if (previous && !previous.error) return Promise.resolve()
@@ -42,13 +40,14 @@ export function createHistoryJobOptionsSlice(
       const write = (resource: JobOptionsResource) => {
         if (scope === generation)
           set((state) => ({
-            jobOptions: { ...state.jobOptions, [key]: resource },
+            jobOptions: { ...state.jobOptions, [companyId]: resource },
           }))
       }
 
       write({ items: [], loading: true, error: null })
 
-      const request = listJobOptions(companyId)
+      const request = import('@/lib/supabase/resume/company/queries')
+        .then(({ listJobOptions }) => listJobOptions(companyId))
         .then(
           (items) => write({ items, loading: false, error: null }),
           (error: unknown) =>
@@ -60,10 +59,10 @@ export function createHistoryJobOptionsSlice(
             }),
         )
         .finally(() => {
-          if (pending.get(key) === request) pending.delete(key)
+          if (pending.get(companyId) === request) pending.delete(companyId)
         })
 
-      pending.set(key, request)
+      pending.set(companyId, request)
 
       return request
     },
