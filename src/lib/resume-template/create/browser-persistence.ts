@@ -1,8 +1,6 @@
 import type { ResumeCreationPersistence } from './types'
-import {
-  createOfflineResumeFromSnapshot,
-  getOfflineResumeById,
-} from '@/lib/offline-resume-manager'
+import { getDB } from '@/lib/offline-resume-manager/database'
+import { createOfflineResumeFromSnapshot } from '@/lib/offline-resume-manager/mutations'
 import {
   createResumeFromSnapshot,
   findPreparedCloudResume,
@@ -13,7 +11,7 @@ export const browserResumePersistence: ResumeCreationPersistence = {
   async find(prepared) {
     const record =
       prepared.mode === 'local'
-        ? await getOfflineResumeById(prepared.resumeId)
+        ? await (await getDB()).get('resumes', prepared.resumeId)
         : await findPreparedCloudResume(prepared)
 
     return record ? createdResumeResult(prepared, record) : null

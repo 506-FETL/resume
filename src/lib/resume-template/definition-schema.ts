@@ -2,6 +2,7 @@ import type { z } from 'zod'
 import type { templateRefSchema } from './declarative/schema'
 import type { TemplateDefinition } from './declarative/types'
 import { templateDefinitionSchema } from './declarative/schema'
+import { TemplateResolutionError } from './errors'
 import {
   TEMPLATE_LIMITS,
   TemplateValidationError,
@@ -14,27 +15,13 @@ export {
   templateRefSchema,
 } from './declarative/schema'
 
+export { asTemplateError, TemplateResolutionError } from './errors'
+
+export type { TemplateErrorCode } from './errors'
+
 export type * from './declarative/types'
 
 export type TemplateRef = z.infer<typeof templateRefSchema>
-
-export type TemplateErrorCode =
-  | 'INVALID_BINDING'
-  | 'INVALID_DEFINITION'
-  | 'VERSION_NOT_FOUND'
-  | 'UNSUPPORTED_CAPABILITY'
-  | 'REFERENCE_MISMATCH'
-  | 'LOAD_FAILED'
-  | 'RESOURCE_LIMIT'
-
-export class TemplateResolutionError extends Error {
-  readonly code: TemplateErrorCode
-  constructor(code: TemplateErrorCode, message: string) {
-    super(message)
-    this.name = 'TemplateResolutionError'
-    this.code = code
-  }
-}
 
 export function parseTemplateDefinition(input: unknown): TemplateDefinition {
   try {
@@ -100,10 +87,4 @@ export function parseTemplateDefinition(input: unknown): TemplateDefinition {
 
     throw new TemplateResolutionError('INVALID_DEFINITION', '模板定义无法解析')
   }
-}
-
-export function asTemplateError(error: unknown): TemplateResolutionError {
-  return error instanceof TemplateResolutionError
-    ? error
-    : new TemplateResolutionError('LOAD_FAILED', '模板资源加载失败，请重试')
 }

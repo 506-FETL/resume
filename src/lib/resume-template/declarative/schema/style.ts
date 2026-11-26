@@ -1,17 +1,7 @@
 import { z } from 'zod'
 import type { TemplateStyle } from '../types'
 
-export const templateIdSchema = z
-  .string()
-  .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/)
-  .max(80)
-
-export const templateRefSchema = z
-  .object({
-    templateId: templateIdSchema,
-    templateVersion: z.number().int().positive(),
-  })
-  .strict()
+export { templateIdSchema, templateRefSchema } from '../../identity'
 
 export const identifier = z
   .string()

@@ -52,14 +52,27 @@ export interface TemplateCatalogItem {
   examples: ExampleOption[]
 }
 
+export type TemplateCardSummary = Pick<
+  TemplateCatalogItem,
+  | 'templateId'
+  | 'name'
+  | 'description'
+  | 'currentVersion'
+  | 'category'
+  | 'defaultExample'
+> & {
+  defaultPreview: Pick<TemplatePreview, 'asset'>
+  cardPreview?: Pick<TemplatePreview, 'asset'>
+}
+
 export interface CatalogQuery {
   offset?: number
   style?: string | null
   layout?: string | null
 }
 
-export interface CatalogPage {
-  items: TemplateCatalogItem[]
+export interface CatalogPage<T = TemplateCatalogItem> {
+  items: T[]
   nextOffset: number | null
 }
 
@@ -98,6 +111,8 @@ export interface TemplateSource {
     options?: ResourceOptions,
   ) => Promise<ResumeExample>
 }
+
+export const CATALOG_TTL_MS = 5 * 60 * 1000
 
 export const CATALOG_PAGE_SIZE = 12
 

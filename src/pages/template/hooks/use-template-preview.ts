@@ -1,78 +1,116 @@
 import type { TemplatePreview } from '@/lib/resume-template/source/types'
-import { useEffect, useState } from 'react'
-import { getTemplatePreviewUrl } from '@/lib/resume-template/source'
+import { useEffect, useMemo, useState } from 'react'
+import { getTemplatePreviewUrl } from '@/lib/resume-template/source/preview-url'
+
+const decoded = new Map<string, string>()
+const pending = new Map<string, Promise<string>>()
+
+function decodePreview(
+  key: string,
+  url: string,
+  width: number,
+  height: number,
+) {
+  const requestKey = `${key}:${url}`
+  const existing = pending.get(requestKey)
+
+  if (existing) return existing
+
+  const image = new Image()
+
+  image.decoding = 'async'
+  image.src = url
+
+  const request = image
+    .decode()
+    .then(() => {
+      if (image.naturalWidth !== width || image.naturalHeight !== height)
+        throw new Error('缩略图尺寸与发布记录不符')
+
+      // 仅保留不可变图片的校验结果，像素由浏览器管理。
+      if (decoded.size >= 128) decoded.delete(decoded.keys().next().value!)
+
+      decoded.set(key, url)
+
+      return url
+    })
+    .finally(() => pending.delete(requestKey))
+
+  pending.set(requestKey, request)
+
+  return request
+}
 
 export function useTemplatePreview(
-  preview: TemplatePreview | undefined,
+  preview: Pick<TemplatePreview, 'asset'> | undefined,
   enabled: boolean,
 ) {
   const asset = preview?.asset
 
+  const canonicalUrl = useMemo(
+    () => asset && getTemplatePreviewUrl(asset),
+    [asset],
+  )
+
+  const width = asset?.width
+  const height = asset?.height
+  const key = canonicalUrl && `${canonicalUrl}:${width}x${height}`
+
   const [retryTarget, setRetryTarget] = useState<{
-    url: string
+    key: string
     attempt: number
   } | null>(null)
 
-  const [result, setResult] = useState<{
-    url: string
-    status: 'ready' | 'error'
-  } | null>(null)
+  const [result, setResult] = useState<{ url: string; ok: boolean } | null>(
+    null,
+  )
 
-  const canonicalUrl = asset ? getTemplatePreviewUrl(asset) : undefined
-
-  const attempt =
-    retryTarget?.url === canonicalUrl ? (retryTarget?.attempt ?? 0) : 0
+  const attempt = retryTarget?.key === key ? retryTarget?.attempt : 0
 
   const url =
     canonicalUrl &&
     (attempt ? `${canonicalUrl}?retry=${attempt}` : canonicalUrl)
 
-  const width = asset?.width
-  const height = asset?.height
-  const current = result?.url === url ? result : null
+  const ready = key && decoded.get(key)
 
   useEffect(() => {
-    if (!url || !enabled) return
+    if (!enabled || !key || !url || !width || !height || ready) return
 
     let active = true
-    const image = new Image()
 
-    image.decoding = 'async'
-    image.src = url
-
-    image.decode().then(
+    decodePreview(key, url, width, height).then(
       () => {
-        if (active)
-          setResult({
-            url,
-            status:
-              image.naturalWidth === width && image.naturalHeight === height
-                ? 'ready'
-                : 'error',
-          })
+        if (active) setResult({ url, ok: true })
       },
       () => {
-        if (active) setResult({ url, status: 'error' })
+        if (active) setResult({ url, ok: false })
       },
     )
 
     return () => {
       active = false
-      image.removeAttribute('src')
     }
-  }, [url, enabled, width, height])
+  }, [enabled, key, url, width, height, ready])
 
-  // 浏览器按内容哈希 URL 共享请求与缓存，不再下载 Base64 或创建 Blob URL。
+  const current = result?.url === url ? result : null
+  const decodedUrl = ready || (current?.ok ? current.url : undefined)
+
   return {
     status: !asset
       ? 'missing'
-      : (current?.status ?? (enabled ? 'loading' : 'idle')),
-    url: current?.status === 'ready' ? current.url : undefined,
+      : !enabled
+        ? 'idle'
+        : decodedUrl
+          ? 'ready'
+          : current
+            ? 'error'
+            : 'loading',
+    url: enabled ? decodedUrl : undefined,
     retry: () => {
-      if (canonicalUrl)
+      if (key)
         setRetryTarget((previous) => ({
-          url: canonicalUrl,
-          attempt: previous?.url === canonicalUrl ? previous.attempt + 1 : 1,
+          key,
+          attempt: previous?.key === key ? previous.attempt + 1 : 1,
         }))
     },
   }

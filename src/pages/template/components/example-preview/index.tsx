@@ -1,9 +1,16 @@
+import CachedPreview from '../cached-preview'
+import {
+  keepPreviewPaper,
+  readPreviewPaper,
+  previewViewport,
+} from '../../store/preview-paper'
+import { useTemplateImageStore } from '@/store/resume-template/images'
 import type { ResumeDocumentStateChange } from '@/components/resume/pagination/types'
 import type {
   ExampleRef,
-  TemplateCatalogItem,
+  TemplateCardSummary,
 } from '@/lib/resume-template/source/types'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { buildTemplateResumeData } from '@/components/resume/runtime/context/resume-data-context'
 import ScaledReadonlyPreview from '@/components/resume/scaled-readonly-preview'
 import TemplateResourceStatus from '@/components/resume/template-resource-status'
@@ -14,19 +21,51 @@ import { useTemplatePreview } from '../../hooks/use-template-preview'
 import { usePreviewReady } from '../../hooks/use-preview-ready'
 import { catalogTemplateRef } from '../../utils.ts'
 
+interface PreviewProps {
+  item: TemplateCardSummary
+  example: ExampleRef
+  preview?: TemplateCardSummary['defaultPreview']
+}
+
 export default function ExamplePreview({
   item,
   example,
-}: {
-  item: TemplateCatalogItem
-  example: ExampleRef
-}) {
+  preview,
+}: PreviewProps) {
+  const key = `${item.templateId}@${item.currentVersion}:${example.exampleId}@${example.version}`
+  const [paper, setPaper] = useState(() => readPreviewPaper(key))
+
+  useEffect(() => {
+    if (!paper) return
+
+    const resize = () => {
+      if (paper.viewport !== previewViewport()) setPaper(undefined)
+    }
+
+    window.addEventListener('resize', resize)
+
+    return () => window.removeEventListener('resize', resize)
+  }, [paper])
+
+  return paper?.key === key ? (
+    <CachedPreview paper={paper} />
+  ) : (
+    <LivePreview item={item} example={example} preview={preview} />
+  )
+}
+
+function LivePreview({ item, example, preview }: PreviewProps) {
   const previewRef = useRef<HTMLDivElement>(null)
   const ready = usePreviewReady(previewRef)
 
   return (
     <div ref={previewRef}>
-      <PreviewDocument item={item} example={example} renderDocument={ready} />
+      <PreviewDocument
+        item={item}
+        example={example}
+        preview={preview}
+        renderDocument={ready}
+      />
     </div>
   )
 }
@@ -35,9 +74,8 @@ function PreviewDocument({
   item,
   example,
   renderDocument,
-}: {
-  item: TemplateCatalogItem
-  example: ExampleRef
+  preview,
+}: PreviewProps & {
   renderDocument: boolean
 }) {
   const { resource, retry } = useTemplateExample(example)
@@ -54,23 +92,37 @@ function PreviewDocument({
     [resource, renderDocument],
   )
 
-  const preview = item.previews.find(
-    (candidate) =>
-      candidate.templateVersion === item.currentVersion &&
-      candidate.example.exampleId === example.exampleId &&
-      candidate.example.version === example.version,
-  )
-
   const thumbnail = useTemplatePreview(preview, true)
   const contentKey = `${item.templateId}@${item.currentVersion}:${example.exampleId}@${example.version}`
   const [revealedKey, setRevealedKey] = useState<string | null>(null)
 
+  const pagesRef = useRef<HTMLDivElement>(null)
+
+  const definition =
+    template.resource.status === 'ready' ? template.resource.data : undefined
+
   const onDocumentStateChange = useCallback<ResumeDocumentStateChange>(
     (state) => {
+      const pages = pagesRef.current
+
+      if (
+        state.status === 'ready' &&
+        pages?.offsetWidth &&
+        definition &&
+        template.assetUrls.size === definition.assets.length
+      ) {
+        const release = definition.assets.map((asset) =>
+          useTemplateImageStore.getState().retain(asset.sha256),
+        )
+
+        keepPreviewPaper(contentKey, pages, () =>
+          release.forEach((done) => done()),
+        )
+      }
       if (state.status === 'ready' || state.status === 'error')
         setRevealedKey(contentKey)
     },
-    [contentKey],
+    [contentKey, definition, template.assetUrls],
   )
 
   // 冷启动完整排版时复用已展示的首页；失败仍展示真实错误和重试入口。
@@ -134,6 +186,7 @@ function PreviewDocument({
         aria-hidden={showThumbnail || undefined}
       >
         <ScaledReadonlyPreview
+          documentRef={pagesRef}
           data={data}
           definition={template.resource.data}
           assetUrls={template.assetUrls}

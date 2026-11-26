@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type {
   ExampleRef,
   TemplateCatalogItem,
+  TemplateCardSummary,
 } from '@/lib/resume-template/source/types'
 import { useEffect, useId, useLayoutEffect, useRef } from 'react'
 import { LayoutGroup, motion, useAnimationControls } from 'motion/react'
@@ -10,20 +11,25 @@ import { PaperSkeleton } from '@/components/loading-skeleton'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION, EASE } from '@/lib/motion'
 import { exampleKey } from '@/lib/resume-template/source/types'
+import { Skeleton } from '@/components/ui/skeleton'
+import { publishedPreview, defaultCardPreview } from '../../utils'
 import { cn } from '@/lib/utils'
 import { useTemplatePreview } from '../../hooks/use-template-preview'
 import { useTemplatePageStore } from '../../store'
 import ExamplePicker from '../example-picker'
 import ExamplePreview from '../example-preview'
+import { PreviewBackground } from '../cached-preview'
 
 export default function PreviewWorkspace({
   item,
   example,
+  entry,
   mobile,
   disabled,
   children,
 }: {
-  item: TemplateCatalogItem
+  item: TemplateCardSummary
+  entry?: TemplateCatalogItem
   example: ExampleRef
   mobile: boolean
   disabled: boolean
@@ -38,13 +44,15 @@ export default function PreviewWorkspace({
     (state) => state.previewStep === 'details',
   )
 
-  const preview = item.previews.find(
-    (entry) =>
-      entry.templateVersion === item.currentVersion &&
-      exampleKey(entry.example) === exampleKey(example),
+  const selection = useTemplatePageStore(
+    (state) => state.selectedExamples[item.templateId],
   )
 
-  const thumbnail = useTemplatePreview(preview, true)
+  const preview =
+    defaultCardPreview(item, example) ??
+    (entry ? publishedPreview(entry, example, item) : selection?.preview)
+
+  const thumbnail = useTemplatePreview(preview, details)
 
   useLayoutEffect(() => {
     if (!details && detailsScrollRef.current)
@@ -111,7 +119,11 @@ export default function PreviewWorkspace({
                   ease: EASE.out,
                 }}
               >
-                <ExamplePreview item={item} example={example} />
+                <ExamplePreview
+                  item={item}
+                  example={example}
+                  preview={preview}
+                />
               </motion.div>
             </AnimatedContent>
           </motion.div>
@@ -128,11 +140,15 @@ export default function PreviewWorkspace({
                 )}
                 <p className='text-sm leading-6'>{item.description}</p>
               </div>
-              <ExamplePicker
-                item={item}
-                selectedExample={example}
-                disabled={disabled}
-              />
+              {entry ? (
+                <ExamplePicker
+                  item={entry}
+                  selectedExample={example}
+                  disabled={disabled}
+                />
+              ) : (
+                <Skeleton className='h-20 w-full' />
+              )}
               <p className='mt-auto border-t pt-4 text-xs leading-6 text-muted-foreground'>
                 创建后会带入所选示例，你可以在编辑器中逐项替换内容、调整模块并导出简历。
               </p>
@@ -194,7 +210,9 @@ export default function PreviewWorkspace({
                     <PaperSkeleton label='正在加载模板预览' />
                   ) : (
                     <div className='[&_[data-resume-page]]:rounded-none [&_[data-resume-page]]:shadow-none [&_[data-resume-page]]:ring-0'>
-                      <ExamplePreview item={item} example={example} />
+                      <PreviewBackground
+                        contentKey={`${item.templateId}@${item.currentVersion}:${exampleKey(example)}`}
+                      />
                     </div>
                   )}
                 </motion.div>

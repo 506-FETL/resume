@@ -1,5 +1,5 @@
 import type { CachedResource, TemplateResourceCache } from './cache'
-import { TemplateResolutionError } from '../definition-schema'
+import { TemplateResolutionError } from '../errors'
 import { MAX_CACHE_BYTES, resourceBytes } from './cache'
 
 const OFFLINE_CATALOG_MAX_AGE = 24 * 60 * 60 * 1000

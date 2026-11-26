@@ -16,6 +16,10 @@ import {
   isShareManagement,
   selectShareManagement,
 } from '@/lib/share-management-route'
+import {
+  isTemplateGallery,
+  selectTemplateGallery,
+} from '@/lib/template-gallery-route'
 import { isTrackerPage, selectTrackerPage } from '@/lib/tracker-route'
 import { WORKSPACE_PATH } from '@/lib/workspace-path'
 import {
@@ -40,7 +44,11 @@ const libraryRoute = isResumeLibrary(pathname)
 const assistantRoute = isAssistantPage(pathname)
 const trackerRoute = isTrackerPage(pathname)
 const loadWorkspaceApp = () => import('./workspace-app')
-const trackerApp = trackerRoute ? loadWorkspaceApp() : undefined
+const galleryRoute = isTemplateGallery(pathname)
+
+const earlyWorkspaceApp =
+  trackerRoute || galleryRoute ? loadWorkspaceApp() : undefined
+
 const shareRoute = isShareManagement(pathname)
 const archiveRoute = isExperienceArchive(pathname)
 const gatedLibrary = Boolean(new URLSearchParams(search).get('jobId'))
@@ -51,7 +59,8 @@ if (
     archiveRoute ||
     assistantRoute ||
     shareRoute ||
-    trackerRoute) &&
+    trackerRoute ||
+    galleryRoute) &&
   !hasAuthCallback
 ) {
   import('./components/auth-session/subscription')
@@ -61,6 +70,7 @@ if (
   if (shareRoute && !new URLSearchParams(search).has('jobId'))
     selectShareManagement(true)
   if (trackerRoute) selectTrackerPage(true)
+  if (galleryRoute) selectTemplateGallery(true)
   if (assistantRoute) selectAssistantPage(true)
   if (libraryRoute && !gatedLibrary) selectResumeLibrary(true)
   if (archiveRoute)
@@ -89,7 +99,8 @@ async function loadPage() {
     return <PublicHomepage />
   }
 
-  const { default: WorkspaceApp } = await (trackerApp ?? loadWorkspaceApp())
+  const { default: WorkspaceApp } = await (earlyWorkspaceApp ??
+    loadWorkspaceApp())
 
   document.title = 'GResume'
 

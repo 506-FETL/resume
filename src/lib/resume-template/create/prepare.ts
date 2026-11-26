@@ -4,6 +4,7 @@ import type {
   CreateTemplateResumeInput,
   CreationIdentity,
   PreparedResumeCreation,
+  PreviewedCreationResources,
 } from './types'
 import { isCloudResumeId } from '@/lib/resume-id'
 import { DEFAULT_ORDER, DEFAULT_VISIBILITY, resumeSchema } from '@/lib/schema'
@@ -16,16 +17,23 @@ export async function prepareTemplateResume(
   input: CreateTemplateResumeInput,
   source: TemplateSource,
   identity: CreationIdentity,
+  preview?: PreviewedCreationResources,
 ): Promise<PreparedResumeCreation> {
   if (!isCloudResumeId(identity.operationId))
     throw new Error('创建操作标识无效')
   if (input.mode === 'cloud' && !identity.ownerId)
     throw new Error('请先登录后创建云端简历')
 
-  const [definition, example] = await Promise.all([
-    resolveTemplate(source, toTemplateBinding(input.template)),
-    input.content ? Promise.resolve(null) : source.getExample(input.example),
-  ])
+  const binding = toTemplateBinding(input.template)
+
+  const [definition, example] = preview
+    ? [preview.definition, preview.example]
+    : await Promise.all([
+        resolveTemplate(source, binding),
+        input.content
+          ? Promise.resolve(null)
+          : source.getExample(input.example),
+      ])
 
   if (
     example &&
@@ -51,7 +59,9 @@ export async function prepareTemplateResume(
     description: input.description.trim(),
     snapshot: {
       ...cloneResumeWithFreshEntryIds(
-        resumeSchema.parse(input.content ?? example?.content),
+        preview && !input.content
+          ? preview.example.content
+          : resumeSchema.parse(input.content ?? example?.content),
         () => `${identity.operationId}:${entryIndex++}`,
       ),
       order: structuredClone(
@@ -63,7 +73,7 @@ export async function prepareTemplateResume(
           DEFAULT_VISIBILITY,
       ),
       type: 'default',
-      templateBinding: toTemplateBinding(input.template),
+      templateBinding: binding,
       ...structuredClone(definition.appearanceDefaults),
     },
   }

@@ -3,6 +3,7 @@ import { Field, FieldGroup, FieldLabel } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import type { Ref } from 'react'
+import { useTemplateCreationDraftStore } from '../../store/creation'
 
 export default function TemplateCreationForm({
   formId,
@@ -15,13 +16,18 @@ export default function TemplateCreationForm({
   creation: ReturnType<typeof useTemplateCreation>
   onCreate: () => void
 }) {
-  const { draft, patchDraft, loading, locked, ready } = creation
+  const { loading, locked, ready } = creation
+  const draft = useTemplateCreationDraftStore((state) => state.draft)
+  const patchDraft = useTemplateCreationDraftStore((state) => state.patch)
   const disabled = !ready || loading || locked
 
   return (
     <form
       id={formId}
       ref={formRef}
+      onFocus={() =>
+        import('../../store/submit-creation').catch(() => undefined)
+      }
       onSubmit={(event) => {
         event.preventDefault()
 
@@ -34,7 +40,7 @@ export default function TemplateCreationForm({
           <Input
             id={`${formId}-name`}
             name='displayName'
-            value={draft.displayName}
+            value={ready ? draft.displayName : ''}
             placeholder='示例简历'
             maxLength={50}
             disabled={disabled}
@@ -51,7 +57,7 @@ export default function TemplateCreationForm({
           <Textarea
             id={`${formId}-description`}
             name='description'
-            value={draft.description}
+            value={ready ? draft.description : ''}
             placeholder='例如：用于前端岗位投递'
             rows={4}
             maxLength={200}

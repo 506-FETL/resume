@@ -1,133 +1,173 @@
-import { createDeferredComponent } from '@/components/deferred-content'
-import { PaperSkeleton } from '@/components/loading-skeleton'
-import { Skeleton } from '@/components/ui/skeleton'
-import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
-import { ArrowLeft, ArrowRight, X } from 'lucide-react'
-import { useId, useLayoutEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { usePreviewDrawer } from '../../hooks/use-preview-drawer'
+import { X } from 'lucide-react'
+import { useIsMobile } from '@/hooks/use-mobile'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import AnimatedContent from '@/components/motion/animated-content'
+import PreviewPlaceholder from '../preview-placeholder'
+import { clearPreviewPaper } from '../../store/preview-paper'
+import { useTemplateGalleryCatalog } from '@/store/resume-template/gallery-catalog'
 import { Button } from '@/components/ui/button'
-import { Spinner } from '@/components/ui/spinner'
+import { createDeferredComponent } from '@/components/deferred-content'
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from '@/components/ui/dialog'
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-} from '@/components/ui/drawer'
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from '@/components/ui/select'
-import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION } from '@/lib/motion'
-import { exampleKey } from '@/lib/resume-template/source/types'
 import { cn } from '@/lib/utils'
-import { useResumeTemplateStore } from '@/store/resume-template'
-import { useTemplateCreation } from '../../hooks/use-template-creation'
-import { useTemplatePageStore } from '../../store.ts'
-import TemplateCreationForm from '../creation-form'
+import type {
+  TemplateCardSummary,
+  TemplateCatalogItem,
+} from '@/lib/resume-template/source/types'
+import { useTemplatePageStore } from '../../store'
+import { prefetchTemplatePreview } from '../../utils'
 
-const PreviewWorkspace = createDeferredComponent(
-  () => import('../preview-workspace'),
+const previewSkeleton = <PreviewPlaceholder />
+
+const Content = createDeferredComponent(
+  () => import('./content'),
   '模板预览',
-  <div className='flex min-h-0 flex-1 overflow-hidden'>
-    <div className='min-w-0 flex-1 overflow-hidden bg-muted/50 p-4 sm:p-7'>
-      <PaperSkeleton className='mx-auto max-w-2xl' />
-    </div>
-    <aside className='hidden w-80 shrink-0 flex-col gap-6 border-l p-6 md:flex'>
-      <div className='space-y-3'>
-        <Skeleton className='h-4 w-28' />
-        <Skeleton className='h-5 w-full' />
-        <Skeleton className='h-5 w-3/4' />
-      </div>
-      <Skeleton className='h-9 w-full' />
-    </aside>
-  </div>,
+  previewSkeleton,
   { wrapFallback: false },
 )
 
-function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
-  const {
-    previewOpen,
-    setPreviewOpen,
-    previewTrigger,
-    selectedExamples,
-    selectExample,
-    previewStep,
-    setPreviewStep,
-  } = useTemplatePageStore()
+type DetailResult =
+  | { target: TemplateCardSummary; item: TemplateCatalogItem }
+  | { target: TemplateCardSummary; error: string; changed?: boolean }
 
-  const creation = useTemplateCreation(item)
+export default function TemplatePreviewDialog() {
+  const target = useTemplatePageStore((state) => state.previewTarget)
+  const previewOpen = useTemplatePageStore((state) => state.previewOpen)
+  const { setPreviewOpen } = useTemplatePageStore.getState()
+  const previewTrigger = useTemplatePageStore((state) => state.previewTrigger)
 
-  const selectedExample =
-    creation.draft.operation?.example ??
-    selectedExamples[item.templateId] ??
-    item.defaultExample
+  const details = useTemplatePageStore(
+    (state) => state.previewStep === 'details',
+  )
 
-  const details = previewStep === 'details'
-  const formId = useId()
-  const [desktopForm, setDesktopForm] = useState<HTMLFormElement | null>(null)
-  const [mobileForm, setMobileForm] = useState<HTMLFormElement | null>(null)
-  const titleRef = useRef<HTMLHeadingElement>(null)
-  const mobileTitleRef = useRef<HTMLHeadingElement>(null)
-  const useTemplateRef = useRef<HTMLButtonElement>(null)
-  const mobileUseTemplateRef = useRef<HTMLButtonElement>(null)
-  const previousStepRef = useRef(previewStep)
+  const [result, setResult] = useState<DetailResult | null>(null)
+  const [attempt, setAttempt] = useState(0)
   const isMobile = useIsMobile()
+
+  const {
+    drawer,
+    failed: drawerFailed,
+    retry: retryDrawer,
+  } = usePreviewDrawer(isMobile)
+
   const reduceMotion = useReducedMotion()
+  const desktopTitleRef = useRef<HTMLHeadingElement>(null)
+  const mobileTitleRef = useRef<HTMLHeadingElement>(null)
+  const previousAttemptRef = useRef(attempt)
 
-  const transitionStyle = {
-    transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s`,
-  }
+  const cancelDrawerOpening = useCallback(() => {
+    setPreviewOpen(false)
 
-  useLayoutEffect(() => {
-    const changed = previousStepRef.current !== previewStep
+    if (previewTrigger?.isConnected)
+      previewTrigger.focus({ preventScroll: true })
+  }, [previewTrigger, setPreviewOpen])
 
-    previousStepRef.current = previewStep
+  useEffect(() => clearPreviewPaper, [])
 
-    if (!previewOpen || !changed) return
+  useEffect(() => {
+    if (!isMobile || !previewOpen || drawer) return
 
-    const title = isMobile ? mobileTitleRef.current : titleRef.current
+    Content.preload().catch(() => {})
 
-    const trigger = isMobile
-      ? mobileUseTemplateRef.current
-      : useTemplateRef.current
+    const cancel = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') cancelDrawerOpening()
+    }
 
-    if (details) title?.focus({ preventScroll: true })
-    else trigger?.focus({ preventScroll: true })
-  }, [details, previewOpen, previewStep, isMobile])
+    window.addEventListener('keydown', cancel)
 
-  function renderContent(mobile: boolean) {
-    const Header = mobile ? DrawerHeader : DialogHeader
-    const Title = mobile ? DrawerTitle : DialogTitle
-    const Description = mobile ? DrawerDescription : DialogDescription
-    const Footer = mobile ? DrawerFooter : DialogFooter
-    const currentFormId = `${formId}-${mobile ? 'mobile' : 'desktop'}`
-    const formReady = Boolean(mobile ? mobileForm : desktopForm)
+    return () => window.removeEventListener('keydown', cancel)
+  }, [drawer, isMobile, previewOpen, cancelDrawerOpening])
+
+  useEffect(() => {
+    if (!target || !previewOpen) return
+
+    let active = true
+    const force = previousAttemptRef.current !== attempt
+
+    previousAttemptRef.current = attempt
+
+    const example =
+      useTemplatePageStore.getState().selectedExamples[target.templateId]
+        ?.example ?? target.defaultExample
+
+    prefetchTemplatePreview(target, example).catch(() => {})
+
+    import('@/lib/resume-template/source')
+      .then(({ resumeTemplateSource }) =>
+        resumeTemplateSource.getTemplateCatalogEntry(target.templateId, {
+          force,
+        }),
+      )
+      .then((entry) => {
+        if (
+          !entry?.listed ||
+          entry.item.currentVersion !== target.currentVersion
+        ) {
+          if (active) {
+            const catalog = useTemplateGalleryCatalog.getState()
+
+            catalog.loadCatalog(catalog.catalogQuery, true)
+
+            setResult({
+              target,
+              changed: true,
+              error: '这套模板的发布信息已更新，请返回列表重新选择。',
+            })
+          }
+
+          return
+        }
+        if (active) setResult({ target, item: entry.item })
+      })
+      .catch((error: unknown) => {
+        if (active)
+          setResult({
+            target,
+            error:
+              error instanceof Error ? error.message : '暂时无法加载模板详情。',
+          })
+      })
+
+    return () => {
+      active = false
+    }
+  }, [target, previewOpen, attempt])
+
+  if (!target) return null
+
+  const current = result?.target === target ? result : null
+
+  function panel(mobile: boolean) {
+    const Header = mobile && drawer ? drawer.DrawerHeader : DialogHeader
+    const Title = mobile && drawer ? drawer.DrawerTitle : DialogTitle
+
+    const Description =
+      mobile && drawer ? drawer.DrawerDescription : DialogDescription
+
+    const titleRef = mobile ? mobileTitleRef : desktopTitleRef
 
     return (
       <>
         <Header className='relative shrink-0 gap-2 border-b px-5 py-5 pr-14 text-left! sm:px-6 sm:pr-14'>
           <Title
-            ref={mobile ? mobileTitleRef : titleRef}
+            ref={titleRef}
             tabIndex={-1}
             className='text-lg font-semibold outline-none'
           >
-            <AnimatedContent animationKey={previewStep} as='span'>
-              {details ? '填写简历信息' : item.name}
+            <AnimatedContent
+              animationKey={details ? 'details' : 'preview'}
+              as='span'
+            >
+              {details ? '填写简历信息' : target?.name}
             </AnimatedContent>
           </Title>
           <Description>
@@ -142,152 +182,95 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
               size='icon-sm'
               onClick={() => setPreviewOpen(false)}
               className='absolute top-4 right-4 motion-reduce:transform-none'
-              style={transitionStyle}
+              style={{
+                transitionDuration: reduceMotion ? '0s' : `${DURATION.base}s`,
+              }}
             >
               <X aria-hidden className='size-4' />
             </Button>
           )}
         </Header>
-        {mobile && !details && (
-          <div className='flex shrink-0 items-center justify-between gap-3 border-b px-5 py-3'>
-            <span className='text-xs text-muted-foreground'>示例内容</span>
-            <Select
-              value={selectedExample.exampleId}
-              onValueChange={(id) => {
-                const ref = item.examples.find(
-                  (example) => example.exampleId === id,
-                )
-
-                if (ref) selectExample(item.templateId, ref)
+        {current && 'error' in current && current.changed ? (
+          <div className='m-auto space-y-3 text-center'>
+            <p role='alert'>{current.error}</p>
+            <Button variant='outline' onClick={() => setPreviewOpen(false)}>
+              返回列表
+            </Button>
+          </div>
+        ) : (
+          target && (
+            <Content
+              key={target.templateId + '@' + target.currentVersion}
+              item={target}
+              entry={current && 'item' in current ? current.item : undefined}
+              mobile={mobile}
+              Footer={mobile && drawer ? drawer.DrawerFooter : DialogFooter}
+              titleRef={titleRef}
+            />
+          )
+        )}
+        {current && 'error' in current && !current.changed && (
+          <div className='flex items-center justify-center gap-3 border-t p-3'>
+            <p role='alert'>模板详情加载失败</p>
+            <Button
+              variant='outline'
+              size='sm'
+              onClick={() => {
+                setResult(null)
+                setAttempt((value) => value + 1)
               }}
-              disabled={creation.locked || !creation.ready}
             >
-              <SelectTrigger aria-label='示例内容' className='w-44'>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {item.examples.map((example) => (
-                  <SelectItem key={example.exampleId} value={example.exampleId}>
-                    {example.name}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              重试
+            </Button>
           </div>
         )}
-        <PreviewWorkspace
-          item={item}
-          example={selectedExample}
-          mobile={mobile}
-          disabled={creation.locked || !creation.ready}
-        >
-          <TemplateCreationForm
-            formId={currentFormId}
-            formRef={mobile ? setMobileForm : setDesktopForm}
-            creation={creation}
-            onCreate={() => creation.create(selectedExample)}
-          />
-        </PreviewWorkspace>
-        {creation.error && (
-          <p
-            role='alert'
-            className='shrink-0 px-5 pt-3 text-sm text-destructive'
-          >
-            {creation.error}
-          </p>
-        )}
-        {creation.draft.operation && !creation.loading && !creation.error && (
-          <p
-            role='status'
-            className='shrink-0 px-5 pt-3 text-xs text-muted-foreground'
-          >
-            这次创建还没有确认完成，重试会继续确认原来的简历。
-          </p>
-        )}
-        <Footer className='m-0 shrink-0 flex-row items-center border-t px-5 py-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:px-6'>
-          <p className='mr-auto hidden text-xs text-muted-foreground sm:block'>
-            {details
-              ? `${item.name} · ${creation.mode === 'cloud' ? '云端' : '本地'}`
-              : `当前示例：${
-                  item.examples.find(
-                    (example) =>
-                      exampleKey(example) === exampleKey(selectedExample),
-                  )?.name ?? selectedExample.exampleId
-                }`}
-          </p>
-          <Button
-            variant='outline'
-            className='h-10 motion-reduce:transform-none'
-            style={transitionStyle}
-            onClick={() =>
-              details ? setPreviewStep('preview') : setPreviewOpen(false)
-            }
-          >
-            {details && <ArrowLeft aria-hidden className='size-4' />}
-            {details ? '返回预览' : '返回列表'}
-          </Button>
-          <Button
-            ref={mobile ? mobileUseTemplateRef : useTemplateRef}
-            type={details ? 'submit' : 'button'}
-            form={details ? currentFormId : undefined}
-            className='h-10 flex-1 px-4 motion-reduce:transform-none sm:flex-none'
-            style={transitionStyle}
-            disabled={
-              !formReady ||
-              !creation.ready ||
-              creation.loading ||
-              !creation.isExampleReady(selectedExample)
-            }
-            onClick={
-              details
-                ? undefined
-                : (event) => {
-                    // 切步后该按钮会变成 submit，不能让本次点击继续提交新表单。
-                    event.preventDefault()
-                    setPreviewStep('details')
-                  }
-            }
-          >
-            {details
-              ? creation.draft.operation && !creation.loading
-                ? '确认创建结果'
-                : '创建简历'
-              : '使用此模板'}
-            {creation.loading ? (
-              <Spinner aria-label='正在创建简历' />
-            ) : (
-              !details && <ArrowRight aria-hidden className='size-4' />
-            )}
-          </Button>
-        </Footer>
       </>
     )
   }
 
-  // 两个 Root 都保持挂载，跨越移动端断点时也从关闭状态进入各自的动画。
+  // 抽屉首次只在窄屏准备；加载后保留 Root，跨断点时仍有退出动画。
   return (
     <>
-      <Drawer
-        open={isMobile && previewOpen}
-        onOpenChange={setPreviewOpen}
-        showSwipeHandle
-      >
-        <DrawerContent
-          className={cn(
-            'overflow-clip rounded-t-2xl rounded-b-none duration-(--ui-motion-slow) [--drawer-inset:0px] data-[swipe-axis=y]:[--drawer-content-height:92dvh] data-[swipe-axis=y]:[--drawer-content-max-height:92dvh] data-ending-style:duration-(--ui-motion-fast)',
-            reduceMotion && 'transition-none!',
-          )}
-          overlayClassName={cn(
-            'duration-(--ui-motion-slow) data-ending-style:duration-(--ui-motion-fast)',
-            reduceMotion && 'transition-none!',
-          )}
-          finalFocus={() =>
-            isMobile && previewTrigger?.isConnected ? previewTrigger : false
-          }
+      {drawer ? (
+        <drawer.Drawer
+          open={isMobile && previewOpen}
+          onOpenChange={setPreviewOpen}
+          showSwipeHandle
         >
-          {renderContent(true)}
-        </DrawerContent>
-      </Drawer>
+          <drawer.DrawerContent
+            className={cn(
+              'overflow-clip rounded-t-2xl rounded-b-none duration-(--ui-motion-slow) [--drawer-inset:0px] data-[swipe-axis=y]:[--drawer-content-height:92dvh] data-[swipe-axis=y]:[--drawer-content-max-height:92dvh] data-ending-style:duration-(--ui-motion-fast)',
+              reduceMotion && 'transition-none!',
+            )}
+            overlayClassName={cn(
+              'duration-(--ui-motion-slow) data-ending-style:duration-(--ui-motion-fast)',
+              reduceMotion && 'transition-none!',
+            )}
+            finalFocus={() =>
+              isMobile && previewTrigger?.isConnected ? previewTrigger : false
+            }
+          >
+            {panel(true)}
+          </drawer.DrawerContent>
+        </drawer.Drawer>
+      ) : (
+        isMobile &&
+        previewOpen && (
+          <div className='fixed inset-x-4 bottom-4 z-50 flex items-center justify-center gap-3 rounded-lg border bg-popover p-3 shadow-md'>
+            <span role={drawerFailed ? 'alert' : 'status'}>
+              {drawerFailed ? '暂时无法打开模板预览' : '正在打开模板预览…'}
+            </span>
+            {drawerFailed && (
+              <Button size='sm' variant='outline' onClick={retryDrawer}>
+                重试
+              </Button>
+            )}
+            <Button size='sm' variant='ghost' onClick={cancelDrawerOpening}>
+              取消
+            </Button>
+          </div>
+        )
+      )}
       <Dialog open={!isMobile && previewOpen} onOpenChange={setPreviewOpen}>
         <DialogContent
           className='flex h-[90dvh] flex-col gap-0 overflow-hidden p-0 sm:max-w-6xl'
@@ -304,26 +287,9 @@ function PreviewDialog({ item }: { item: TemplateCatalogItem }) {
             }
           }}
         >
-          {renderContent(false)}
+          {panel(false)}
         </DialogContent>
       </Dialog>
     </>
   )
-}
-
-export default function TemplatePreviewDialog() {
-  const catalog = useResumeTemplateStore((state) => state.catalog)
-
-  const selectedTemplateId = useTemplatePageStore(
-    (state) => state.selectedTemplateId,
-  )
-
-  // 预览状态独立订阅，打开与切换示例不触发背景目录的布局测量。
-  const item =
-    catalog.status === 'ready'
-      ? (catalog.data.find((item) => item.templateId === selectedTemplateId) ??
-        catalog.data[0])
-      : undefined
-
-  return item ? <PreviewDialog item={item} /> : null
 }

@@ -9,30 +9,30 @@ import { prefetchTemplatePreview } from '../utils'
 
 /** 划过卡片不会下载详情；点击仍立即启动必要数据加载。 */
 export function useTemplatePrefetch(
-  item: TemplateCatalogItem,
+  item: Pick<TemplateCatalogItem, 'templateId' | 'currentVersion'>,
   example: ExampleRef,
   disabled = false,
 ) {
-  const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const cancel = useCallback(() => {
-    if (timer.current !== null) {
-      clearTimeout(timer.current)
-      timer.current = null
+    if (timerRef.current !== null) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
     }
   }, [])
 
   const prefetch = useCallback(() => {
     cancel()
 
-    if (!disabled) prefetchTemplatePreview(item, example)
+    if (!disabled) prefetchTemplatePreview(item, example).catch(() => {})
   }, [cancel, disabled, item, example])
 
   const schedule = useCallback(() => {
     cancel()
 
     if (!disabled)
-      timer.current = setTimeout(prefetch, TEMPLATE_PREFETCH_DELAY_MS)
+      timerRef.current = setTimeout(prefetch, TEMPLATE_PREFETCH_DELAY_MS)
   }, [cancel, disabled, prefetch])
 
   useEffect(() => cancel, [cancel, prefetch])

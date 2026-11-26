@@ -2,6 +2,7 @@ import { ScanSearch } from 'lucide-react'
 import { AnimatePresence } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useDelayedBusy } from '@/hooks/use-delayed-busy'
+import { selectTemplateGallery } from '@/lib/template-gallery-route'
 import { useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useShallow } from 'zustand/react/shallow'
@@ -11,7 +12,7 @@ import TemplateResourceStatus from '@/components/resume/template-resource-status
 import { Button } from '@/components/ui/button'
 import { DURATION, EASE, SPRING, staggerDelay } from '@/lib/motion'
 import { CATALOG_PAGE_SIZE } from '@/lib/resume-template/source/types'
-import { useResumeTemplateStore } from '@/store/resume-template'
+import { useTemplateGalleryCatalog } from '@/store/resume-template/gallery-catalog'
 import CatalogFooter from './components/catalog-footer'
 import CatalogSkeleton from './components/catalog-skeleton'
 import PreviewDialog from './components/preview-dialog'
@@ -21,7 +22,7 @@ import { useTemplatePageStore } from './store.ts'
 import { Badge } from '@/components/ui/badge.tsx'
 
 export default function Template() {
-  const catalog = useResumeTemplateStore((state) => state.catalog)
+  const catalog = useTemplateGalleryCatalog((state) => state.catalog)
 
   const { styleFilter, layoutFilter, resetFilters } = useTemplatePageStore(
     useShallow((state) => ({
@@ -33,29 +34,24 @@ export default function Template() {
 
   const items = catalog.status === 'ready' ? catalog.data : []
 
-  const { nextOffset, loadFacets, refreshingCatalog, catalogRefreshError } =
-    useResumeTemplateStore(
+  const { nextOffset, refreshingCatalog, catalogRefreshError } =
+    useTemplateGalleryCatalog(
       useShallow((state) => ({
         nextOffset: state.nextOffset,
         refreshingCatalog: state.refreshingCatalog,
         catalogRefreshError: state.catalogRefreshError,
-        loadFacets: state.loadFacets,
       })),
     )
 
   const showRefreshing = useDelayedBusy(refreshingCatalog)
 
-  const load = useResumeTemplateStore((state) => state.loadCatalog)
+  const load = useTemplateGalleryCatalog((state) => state.loadCatalog)
   const reduceMotion = useReducedMotion()
   const [params, setParams] = useSearchParams()
 
   useEffect(() => {
-    load({ style: styleFilter, layout: layoutFilter })
-  }, [load, styleFilter, layoutFilter])
-
-  useEffect(() => {
-    loadFacets()
-  }, [loadFacets])
+    selectTemplateGallery(true)
+  }, [])
 
   useEffect(() => {
     if (params.size) {
@@ -108,13 +104,17 @@ export default function Template() {
                     </div>
                   )}
                 </div>
-                <div className='grid grid-cols-[repeat(auto-fill,minmax(min(100%,15.5rem),1fr))] gap-5'>
+                <div
+                  data-template-gallery-grid
+                  className='grid grid-cols-[repeat(auto-fill,minmax(min(100%,15.5rem),1fr))] gap-5'
+                >
                   <AnimatePresence initial={false} mode='popLayout'>
                     {items.map((item, index) => (
                       <PresenceDiv
                         key={item.templateId}
                         className='min-w-0'
                         layout={reduceMotion ? false : 'position'}
+                        layoutDependency={index}
                         initial={{
                           opacity: reduceMotion ? 1 : 0,
                           y: reduceMotion ? 0 : 8,

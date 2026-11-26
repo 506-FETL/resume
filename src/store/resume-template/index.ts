@@ -1,23 +1,20 @@
+import type { CatalogState } from './catalog'
 import type {
   TemplateDefinition,
   TemplateRef,
   TemplateResolutionError,
 } from '@/lib/resume-template/definition-schema'
 import type {
-  CatalogFacets,
-  CatalogQuery,
   ExampleRef,
   ResumeExample,
   TemplateCatalogItem,
   TemplateSource,
 } from '@/lib/resume-template/source/types'
 import { create } from 'zustand'
-import { toTemplateBinding } from '@/lib/resume-template/binding'
 import {
   asTemplateError,
   TemplateResolutionError as ResourceError,
-} from '@/lib/resume-template/definition-schema'
-import { resolveTemplate } from '@/lib/resume-template/runtime/resolve-template'
+} from '@/lib/resume-template/errors'
 import { resumeTemplateSource } from '@/lib/resume-template/source'
 import {
   MAX_CACHE_BYTES,
@@ -35,20 +32,9 @@ export type ResourceState<T> =
 
 export const IDLE_RESOURCE = { status: 'idle' } as const
 
-export interface TemplateResources {
-  catalog: ResourceState<TemplateCatalogItem[]>
-  catalogQuery: CatalogQuery
-  nextOffset: number | null
-  refreshingCatalog: boolean
-  catalogRefreshError: string | null
-  loadingMore: boolean
-  loadMoreError: string | null
-  facets: ResourceState<CatalogFacets>
+export interface TemplateResources extends CatalogState<TemplateCatalogItem> {
   definitions: Record<string, ResourceState<TemplateDefinition>>
   examples: Record<string, ResourceState<ResumeExample>>
-  loadCatalog: (query?: CatalogQuery, force?: boolean) => Promise<void>
-  loadMore: () => Promise<void>
-  loadFacets: (force?: boolean) => Promise<void>
   retainDefinition: (ref: TemplateRef) => () => void
   retainExample: (ref: ExampleRef) => () => void
   loadDefinition: (ref: TemplateRef, force?: boolean) => Promise<void>
@@ -177,7 +163,7 @@ export function createTemplateResourceStore(source: TemplateSource) {
         return load(
           `definition:${key}`,
           get().definitions[key],
-          () => resolveTemplate(source, toTemplateBinding(ref), { force }),
+          () => source.getTemplateVersion(ref, { force }),
           (value) =>
             set((state) => ({
               definitions: update(state.definitions, key, value, 'definition'),

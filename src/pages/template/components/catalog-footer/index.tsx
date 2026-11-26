@@ -4,7 +4,7 @@ import { useShallow } from 'zustand/react/shallow'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { useResumeTemplateStore } from '@/store/resume-template'
+import { useTemplateGalleryCatalog } from '@/store/resume-template/gallery-catalog'
 import {
   TEMPLATE_LOAD_MORE_DISTANCE,
   TEMPLATE_LOAD_MORE_ROOT_MARGIN,
@@ -21,7 +21,7 @@ export default function CatalogFooter() {
     loadingMore,
     loadMoreError,
     loadMore,
-  } = useResumeTemplateStore(
+  } = useTemplateGalleryCatalog(
     useShallow((state) => ({
       catalog: state.catalog,
       catalogQuery: state.catalogQuery,

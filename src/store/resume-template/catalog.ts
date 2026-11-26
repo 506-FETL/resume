@@ -1,49 +1,59 @@
-import type { StoreApi } from 'zustand'
-import type { TemplateResources } from './index'
 import type {
   CatalogPage,
   CatalogQuery,
-  TemplateSource,
+  CatalogFacets,
+  ResourceOptions,
+  TemplateCatalogItem,
 } from '@/lib/resume-template/source/types'
+import type { ResourceState } from './index'
 import { cachedResourceBytes } from './resource-bytes'
-import { asTemplateError } from '@/lib/resume-template/definition-schema'
+import { asTemplateError } from '@/lib/resume-template/errors'
 import {
   MAX_CACHE_BYTES,
   resourceBytes,
 } from '@/lib/resume-template/source/cache'
-import { CATALOG_TTL_MS } from '@/lib/resume-template/source/remote'
 import {
   CATALOG_PAGE_SIZE,
+  CATALOG_TTL_MS,
   catalogQueryKey,
 } from '@/lib/resume-template/source/types'
 
-type CatalogState = Pick<
-  TemplateResources,
-  | 'catalog'
-  | 'catalogQuery'
-  | 'nextOffset'
-  | 'refreshingCatalog'
-  | 'catalogRefreshError'
-  | 'loadingMore'
-  | 'loadMoreError'
-  | 'facets'
-  | 'loadCatalog'
-  | 'loadMore'
-  | 'loadFacets'
->
+type CatalogIdentity = Pick<TemplateCatalogItem, 'templateId' | 'category'>
 
-export function createCatalogActions(
-  source: TemplateSource,
-  set: StoreApi<TemplateResources>['setState'],
-  get: StoreApi<TemplateResources>['getState'],
-): CatalogState {
+export interface CatalogState<T extends CatalogIdentity> {
+  catalog: ResourceState<T[]>
+  catalogQuery: CatalogQuery
+  nextOffset: number | null
+  refreshingCatalog: boolean
+  catalogRefreshError: string | null
+  loadingMore: boolean
+  loadMoreError: string | null
+  facets: ResourceState<CatalogFacets>
+  loadCatalog: (query?: CatalogQuery, force?: boolean) => Promise<void>
+  loadMore: () => Promise<void>
+  loadFacets: (force?: boolean) => Promise<void>
+}
+
+interface CatalogSource<T extends CatalogIdentity> {
+  listTemplatePage: (
+    query?: CatalogQuery,
+    options?: ResourceOptions,
+  ) => Promise<CatalogPage<T>>
+  getCatalogFacets: (options?: ResourceOptions) => Promise<CatalogFacets>
+}
+
+export function createCatalogActions<T extends CatalogIdentity>(
+  source: CatalogSource<T>,
+  set: (state: Partial<CatalogState<T>>) => void,
+  get: () => CatalogState<T>,
+): CatalogState<T> {
   // 缓存每个筛选已加载的页；返回筛选时保留图片、数量和分页位置。
   const snapshots = new Map<
     string,
-    CatalogPage & { savedAt: number; byteLength: number }
+    CatalogPage<T> & { savedAt: number; byteLength: number }
   >()
 
-  function remember(key: string, page: CatalogPage, savedAt = Date.now()) {
+  function remember(key: string, page: CatalogPage<T>, savedAt = Date.now()) {
     const { items, nextOffset } = page
     // 空数组已含括号；目录追加或本地筛选时只需计算新增条目的 UTF-8 大小。
     let byteLength = resourceBytes({ items: [], nextOffset, savedAt })
@@ -135,14 +145,26 @@ export function createCatalogActions(
       )
         return catalogPending.promise
 
-      const id = ++revision
+      if (force) snapshots.delete(key)
 
-      catalogPending = undefined
-
-      if (force) snapshots.clear()
+      const current = get()
+      const sameQuery = catalogQueryKey(current.catalogQuery) === key
 
       const snapshot = !force && cached(key)
       const hit = snapshot || (!force && localPage(normalized))
+
+      if (
+        snapshot &&
+        sameQuery &&
+        current.catalog.status === 'ready' &&
+        current.catalog.data === snapshot.items &&
+        !current.catalogRefreshError
+      )
+        return Promise.resolve()
+
+      const id = ++revision
+
+      catalogPending = undefined
 
       if (hit) {
         if (!snapshot) remember(key, hit, hit.savedAt)
@@ -160,7 +182,7 @@ export function createCatalogActions(
         return Promise.resolve()
       }
 
-      const previous = get().catalog
+      const previous = current.catalog
 
       set({
         catalogQuery: normalized,
@@ -227,6 +249,8 @@ export function createCatalogActions(
         return
 
       const id = revision
+      const key = catalogQueryKey(state.catalogQuery)
+      const startingPage = snapshots.get(key)
 
       set({ loadingMore: true, loadMoreError: null })
 
@@ -234,27 +258,32 @@ export function createCatalogActions(
         const query = { ...state.catalogQuery, offset: state.nextOffset }
         const page = localPage(query) ?? (await source.listTemplatePage(query))
 
-        if (id === revision) {
-          const items = new Map(
-            state.catalog.data.map((item) => [item.templateId, item]),
-          )
+        // 切走时仍保留成功追加的页；主动刷新或淘汰了这份旧列表后才丢弃结果。
+        if (
+          id !== revision &&
+          (!startingPage || snapshots.get(key) !== startingPage)
+        )
+          return
 
-          page.items.forEach((item) => items.set(item.templateId, item))
+        const items = new Map(
+          state.catalog.data.map((item) => [item.templateId, item]),
+        )
 
-          const data = [...items.values()]
-          const key = catalogQueryKey(state.catalogQuery)
+        page.items.forEach((item) => items.set(item.templateId, item))
 
-          remember(
-            key,
-            { items: data, nextOffset: page.nextOffset },
-            snapshots.get(key)?.savedAt,
-          )
+        const data = [...items.values()]
 
+        remember(
+          key,
+          { items: data, nextOffset: page.nextOffset },
+          startingPage?.savedAt,
+        )
+
+        if (catalogQueryKey(get().catalogQuery) === key)
           set({
             catalog: { status: 'ready', data },
             nextOffset: page.nextOffset,
           })
-        }
       } catch (error) {
         if (id === revision)
           set({ loadMoreError: asTemplateError(error).message })

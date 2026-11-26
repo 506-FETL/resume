@@ -32,6 +32,7 @@ const emptyDraft = (): TemplateCreationDraft => ({
 let saveQueue = Promise.resolve()
 let generation = 0
 let revision = 0
+let persistedOperation: CreateTemplateResumeInput | undefined
 
 export const useTemplateCreationDraftStore = create<TemplateCreationState>(
   (set, get) => ({
@@ -40,9 +41,11 @@ export const useTemplateCreationDraftStore = create<TemplateCreationState>(
     draft: emptyDraft(),
     saveError: null,
     load: async (key) => {
-      const request = ++generation
+      const current = get()
 
-      if (get().key === key && get().ready) return
+      if (current.key === key && (current.ready || !current.saveError)) return
+
+      const request = ++generation
 
       set({ key, ready: false, draft: emptyDraft(), saveError: null })
 
@@ -51,8 +54,10 @@ export const useTemplateCreationDraftStore = create<TemplateCreationState>(
 
         const draft = await loadTemplateCreationDraft(key)
 
-        if (request === generation)
+        if (request === generation) {
+          persistedOperation = draft?.operation
           set({ draft: draft ?? emptyDraft(), ready: true })
+        }
       } catch {
         if (request === generation)
           set({ saveError: '无法读取本设备的简历信息，请重新打开后重试。' })
@@ -68,8 +73,17 @@ export const useTemplateCreationDraftStore = create<TemplateCreationState>(
         .catch(() => undefined)
     },
     setOperation: async (operation) => {
+      // 关闭后立刻重开时，内存里的操作可能还在写盘。只复用已持久化的身份。
+      if (
+        operation &&
+        operation === persistedOperation &&
+        operation === get().draft.operation
+      )
+        return
+
       set({ draft: { ...get().draft, operation } })
       await get().persist()
+      persistedOperation = operation
     },
     persist: () => {
       const { key, draft } = get()
@@ -108,7 +122,10 @@ export const useTemplateCreationDraftStore = create<TemplateCreationState>(
       saveQueue = pending.catch(() => undefined)
       await pending
 
-      if (generation === request) set({ draft: emptyDraft(), saveError: null })
+      if (generation === request) {
+        persistedOperation = undefined
+        set({ draft: emptyDraft(), saveError: null })
+      }
     },
   }),
 )

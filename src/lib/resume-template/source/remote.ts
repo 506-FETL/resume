@@ -2,44 +2,39 @@ import type { TemplateResourceCache } from './cache'
 import type { TemplateTransport } from './transport'
 import type { CatalogQuery, ResourceOptions, TemplateSource } from './types'
 import { z } from 'zod'
-import {
-  parseTemplateDefinition,
-  templateIdSchema,
-  templateRefSchema,
-  TemplateResolutionError,
-} from '../definition-schema'
+import { templateIdSchema, templateRefSchema } from '../identity'
+import { TemplateResolutionError } from '../errors'
+import { resourceEnvelopeSchema, decodeResource } from './resource-envelope'
 import { assetEnvelopeSchema, decodeAsset } from './assets'
 import { createResourceLoader } from './resource-loader'
 import {
   assetRefSchema,
   catalogFacetsSchema,
-  catalogItemSchema,
-  catalogPageSchema,
   catalogQuerySchema,
-  decodeResource,
   exampleRefSchema,
-  exampleSchema,
-  resourceEnvelopeSchema,
-} from './resource-schema'
+} from './catalog-schema'
 import {
   CATALOG_PAGE_SIZE,
+  CATALOG_TTL_MS,
   catalogQueryKey,
   exampleKey,
   templateKey,
 } from './types'
 
-export const CATALOG_TTL_MS = 5 * 60 * 1000
+export { CATALOG_TTL_MS } from './types'
 
 export function createRemoteTemplateSource({
   transport,
   cache,
   now = Date.now,
+  loader = createResourceLoader({ cache, now }),
 }: {
   transport: TemplateTransport
   cache: TemplateResourceCache
   now?: () => number
+  loader?: ReturnType<typeof createResourceLoader>
 }): TemplateSource {
-  const { read, retainResource } = createResourceLoader({ cache, now })
+  const { read, retainResource } = loader
 
   const envelope = async (path: string, params: Record<string, string>) => {
     const rows = z
@@ -79,10 +74,15 @@ export function createRemoteTemplateSource({
         if (normalized.style) params.style = `eq.${normalized.style}`
         if (normalized.layout) params.layout = `eq.${normalized.layout}`
 
+        const [{ catalogItemSchema }, response] = await Promise.all([
+          import('./resource-schema'),
+          transport('official_resume_template_catalog', params),
+        ])
+
         const rows = z
           .array(z.object({ metadata: catalogItemSchema }))
           .max(CATALOG_PAGE_SIZE + 1)
-          .parse(await transport('official_resume_template_catalog', params))
+          .parse(response)
 
         return {
           items: rows.slice(0, CATALOG_PAGE_SIZE).map((row) => row.metadata),
@@ -92,7 +92,8 @@ export function createRemoteTemplateSource({
               : null,
         }
       },
-      (input) => catalogPageSchema.parse(input),
+      async (input) =>
+        (await import('./resource-schema')).catalogPageSchema.parse(input),
       CATALOG_TTL_MS,
       options.force,
     )
@@ -102,32 +103,38 @@ export function createRemoteTemplateSource({
     getTemplateCatalogEntry(templateId, options) {
       const id = templateIdSchema.parse(templateId)
 
-      const entrySchema = z
-        .object({ item: catalogItemSchema, listed: z.boolean() })
-        .nullable()
-
       return read(
         `catalog-entry:${id}`,
         async () => {
           // 当前简历的精确版本可继续使用，即使它已经从候选目录下架。
+          const [{ catalogItemSchema }, response] = await Promise.all([
+            import('./resource-schema'),
+            transport('official_resume_template_catalog', {
+              select: 'metadata,listed',
+              template_id: `eq.${id}`,
+              limit: '1',
+            }),
+          ])
+
           const rows = z
             .array(
               z.object({ metadata: catalogItemSchema, listed: z.boolean() }),
             )
             .max(1)
-            .parse(
-              await transport('official_resume_template_catalog', {
-                select: 'metadata,listed',
-                template_id: `eq.${id}`,
-                limit: '1',
-              }),
-            )
+            .parse(response)
 
           return rows[0]
             ? { item: rows[0].metadata, listed: rows[0].listed }
             : null
         },
-        (input) => entrySchema.parse(input),
+        async (input) => {
+          const { catalogItemSchema } = await import('./resource-schema')
+
+          return z
+            .object({ item: catalogItemSchema, listed: z.boolean() })
+            .nullable()
+            .parse(input)
+        },
         CATALOG_TTL_MS,
         options?.force,
       )
@@ -229,9 +236,12 @@ export function createRemoteTemplateSource({
             version: `eq.${parsed.templateVersion}`,
           }),
         async (input) => {
-          const definition = parseTemplateDefinition(
-            await decodeResource(input),
-          )
+          const [{ parseTemplateDefinition }, content] = await Promise.all([
+            import('../definition-schema'),
+            decodeResource(input),
+          ])
+
+          const definition = parseTemplateDefinition(content)
 
           if (
             definition.templateId !== parsed.templateId ||
@@ -262,7 +272,12 @@ export function createRemoteTemplateSource({
             version: `eq.${parsed.version}`,
           }),
         async (input) => {
-          const example = exampleSchema.parse(await decodeResource(input))
+          const [{ exampleSchema }, content] = await Promise.all([
+            import('./resource-schema'),
+            decodeResource(input),
+          ])
+
+          const example = exampleSchema.parse(content)
 
           if (
             example.exampleId !== parsed.exampleId ||

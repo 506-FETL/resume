@@ -1,4 +1,5 @@
-import type { TemplateCatalogItem } from '@/lib/resume-template/source/types'
+import { memo } from 'react'
+import type { TemplateCardSummary } from '@/lib/resume-template/source/types'
 import { ArrowRight } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION } from '@/lib/motion'
@@ -6,12 +7,21 @@ import { useTemplatePrefetch } from '../../hooks/use-template-prefetch'
 import { useTemplatePageStore } from '../../store.ts'
 import CardPreview from '../card-preview'
 
-export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
+function TemplateCard({ item }: { item: TemplateCardSummary }) {
   const showPreview = useTemplatePageStore((state) => state.showPreview)
 
-  const selectedExample =
-    useTemplatePageStore((state) => state.selectedExamples[item.templateId]) ??
-    item.defaultExample
+  const selection = useTemplatePageStore(
+    (state) => state.selectedExamples[item.templateId],
+  )
+
+  const current =
+    selection?.templateVersion === item.currentVersion ? selection : undefined
+
+  const selectedExample = current?.example ?? item.defaultExample
+
+  const preview = current
+    ? current.preview
+    : (item.cardPreview ?? item.defaultPreview)
 
   const prefetchEvents = useTemplatePrefetch(item, selectedExample)
   const category = item.category
@@ -27,7 +37,7 @@ export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
       style={transitionStyle}
     >
       <div className='relative aspect-[210/297] overflow-hidden rounded-lg border border-border/60 bg-muted/20'>
-        <CardPreview item={item} example={selectedExample} />
+        <CardPreview item={item} example={selectedExample} preview={preview} />
         <div
           aria-hidden
           className='pointer-events-none absolute inset-x-0 bottom-0 translate-y-2 bg-background/95 p-4 opacity-0 backdrop-blur-sm transition-[opacity,translate] duration-(--ui-motion-fast) ease-(--ui-motion-exit-ease) group-hover:translate-y-0 group-hover:opacity-100 group-hover:duration-(--ui-motion-base) group-hover:ease-(--ui-motion-enter-ease) group-focus-within:translate-y-0 group-focus-within:opacity-100 group-focus-within:duration-(--ui-motion-base) group-focus-within:ease-(--ui-motion-enter-ease) motion-reduce:translate-none'
@@ -56,10 +66,12 @@ export default function TemplateCard({ item }: { item: TemplateCatalogItem }) {
         data-template-preview-trigger={item.templateId}
         {...prefetchEvents}
         onClick={(event) =>
-          showPreview(item.templateId, selectedExample, event.currentTarget)
+          showPreview(item, selectedExample, event.currentTarget)
         }
         className='absolute inset-0 cursor-pointer rounded-[inherit] outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-ring'
       />
     </article>
   )
 }
+
+export default memo(TemplateCard)

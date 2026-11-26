@@ -49,7 +49,7 @@ function ExampleChoice({
         name={name}
         value={exampleKey(example)}
         checked={selected}
-        onChange={() => selectExample(item.templateId, example)}
+        onChange={() => selectExample(item, example)}
         className='sr-only'
       />
       <span className='min-w-0 flex-1 space-y-1'>
@@ -91,7 +91,7 @@ export default function ExamplePicker({
   disabled?: boolean
   selectedExample: ExampleRef
 }) {
-  const name = useId()
+  const groupId = useId()
 
   return (
     <fieldset disabled={disabled} className='min-w-0 space-y-3'>
@@ -101,7 +101,7 @@ export default function ExamplePicker({
           key={exampleKey(example)}
           item={item}
           example={example}
-          name={name}
+          name={groupId}
           disabled={disabled}
           selected={exampleKey(selectedExample) === exampleKey(example)}
         />

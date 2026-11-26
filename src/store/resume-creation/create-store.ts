@@ -3,6 +3,7 @@ import type {
   CreateTemplateResumeInput,
   CreationIdentity,
   PreparedResumeCreation,
+  PreviewedCreationResources,
   ResumeCreationPersistence,
 } from '@/lib/resume-template/create/types'
 import type { TemplateSource } from '@/lib/resume-template/source/types'
@@ -17,7 +18,10 @@ interface CreationState {
   error: string | null
   prepared: PreparedResumeCreation | null
   result: CreatedTemplateResume | null
-  start: (input: CreateTemplateResumeInput) => Promise<CreatedTemplateResume>
+  start: (
+    input: CreateTemplateResumeInput,
+    preview?: PreviewedCreationResources,
+  ) => Promise<CreatedTemplateResume>
   retry: () => Promise<CreatedTemplateResume>
   reset: () => void
 }
@@ -32,6 +36,7 @@ export function createResumeCreationStore(dependencies: {
   let request: {
     input: CreateTemplateResumeInput
     identity: CreationIdentity
+    preview?: PreviewedCreationResources
   } | null = null
 
   return create<CreationState>((set, get) => {
@@ -58,6 +63,7 @@ export function createResumeCreationStore(dependencies: {
               operation.input,
               dependencies.source,
               operation.identity,
+              operation.preview,
             ))
 
           set({ prepared, status: 'saving' })
@@ -100,7 +106,7 @@ export function createResumeCreationStore(dependencies: {
       error: null,
       prepared: null,
       result: null,
-      start: (input) => {
+      start: (input, preview) => {
         const sameOwner =
           request?.identity.ownerId === dependencies.getOwnerId()
 
@@ -123,6 +129,7 @@ export function createResumeCreationStore(dependencies: {
 
         request = {
           input: structuredClone(input),
+          preview,
           identity: {
             operationId: input.operationId ?? crypto.randomUUID(),
             ownerId: dependencies.getOwnerId(),

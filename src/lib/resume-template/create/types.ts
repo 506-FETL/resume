@@ -1,5 +1,5 @@
-import type { TemplateRef } from '../definition-schema'
-import type { ExampleRef } from '../source/types'
+import type { TemplateDefinition, TemplateRef } from '../definition-schema'
+import type { ExampleRef, ResumeExample } from '../source/types'
 import type {
   PersistedResumeSnapshot,
   ResumeTemplateBinding,
@@ -21,6 +21,11 @@ export interface CreateTemplateResumeInput {
   }
   /** 导入草稿保存操作身份，刷新后仍能确认同一次创建。 */
   operationId?: string
+}
+
+export interface PreviewedCreationResources {
+  definition: TemplateDefinition
+  example: ResumeExample
 }
 
 export interface TemplateCreationDraft {

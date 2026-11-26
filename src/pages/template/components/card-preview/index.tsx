@@ -1,7 +1,7 @@
 import { PaperSkeleton } from '@/components/loading-skeleton'
 import type {
   ExampleRef,
-  TemplateCatalogItem,
+  TemplateCardSummary,
 } from '@/lib/resume-template/source/types'
 import { FileText } from 'lucide-react'
 import { motion } from 'motion/react'
@@ -18,23 +18,17 @@ import { useTemplatePreview } from '../../hooks/use-template-preview'
 export default function CardPreview({
   item,
   example,
+  preview,
 }: {
-  item: TemplateCatalogItem
+  item: TemplateCardSummary
   example: ExampleRef
+  preview?: TemplateCardSummary['defaultPreview']
 }) {
   const reduced = useReducedMotion()
 
   const { ref, inRange } = useTemplateIntersection(
     TEMPLATE_PREVIEW_ROOT_MARGIN,
     true,
-  )
-
-  const preview = item.previews.find(
-    (candidate) =>
-      candidate.templateId === item.templateId &&
-      candidate.templateVersion === item.currentVersion &&
-      candidate.example.exampleId === example.exampleId &&
-      candidate.example.version === example.version,
   )
 
   const { url, status, retry } = useTemplatePreview(preview, inRange)

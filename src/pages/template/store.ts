@@ -1,16 +1,27 @@
 import type { TemplatePageState } from './types'
+import { publishedPreview } from './utils'
 import { create } from 'zustand'
 
 export const useTemplatePageStore = create<TemplatePageState>((set) => ({
+  previewTarget: null,
   selectedTemplateId: null,
   previewTrigger: null,
-  showPreview: (selectedTemplateId, example, previewTrigger) =>
+  showPreview: (item, example, previewTrigger) =>
     set((state) => ({
-      selectedTemplateId,
+      selectedTemplateId: item.templateId,
+      previewTarget: item,
       previewTrigger,
       selectedExamples: {
         ...state.selectedExamples,
-        [selectedTemplateId]: example,
+        [item.templateId]:
+          state.selectedExamples[item.templateId]?.templateVersion ===
+          item.currentVersion
+            ? state.selectedExamples[item.templateId]
+            : {
+                templateVersion: item.currentVersion,
+                example,
+                preview: item.cardPreview ?? item.defaultPreview,
+              },
       },
       previewOpen: true,
       previewStep: 'preview',
@@ -20,9 +31,16 @@ export const useTemplatePageStore = create<TemplatePageState>((set) => ({
   setPreviewStep: (previewStep) => set({ previewStep }),
   selectedExamples: {},
   setPreviewOpen: (previewOpen) => set({ previewOpen }),
-  selectExample: (templateId, example) =>
+  selectExample: (item, example) =>
     set((state) => ({
-      selectedExamples: { ...state.selectedExamples, [templateId]: example },
+      selectedExamples: {
+        ...state.selectedExamples,
+        [item.templateId]: {
+          templateVersion: item.currentVersion,
+          example,
+          preview: publishedPreview(item, example, state.previewTarget),
+        },
+      },
     })),
   styleFilter: null,
   layoutFilter: null,

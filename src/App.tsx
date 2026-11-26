@@ -22,6 +22,10 @@ import {
   isShareManagement,
   selectShareManagement,
 } from '@/lib/share-management-route'
+import {
+  isTemplateGallery,
+  selectTemplateGallery,
+} from '@/lib/template-gallery-route'
 import { isTrackerPage, selectTrackerPage } from '@/lib/tracker-route'
 import { hasAuthCallback } from '@/lib/auth/recovery-callback'
 import {
@@ -125,6 +129,12 @@ function App() {
     )
   }, [archiveRoute, location.key])
 
+  const galleryPage = isTemplateGallery(location.pathname)
+
+  useEffect(() => {
+    if (!galleryPage || !hasAuthCallback) selectTemplateGallery(galleryPage)
+  }, [galleryPage])
+
   const trackerPage = isTrackerPage(location.pathname)
 
   useEffect(() => {
@@ -219,6 +229,7 @@ function App() {
                     archiveRoute ||
                     shareManagement ||
                     trackerPage ||
+                    galleryPage ||
                     assistantPage ? (
                       <DashboardOpening
                         fullBleed={assistantPage && authStatus !== 'anonymous'}

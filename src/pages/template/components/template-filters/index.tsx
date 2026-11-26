@@ -1,6 +1,7 @@
 import { ChevronDown, Columns2, Palette, SlidersHorizontal } from 'lucide-react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { Button } from '@/components/ui/button'
 import { TemplateFilterOptionsSkeleton } from '@/components/page-skeletons/template'
 import {
@@ -17,12 +18,12 @@ import {
 } from '@/components/ui/collapsible'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import { useResumeTemplateStore } from '@/store/resume-template'
+import { useTemplateGalleryCatalog } from '@/store/resume-template/gallery-catalog'
 import { useTemplatePageStore } from '../../store.ts'
 
 export default function TemplateFilters() {
-  const facets = useResumeTemplateStore((state) => state.facets)
-  const loadFacets = useResumeTemplateStore((state) => state.loadFacets)
+  const facets = useTemplateGalleryCatalog((state) => state.facets)
+  const loadFacets = useTemplateGalleryCatalog((state) => state.loadFacets)
 
   const {
     styleFilter,
@@ -30,7 +31,23 @@ export default function TemplateFilters() {
     setStyleFilter,
     setLayoutFilter,
     resetFilters,
-  } = useTemplatePageStore()
+  } = useTemplatePageStore(
+    useShallow(
+      ({
+        styleFilter,
+        layoutFilter,
+        setStyleFilter,
+        setLayoutFilter,
+        resetFilters,
+      }) => ({
+        styleFilter,
+        layoutFilter,
+        setStyleFilter,
+        setLayoutFilter,
+        resetFilters,
+      }),
+    ),
+  )
 
   const [open, setOpen] = useState(true)
   const [openGroups, setOpenGroups] = useState({ style: true, layout: true })

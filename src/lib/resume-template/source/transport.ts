@@ -1,4 +1,4 @@
-import { TemplateResolutionError } from '../definition-schema'
+import { TemplateResolutionError } from '../errors'
 
 export type TemplateTransport = (
   path: string,

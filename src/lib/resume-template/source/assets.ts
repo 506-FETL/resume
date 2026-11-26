@@ -1,6 +1,6 @@
 import type { TemplateAssetRef } from './types'
 import { z } from 'zod'
-import { TemplateResolutionError } from '../definition-schema'
+import { TemplateResolutionError } from '../errors'
 
 export const assetEnvelopeSchema = z
   .object({
