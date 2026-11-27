@@ -8,10 +8,7 @@ export default function ChangelogPage() {
 
   return (
     <PageLayout className='max-w-5xl'>
-      <PageHeader
-        title='更新日志'
-        description='查看 GResume 的功能更新与体验改进。'
-      />
+      <PageHeader title='更新日志' />
       <div className='pt-2'>
         <div className='relative'>
           {changelogEntries.map((entry) => (

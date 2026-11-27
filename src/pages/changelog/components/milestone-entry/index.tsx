@@ -21,14 +21,13 @@ export function MilestoneEntry({ entry }: { entry: ChangelogEntry }) {
 
         <div className='release-body'>
           <div className='release-body-heading'>
-            <p>你可以：</p>
-            <span>准备 =&gt; 投递</span>
+            <p>{frontmatter.version} 版功能</p>
           </div>
           <Content components={components} />
         </div>
 
         <motion.footer className='release-closing' {...entrance}>
-          <p>Thanks</p>
+          <p>谢谢你用 GResume 写简历。</p>
         </motion.footer>
       </article>
       <div className='mb-8 flex items-center gap-4'>

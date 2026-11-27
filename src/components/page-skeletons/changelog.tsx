@@ -7,10 +7,7 @@ import { RELEASE_1_0 } from '@/pages/changelog/const'
 export function ChangelogPageSkeleton() {
   return (
     <PageLayout className='max-w-5xl'>
-      <PageHeader
-        title='更新日志'
-        description='查看 GResume 的功能更新与体验改进。'
-      />
+      <PageHeader title='更新日志' />
       <div className='pt-2'>
         <div className='release-story'>
           <ReleaseCover release={RELEASE_1_0} />
