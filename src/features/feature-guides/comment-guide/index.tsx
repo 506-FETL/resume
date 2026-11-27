@@ -93,6 +93,7 @@ export default function CommentGuide({
   return (
     <>
       <CommentDemo
+        blocked={guide.blocked}
         phase={
           guide.active && guide.index === 1
             ? 'intro'
@@ -106,6 +107,7 @@ export default function CommentGuide({
       />
       {selection && (
         <SelectionDemo
+          blocked={guide.blocked}
           selection={selection}
           phase={guide.index === 4 ? 'highlight' : 'select'}
           visible={guide.active && (guide.index === 2 || guide.index === 4)}
@@ -113,7 +115,7 @@ export default function CommentGuide({
           actionLabel='评论'
           onAction={guide.next}
           onReady={guide.ready}
-          onUnavailable={guide.close}
+          onUnavailable={guide.interrupt}
         />
       )}
       <GuidePresentation guide={guide} />

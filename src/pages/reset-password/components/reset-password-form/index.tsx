@@ -1,3 +1,4 @@
+import { PageTitle } from '@/components/layout/page-layout'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
@@ -30,11 +31,11 @@ export function ResetPasswordForm() {
   return (
     <div className='mx-auto flex max-w-lg flex-col gap-6'>
       <AnimatedContent animationKey={status}>
-        <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+        <Card className='gap-(--page-section-gap) overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
           <CardHeader className='gap-3 px-0'>
-            <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
+            <PageTitle>
               {status === 'success' ? '密码已重置' : '设置新密码'}
-            </h1>
+            </PageTitle>
             {status === 'success' && (
               <CardDescription>
                 当前会话仍可使用。下次登录请使用新密码。

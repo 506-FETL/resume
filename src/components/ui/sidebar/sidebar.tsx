@@ -3,7 +3,10 @@
 import { PanelLeftIcon } from 'lucide-react'
 import * as React from 'react'
 import { Button } from '@/components/ui/button'
-import { MobileSidebarDeferred } from './mobile-sidebar/deferred'
+import {
+  MobileSidebarDeferred,
+  preloadMobileNavigation,
+} from './mobile-sidebar/deferred'
 import { Input } from '@/components/ui/input'
 import { cn } from '@/lib/utils'
 import { useSidebar } from './sidebar-context'
@@ -97,10 +100,12 @@ export function SidebarTrigger({
   onClick,
   ...props
 }: React.ComponentProps<typeof Button>) {
-  const { toggleSidebar, mobileTriggerRef } = useSidebar()
+  const { toggleSidebar, mobileTriggerRef, isMobile } = useSidebar()
 
   return (
     <Button
+      onPointerEnter={isMobile ? preloadMobileNavigation : undefined}
+      onFocus={isMobile ? preloadMobileNavigation : undefined}
       data-sidebar='trigger'
       data-slot='sidebar-trigger'
       variant='ghost'

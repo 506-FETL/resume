@@ -60,7 +60,7 @@ export default function Template() {
   }, [params, setParams])
 
   return (
-    <PageLayout width='wide'>
+    <PageLayout>
       <PageHeader title='简历模板' />
       <div className='grid min-w-0 items-start gap-6 lg:grid-cols-[11rem_minmax(0,1fr)]'>
         <TemplateFilters />

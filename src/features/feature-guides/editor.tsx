@@ -7,12 +7,14 @@ export default function EditorGuides({
   sortingEnabled,
   contextKey,
   rootRef,
+  editPanelRef,
   mobile,
 }: {
   commentEnabled: boolean
   sortingEnabled: boolean
   contextKey: string
   rootRef: RefObject<HTMLDivElement | null>
+  editPanelRef: RefObject<HTMLDivElement | null>
   mobile: boolean
 }) {
   return (
@@ -24,6 +26,7 @@ export default function EditorGuides({
       />
       <SortingGuide
         enabled={sortingEnabled}
+        editPanelRef={editPanelRef}
         contextKey={contextKey}
         mobile={mobile}
       />

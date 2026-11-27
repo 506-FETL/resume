@@ -1,5 +1,5 @@
 import { ChevronDown, History, Save } from 'lucide-react'
-import { PageLayout } from '@/components/layout/page-layout'
+import { PageLayout, PageTitle } from '@/components/layout/page-layout'
 import { LoadingRegion, PaperSkeleton } from '@/components/loading-skeleton'
 import { Button } from '@/components/ui/button'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -84,23 +84,18 @@ export function HistoryWorkspaceSkeleton() {
 
 export function HistoryPageSkeleton() {
   return (
-    <PageLayout
-      workspace
-      className='min-h-0 overflow-hidden [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:py-1'
-    >
-      <header className='grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 @min-[760px]/workspace:grid-cols-[auto_minmax(0,1fr)_auto] [@media(max-height:500px)]:grid-cols-[minmax(0,1fr)_auto] [@media(max-height:500px)]:gap-2'>
-        <div className='min-w-0 [@media(max-height:500px)]:sr-only'>
-          <h1 className='whitespace-nowrap text-xl leading-8 font-semibold tracking-tight sm:text-2xl'>
-            历史版本
-          </h1>
+    <PageLayout workspace className='overflow-hidden'>
+      <header className='grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-3 @min-[760px]/workspace:grid-cols-[auto_minmax(0,1fr)_auto] [@media(max-height:500px)]:gap-2'>
+        <div className='min-w-0 self-start'>
+          <PageTitle className='whitespace-nowrap'>历史版本</PageTitle>
         </div>
-        <div className='col-start-2 row-start-1 @min-[760px]/workspace:col-start-3 [@media(max-height:500px)]:col-start-2'>
+        <div className='col-start-2 row-start-1 @min-[760px]/workspace:col-start-3'>
           <Button disabled>
             <Save data-icon='inline-start' />
             保存当前版本
           </Button>
         </div>
-        <div className='col-span-2 min-w-0 @min-[760px]/workspace:col-span-1 @min-[760px]/workspace:col-start-2 @min-[760px]/workspace:row-start-1 @min-[760px]/workspace:max-w-md [@media(max-height:500px)]:col-span-1 [@media(max-height:500px)]:col-start-1 [@media(max-height:500px)]:row-start-1'>
+        <div className='col-span-2 min-w-0 @min-[760px]/workspace:col-span-1 @min-[760px]/workspace:col-start-2 @min-[760px]/workspace:row-start-1 @min-[760px]/workspace:max-w-md'>
           <Button
             variant='outline'
             disabled

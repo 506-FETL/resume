@@ -11,6 +11,7 @@ import {
 } from '@/components/ui/empty'
 import { useShareFilterActions } from '../../hooks/use-share-filter-actions'
 import useShareStore from '../../store'
+import { CreateShareDialog } from '../create-dialog/deferred'
 
 interface EmptyStateProps {
   filtered: boolean
@@ -45,7 +46,11 @@ export default function EmptyState({ filtered }: EmptyStateProps) {
             清空筛选
           </Button>
         ) : hasResumes !== false ? (
-          <Button onClick={() => open(true)}>
+          <Button
+            onPointerEnter={CreateShareDialog.preload}
+            onFocus={CreateShareDialog.preload}
+            onClick={() => open(true)}
+          >
             <Plus data-icon='inline-start' />
             新建分享
           </Button>

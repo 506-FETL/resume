@@ -5,7 +5,7 @@ import { PreferencesCard } from '@/pages/profile/components/preferences-card'
 
 export function ProfilePageSkeleton() {
   return (
-    <PageLayout width='narrow' aria-label='正在加载个人信息' aria-busy='true'>
+    <PageLayout aria-label='正在加载个人信息' aria-busy='true'>
       <PageHeader
         title='个人信息'
         description='管理个人资料、账户安全与使用偏好。'

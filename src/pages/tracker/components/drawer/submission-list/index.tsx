@@ -1,4 +1,3 @@
-import type { SubmissionFormProps } from '../submission-dialog/types'
 import { useSubmissionList } from './use-submission-list'
 import { RecordFacts } from './record-facts'
 import { RecordJd } from './record-jd'
@@ -21,12 +20,10 @@ import SubmissionFileRow from '../submission-file-row'
 
 const Preview = deferDialog(() => import('../submission-preview'), '投递原件')
 
-const Correction = deferDialog<SubmissionFormProps>(
-  () =>
-    import('../submission-dialog').then(({ SubmissionForm }) => ({
-      default: SubmissionForm,
-    })),
+const Correction = deferDialog(
+  () => import('../submission-dialog'),
   '更正投递记录',
+  'SubmissionForm',
 )
 
 export default function SubmissionList({

@@ -1,4 +1,4 @@
-import { type ComponentProps, useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useIsPresent } from 'motion/react'
 import {
   Download,
@@ -20,7 +20,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { DeferredExperienceUploadDialog as ExperienceUploadDialog } from '@/features/experience-sources/deferred-upload-dialog'
-import type { ExperienceResumeRelations } from '@/features/experience-sources/resume-relations'
 import { deferDialog } from '@/components/deferred-dialog'
 import { experienceError } from '@/features/experience-sources/utils'
 import type {
@@ -34,16 +33,10 @@ import { RenameSourceDialog } from '../rename-dialog'
 import { DeleteSourceDialog } from '../delete-dialog'
 import { CopySourceButton } from '../copy-source-button'
 
-const RelationsDialog = deferDialog<
-  ComponentProps<typeof ExperienceResumeRelations>
->(
-  () =>
-    import('@/features/experience-sources/resume-relations').then(
-      ({ ExperienceResumeRelations }) => ({
-        default: ExperienceResumeRelations,
-      }),
-    ),
+const RelationsDialog = deferDialog(
+  () => import('@/features/experience-sources/resume-relations'),
   '关联到简历',
+  'ExperienceResumeRelations',
 )
 
 export function SourceActions({
@@ -196,6 +189,8 @@ export function SourceActions({
               重命名
             </DropdownMenuItem>
             <DropdownMenuItem
+              onPointerEnter={ExperienceUploadDialog.preload}
+              onFocus={ExperienceUploadDialog.preload}
               onSelect={() =>
                 requestDialog(() => {
                   uploadSelectionRef.current =

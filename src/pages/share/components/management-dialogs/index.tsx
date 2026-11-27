@@ -1,7 +1,7 @@
 import { deferDialog } from '@/components/deferred-dialog'
 import useShareStore from '../../store'
+import { CreateShareDialog } from '../create-dialog/deferred'
 
-const Create = deferDialog(() => import('../create-dialog'), '新建分享')
 const Settings = deferDialog(() => import('../settings-dialog'), '分享设置')
 const Version = deferDialog(() => import('../version-dialog'), '更换分享版本')
 const Archive = deferDialog(() => import('../archive-dialog'), '归档分享链接')
@@ -31,7 +31,10 @@ export default function ManagementDialogs() {
 
   return (
     <>
-      <Create open={create} onClose={() => setCreateDialogOpen(false)}>
+      <CreateShareDialog
+        open={create}
+        onClose={() => setCreateDialogOpen(false)}
+      >
         {(Panel, opener) => (
           <Panel
             open={create}
@@ -39,7 +42,7 @@ export default function ManagementDialogs() {
             returnFocusTo={opener}
           />
         )}
-      </Create>
+      </CreateShareDialog>
       <Settings open={settings} onClose={closeSettingsDialog}>
         {(Panel, opener) => <Panel returnFocusTo={opener} />}
       </Settings>

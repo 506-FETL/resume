@@ -1,5 +1,4 @@
 import { createDeferredComponent } from '@/components/deferred-content'
-import { FormSkeleton } from '@/components/loading-skeleton'
 import {
   Dialog,
   DialogContent,
@@ -12,7 +11,6 @@ import { useCollaborationPanel } from '../context'
 const CollaborationDialogContent = createDeferredComponent(
   () => import('./content/index'),
   '协作设置',
-  <FormSkeleton label='正在加载协作设置' />,
 )
 
 export function CollaborationDialog() {

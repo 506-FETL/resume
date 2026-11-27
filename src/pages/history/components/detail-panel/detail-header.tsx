@@ -1,4 +1,3 @@
-import { historyComponent } from '../../utils/load-component'
 import type { ReactNode } from 'react'
 import type { RestoreStrategy } from '../../types'
 import type { HistoryDetailPanelState } from './use-detail-panel-state'
@@ -35,8 +34,9 @@ import { deferDialog } from '@/components/deferred-dialog'
 import HistoryActionButton from '../shared/history-action-button'
 
 const DeferredCompare = deferDialog(
-  historyComponent(() => import('../compare-dialog'), 'CompareDialog'),
+  () => import('../compare-dialog'),
   '版本对比',
+  'CompareDialog',
 )
 
 interface DetailHeaderProps {

@@ -27,6 +27,7 @@ export function DashboardShell({
   // Only application pages opt in; resume document containers keep their own layout.
   const usesPageLayout = [
     WORKSPACE_PATH,
+    '/assistant',
     '/resume',
     '/experience',
     '/template',

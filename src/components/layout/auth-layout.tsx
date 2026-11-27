@@ -1,9 +1,10 @@
 import type { ReactNode } from 'react'
+import { PageLayout } from './page-layout'
 
 export function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className='flex min-h-full w-full items-start justify-center px-4 py-10 sm:px-6 sm:py-20'>
+    <PageLayout className='min-h-full'>
       <div className='w-full max-w-sm'>{children}</div>
-    </div>
+    </PageLayout>
   )
 }

@@ -1,11 +1,11 @@
-import { historyComponent } from '../../utils/load-component'
 import { useRef } from 'react'
 import { deferDialog } from '@/components/deferred-dialog'
 import type { HistoryDialogsProps } from './content'
 
 const DeferredActions = deferDialog(
-  historyComponent(() => import('./content'), 'HistoryDialogs'),
+  () => import('./content'),
   '版本操作',
+  'HistoryDialogs',
 )
 
 export default function HistoryDialogs(props: HistoryDialogsProps) {

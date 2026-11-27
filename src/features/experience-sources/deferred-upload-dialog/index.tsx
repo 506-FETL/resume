@@ -1,12 +1,10 @@
 import { deferDialog } from '@/components/deferred-dialog'
 import type { ExperienceUploadDialogProps } from '../upload-dialog/types'
 
-const UploadDialog = deferDialog<ExperienceUploadDialogProps>(
-  () =>
-    import('../upload-dialog').then(({ ExperienceUploadDialog }) => ({
-      default: ExperienceUploadDialog,
-    })),
+const UploadDialog = deferDialog(
+  () => import('../upload-dialog'),
   '添加职业档案',
+  'ExperienceUploadDialog',
 )
 
 export function DeferredExperienceUploadDialog(
@@ -22,3 +20,5 @@ export function DeferredExperienceUploadDialog(
     </UploadDialog>
   )
 }
+
+DeferredExperienceUploadDialog.preload = UploadDialog.preload

@@ -1,7 +1,15 @@
 import type { Driver } from 'driver.js/headless'
-import { useCallback, useEffect, useId, useRef, useState } from 'react'
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react'
 import useUserStore from '@/store/user'
 import { useFeatureGuidesStore } from '@/store/feature-guides'
+import { findGuideTarget, useGuideAnchor } from './use-guide-anchor'
 import type { FeatureGuideOptions, GuideController } from './types'
 
 export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
@@ -23,12 +31,31 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
   const stopReasonRef = useRef<'dismiss' | 'context'>('context')
   const busyRef = useRef(false)
   const [active, setActive] = useState(false)
-  const [target, setTarget] = useState<HTMLElement | null>(null)
+  const [highlighted, setHighlighted] = useState<HTMLElement | null>(null)
   const [index, setIndex] = useState(0)
   const [targetIndex, setTargetIndex] = useState(0)
   const [presentedIndex, setPresentedIndex] = useState<number | null>(null)
   const [busy, setBusy] = useState(false)
   const [focusStep, setFocusStep] = useState(false)
+
+  const step = options.steps[targetIndex] ?? options.steps[0]
+  const eligible = enabled && authKnown && !occupied && !dismissed
+  const anchor = useGuideAnchor(step.target, eligible, id, targetIndex)
+
+  const target =
+    anchor.target ??
+    (anchor.pending &&
+    highlighted?.isConnected &&
+    highlighted.matches(step.target)
+      ? highlighted
+      : null)
+
+  const canStart = eligible && (active || Boolean(anchor.target))
+  const entryRef = useRef<HTMLElement | null>(null)
+
+  if (targetIndex === 0 && anchor.target) entryRef.current = anchor.target
+
+  const interrupt = useCallback(() => driverRef.current?.destroy(), [])
 
   optionsRef.current = options
 
@@ -41,7 +68,11 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
     stopReasonRef.current = 'dismiss'
 
     if (isGuideUi(document.activeElement)) {
-      findVisibleTarget(optionsRef.current.steps[0].target)?.focus({
+      const entry = entryRef.current?.isConnected
+        ? entryRef.current
+        : findGuideTarget(optionsRef.current.steps[0].target)
+
+      entry?.focus({
         preventScroll: true,
       })
     }
@@ -84,11 +115,17 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
       setPresentedIndex(null)
 
       Promise.resolve()
-        .then(() => current.prepare?.(nextIndex))
+        .then(() => {
+          if (driverRef.current !== tour) return
+
+          useFeatureGuidesStore.getState().setStep(sessionId, nextIndex)
+
+          return current.prepare?.(nextIndex)
+        })
         .then((continueTour) => {
           if (driverRef.current !== tour) return
           if (continueTour === false) {
-            close()
+            interrupt()
 
             return
           }
@@ -97,17 +134,17 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
           tour.moveTo(nextIndex)
         })
         .catch(() => {
-          if (driverRef.current === tour) close()
+          if (driverRef.current === tour) interrupt()
         })
     },
-    [close],
+    [close, interrupt, sessionId],
   )
 
   const next = useCallback(() => changeStep(1), [changeStep])
   const previous = useCallback(() => changeStep(-1), [changeStep])
 
   useEffect(() => {
-    if (!enabled || !authKnown || dismissed || occupied) return
+    if (!canStart) return
 
     let cancelled = false
     let tour: Driver | null = null
@@ -119,7 +156,10 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
       if (driverRef.current !== tour) return
 
       driverRef.current = null
+      setHighlighted(null)
       setActive(false)
+      setIndex(0)
+      setTargetIndex(0)
       setPresentedIndex(null)
       ready()
       optionsRef.current.onStop?.(stopReasonRef.current)
@@ -131,22 +171,23 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
         if (cancelled) return
 
         tour = driver({
-          steps: optionsRef.current.steps.map((step) => ({
-            element: () => findVisibleTarget(step.target)!,
+          scrollIntoView: false,
+          steps: optionsRef.current.steps.map((step, i) => ({
+            element: () =>
+              i === 0 && entryRef.current?.isConnected
+                ? entryRef.current
+                : findGuideTarget(step.target)!,
           })),
           waitForElement: 6000,
           onHighlighted: (element, _step, { index: currentIndex }) => {
             if (cancelled || !(element instanceof HTMLElement)) return
 
-            setTarget(element)
+            setHighlighted(element)
             setIndex(currentIndex ?? 0)
             setTargetIndex(currentIndex ?? 0)
             setActive(true)
 
             if (!optionsRef.current.steps[currentIndex ?? 0]?.animated) ready()
-          },
-          onElementReplaced: (element) => {
-            if (element instanceof HTMLElement) setTarget(element)
           },
           onElementMissing: () => tour?.destroy(),
           onDestroyed: stop,
@@ -167,27 +208,33 @@ export function useFeatureGuide(options: FeatureGuideOptions): GuideController {
       tour?.destroy()
       useFeatureGuidesStore.getState().release(sessionId)
     }
-  }, [
-    account,
-    authKnown,
-    contextKey,
-    dismissed,
-    enabled,
-    id,
-    occupied,
-    ready,
-    sessionId,
-  ])
+  }, [account, canStart, contextKey, id, ready, sessionId])
+
+  const suspended =
+    !enabled ||
+    occupied ||
+    anchor.blocked ||
+    (active && !dismissed && !target && index === targetIndex)
+
+  useLayoutEffect(() => {
+    if (!suspended) return
+
+    setPresentedIndex(null)
+    setFocusStep(false)
+  }, [suspended])
 
   return {
-    active,
+    active: active && !dismissed,
     target,
+    blocked: anchor.blocked,
+    suspended,
+    interrupt,
     index,
     targetIndex,
     presentedIndex,
     busy,
     focusStep,
-    step: options.steps[targetIndex] ?? options.steps[0],
+    step,
     count: options.steps.length,
     next,
     previous,
@@ -201,23 +248,5 @@ function isGuideUi(target: EventTarget | null) {
   return (
     target instanceof Element &&
     Boolean(target.closest('[data-feature-guide-ui]'))
-  )
-}
-
-function findVisibleTarget(selector: string) {
-  return Array.from(document.querySelectorAll<HTMLElement>(selector)).find(
-    (element) => {
-      const rect = element.getBoundingClientRect()
-
-      return (
-        rect.width > 0 &&
-        rect.height > 0 &&
-        rect.bottom > 0 &&
-        rect.top < window.innerHeight &&
-        rect.right > 0 &&
-        rect.left < window.innerWidth &&
-        !element.closest('[inert], [hidden], [aria-hidden="true"]')
-      )
-    },
   )
 }

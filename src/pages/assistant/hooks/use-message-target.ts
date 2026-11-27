@@ -58,7 +58,7 @@ export function useMessageTarget(
         `[data-message-id="${CSS.escape(targetMessageId)}"]`,
       )
 
-      // 同批正文仍在加载时，骨架的位置和高度不能作为搜索定位依据。
+      // 同批正文仍在加载时，先展示的纯文本与最终排版高度可能不同。
       if (!target || viewport.querySelector('[data-assistant-text-loading]'))
         return
 

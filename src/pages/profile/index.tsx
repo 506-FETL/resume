@@ -19,7 +19,7 @@ export default function ProfilePage() {
       {!user ? (
         <ProfilePageSkeleton />
       ) : (
-        <PageLayout key={user.id} width='narrow'>
+        <PageLayout key={user.id}>
           <PageHeader
             title='个人信息'
             description='管理个人资料、账户安全与使用偏好。'

@@ -17,6 +17,13 @@
   transform: translateY(8px);
 }
 
+[data-feature-guide-ui][data-guide-blocked],
+[data-slot='drawer-viewport']:has(
+  [data-feature-guide-demo='comment'][data-guide-blocked]
+) {
+  display: none;
+}
+
 @media print {
   [data-feature-guide-ui] {
     display: none !important;

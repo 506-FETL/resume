@@ -3,7 +3,7 @@ import { CircleUser, LogIn, LogOut, ScrollText, Settings } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { createDeferredComponent } from '@/components/deferred-content'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -21,7 +21,11 @@ const QuotaMenuRow = createDeferredComponent(
       default: module.QuotaMenuRow,
     })),
   'AI 额度',
-  <Skeleton className='h-12 w-full' />,
+  <LoadingStatus
+    label='正在读取 AI 额度'
+    className='min-h-7 px-2 py-1.5 text-xs'
+  />,
+  { wrapFallback: false },
 )
 
 interface AccountMenuProps {

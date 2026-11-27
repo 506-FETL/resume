@@ -1,102 +1,117 @@
 import type { ComponentType, ReactNode } from 'react'
-import { lazy, Suspense, useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
-import { restoreDialogFocus } from '@/lib/dialog-focus'
-import { FormSkeleton } from '@/components/loading-skeleton'
-import { Button } from '@/components/ui/button'
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from '@/components/ui/dialog'
+import { loadComponent } from '@/lib/load-component'
+import { useDialogOpener } from '@/hooks/use-dialog-opener'
+import { OpeningFeedback } from './opening-feedback'
+
+interface DeferredDialogProps<Props> {
+  loadingTitle?: string
+  open: boolean
+  onClose: () => void
+  children: (
+    Content: ComponentType<Props>,
+    opener: HTMLElement | null,
+  ) => ReactNode
+}
+
+type DeferredPanel<Props> = ComponentType<DeferredDialogProps<Props>> & {
+  preload: () => void
+}
 
 export function deferDialog<Props extends object>(
   load: () => Promise<{ default: ComponentType<Props> }>,
   title: string,
+): DeferredPanel<Props>
+
+export function deferDialog<Props extends object, Key extends string>(
+  load: () => Promise<Record<Key, ComponentType<Props>>>,
+  title: string,
+  name: Key,
+): DeferredPanel<Props>
+
+export function deferDialog<Props extends object, Key extends string>(
+  load: () => Promise<Record<Key, ComponentType<Props>>>,
+  title: string,
+  name: Key = 'default' as Key,
 ) {
-  return function DeferredDialog({
+  const loadEntry = loadComponent(load, name)
+  let loaded: ComponentType<Props> | undefined
+
+  function loadOnce() {
+    return loadEntry().then(({ default: Component }) => {
+      loaded = Component
+
+      return Component
+    })
+  }
+
+  function DeferredDialog({
     open,
     onClose,
     children,
     loadingTitle = title,
-  }: {
-    loadingTitle?: string
-    open: boolean
-    onClose: () => void
-    children: (
-      Content: ComponentType<Props>,
-      opener: HTMLElement | null,
-    ) => ReactNode
-  }) {
-    const [opened, setOpened] = useState(false)
-    const [Content, setContent] = useState(() => lazy(load))
+  }: DeferredDialogProps<Props>) {
+    const [Content, setContent] = useState<ComponentType<Props> | null>(null)
+    const [failed, setFailed] = useState(false)
+    const [attempt, setAttempt] = useState(0)
+    const opener = useDialogOpener(open)
 
-    const triggerRef = useRef<HTMLElement | null>(null)
-    const openRef = useRef(false)
+    const ready = loaded
 
-    if (open && !openRef.current) {
-      const active = document.activeElement
-
-      triggerRef.current =
-        active instanceof HTMLElement && active !== document.body
-          ? active
-          : null
-    }
-
-    openRef.current = open
+    if (open && !Content && ready) setContent(() => ready)
 
     useEffect(() => {
-      if (open) setOpened(true)
-    }, [open])
+      if (!open || Content) return
 
-    if (!open && !opened) return null
+      let active = true
+
+      setFailed(false)
+
+      loadOnce().then(
+        (Component) => {
+          if (active) setContent(() => Component)
+        },
+        () => {
+          if (active) setFailed(true)
+        },
+      )
+
+      return () => {
+        active = false
+      }
+    }, [open, Content, attempt])
 
     function feedback(retry?: () => void) {
       return (
-        <Dialog
-          open={open}
-          onOpenChange={(next) => {
-            if (!next) onClose()
-          }}
-        >
-          <DialogContent
-            onCloseAutoFocus={(event) => {
-              // 卸载回调可能晚于 Escape，只有弹窗仍打开时才由真实内容接管焦点。
-              if (openRef.current) event.preventDefault()
-              else restoreDialogFocus(event, triggerRef.current)
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle>{loadingTitle}</DialogTitle>
-              <DialogDescription>
-                {retry ? '暂时无法打开，请重试。' : '正在加载…'}
-              </DialogDescription>
-            </DialogHeader>
-            {retry ? (
-              <Button variant='outline' onClick={retry}>
-                重试
-              </Button>
-            ) : (
-              <FormSkeleton label={`正在加载${loadingTitle}`} />
-            )}
-          </DialogContent>
-        </Dialog>
+        open && (
+          <OpeningFeedback
+            title={loadingTitle}
+            opener={opener}
+            onClose={onClose}
+            onRetry={retry}
+          />
+        )
       )
     }
 
+    if (!Content)
+      return feedback(failed ? () => setAttempt((n) => n + 1) : undefined)
+
     return (
       <ErrorBoundary
-        onReset={() => setContent(() => lazy(load))}
         fallbackRender={({ resetErrorBoundary }) =>
           feedback(resetErrorBoundary)
         }
       >
-        <Suspense fallback={feedback()}>
-          {children(Content as ComponentType<Props>, triggerRef.current)}
-        </Suspense>
+        {children(Content, opener)}
       </ErrorBoundary>
     )
   }
+
+  return Object.assign(DeferredDialog, {
+    preload: () => {
+      loadOnce().catch(() => {})
+    },
+  })
 }

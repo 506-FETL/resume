@@ -2,7 +2,7 @@ import { CalendarIcon, X } from 'lucide-react'
 import { useState } from 'react'
 import { createDeferredComponent } from '@/components/deferred-content'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import {
   Popover,
   PopoverContent,
@@ -14,14 +14,10 @@ import { formatDate } from '@/utils/date'
 const Calendar = createDeferredComponent(
   () => import('./calendar-content'),
   '日历',
-  <div role='status' aria-label='正在加载日历' className='w-62 space-y-4 p-3'>
-    <Skeleton className='mx-auto h-8 w-32' />
-    <div className='grid grid-cols-7 gap-2' aria-hidden>
-      {Array.from({ length: 42 }, (_, index) => (
-        <Skeleton key={index} className='h-6' />
-      ))}
-    </div>
-  </div>,
+  <LoadingStatus
+    label='正在加载日历'
+    className='grid h-68 w-64 place-items-center'
+  />,
   { wrapFallback: false },
 )
 

@@ -1,7 +1,7 @@
+import { PageLoading } from '@/components/page-loading'
 import { AuthLayout } from '@/components/layout/auth-layout'
-import { PageHeader, PageLayout } from '@/components/layout/page-layout'
+import { PageHeader } from '@/components/layout/page-layout'
 import {
-  ContentSkeleton,
   FormSkeleton,
   LoadingRegion,
   PaperSkeleton,
@@ -96,7 +96,7 @@ export function RouteSkeleton({
         <FormSkeleton
           label={label}
           rows={authPage.rows}
-          className='px-0 py-6'
+          className='px-0 pt-(--page-section-gap)'
         />
       </AuthLayout>
     )
@@ -106,9 +106,5 @@ export function RouteSkeleton({
     return <ChangelogPageSkeleton />
   }
 
-  return (
-    <PageLayout>
-      <ContentSkeleton label={label} className='px-0' />
-    </PageLayout>
-  )
+  return <PageLoading label={label} />
 }

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { createDeferredComponent } from '@/components/deferred-content'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import { prepareOriginalViewer } from '@/features/experience-sources/original-preview/prepare'
 import { experienceError } from '@/features/experience-sources/utils'
 import type {
@@ -14,7 +14,7 @@ import { experiencePreviewKind } from '../../../../../supabase/functions/shared/
 const SourceDetailContent = createDeferredComponent(
   () => import('./content'),
   '资料详情',
-  <Skeleton className='my-5 aspect-[210/297] w-full' />,
+  <LoadingStatus label='正在读取资料内容' className='px-0' />,
   { wrapFallback: false },
 )
 

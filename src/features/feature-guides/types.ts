@@ -22,6 +22,9 @@ export interface FeatureGuideOptions {
 }
 
 export interface GuideController {
+  blocked: boolean
+  suspended: boolean
+  interrupt: () => void
   active: boolean
   target: HTMLElement | null
   index: number

@@ -5,6 +5,7 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DURATION } from '@/lib/motion'
 import { gsap, useGSAP, guideEnterEase, guideExitEase } from '../../motion'
+import { guidePositionContext } from '../../use-guide-anchor'
 import type { GuideController } from '../../types'
 import GuideContent from './content'
 import { usePopoverTravel } from './use-popover-travel'
@@ -30,13 +31,9 @@ export default function GuidePopover({
     mobile && index === 0 && target?.matches('[data-feature-guide-sort]')
 
   // 排序提示位于抽屉上方，须避开内容层裁切并保留抽屉焦点范围。
-  const [portalContainer] = useState(() =>
-    target?.closest<HTMLElement>(
-      mobileSortingHint
-        ? '[data-slot="drawer-popup"]'
-        : '[data-slot="drawer-content"]',
-    ),
-  )
+  const portalContainer = mobileSortingHint
+    ? target?.closest<HTMLElement>('[data-slot="drawer-popup"]')
+    : null
 
   const [positioned, setPositioned] = useState(false)
   const [topInset, setTopInset] = useState(12)
@@ -82,7 +79,7 @@ export default function GuidePopover({
   const virtualRef = useMemo(
     () => ({
       current: {
-        contextElement: target!,
+        contextElement: target ? guidePositionContext(target) : undefined,
         getBoundingClientRect: () => {
           if (presentRef.current || !anchorRectRef.current) {
             const rect = target!.getBoundingClientRect()
@@ -179,14 +176,6 @@ export default function GuidePopover({
         return
       }
 
-      if (!present && element.contains(document.activeElement)) {
-        document
-          .querySelector<HTMLElement>(
-            '[data-resume-comment-trigger], #assistant-canvas-trigger, [data-feature-guide-sort]',
-          )
-          ?.focus({ preventScroll: true })
-      }
-
       element.inert = !present || !reveal
 
       if (present && !reveal) {
@@ -242,9 +231,6 @@ export default function GuidePopover({
         }
         sideOffset={index === 0 ? 80 : 14}
         collisionPadding={{ top: topInset, bottom: 12, left: 12, right: 12 }}
-        updatePositionStrategy={
-          target.id === 'assistant-canvas-trigger' ? 'optimized' : 'always'
-        }
         onOpenAutoFocus={(event) => {
           event.preventDefault()
           setPositioned(true)
@@ -252,7 +238,10 @@ export default function GuidePopover({
         onCloseAutoFocus={(event) => event.preventDefault()}
         onInteractOutside={(event) => event.preventDefault()}
         onEscapeKeyDown={(event) => event.preventDefault()}
-        className='feature-guide-popover z-80 w-max gap-0 bg-transparent p-0 shadow-none ring-0'
+        className={cn(
+          'feature-guide-popover w-max gap-0 bg-transparent p-0 shadow-none ring-0',
+          guide.count === 1 ? 'z-40' : 'z-80',
+        )}
       >
         <div
           ref={setCard}

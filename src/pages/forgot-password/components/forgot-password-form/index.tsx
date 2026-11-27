@@ -1,3 +1,4 @@
+import { PageTitle } from '@/components/layout/page-layout'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import React, { useRef, useState } from 'react'
@@ -64,11 +65,9 @@ export function ForgotPasswordForm({
     >
       <AnimatedContent animationKey={success ? 'success' : 'form'}>
         {success ? (
-          <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+          <Card className='gap-(--page-section-gap) overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
             <CardHeader className='gap-3 px-0'>
-              <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
-                请查收邮件
-              </h1>
+              <PageTitle>请查收邮件</PageTitle>
               <CardDescription>
                 如果你使用邮箱和密码注册，将收到密码重置邮件。
               </CardDescription>
@@ -89,11 +88,9 @@ export function ForgotPasswordForm({
             </CardContent>
           </Card>
         ) : (
-          <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+          <Card className='gap-(--page-section-gap) overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
             <CardHeader className='gap-3 px-0'>
-              <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
-                找回密码
-              </h1>
+              <PageTitle>找回密码</PageTitle>
               <CardDescription>重置链接将发送至注册邮箱。</CardDescription>
             </CardHeader>
             <CardContent className='px-0'>

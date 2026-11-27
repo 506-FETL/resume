@@ -1,5 +1,5 @@
 import { createDeferredComponent } from '@/components/deferred-content'
-import { FormSkeleton } from '@/components/loading-skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import { Button } from '@/components/ui/button'
 import {
   Dialog,
@@ -21,10 +21,7 @@ const CreationContent = createDeferredComponent(
   '创建简历',
   <div className='flex w-[min(600px,calc(100vw-2rem))] flex-col gap-4 p-5'>
     <h2 className='pr-8 text-lg font-medium'>创建简历</h2>
-    <FormSkeleton
-      label='正在加载创建选项'
-      className='min-h-[min(16rem,60dvh)] px-0'
-    />
+    <LoadingStatus label='正在加载创建选项' className='px-0' />
   </div>,
   { wrapFallback: false },
 )

@@ -8,7 +8,7 @@ import {
 } from './viewers'
 import { FileText } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
+import { OriginalPreviewPlaceholder } from './placeholder'
 import type { ExperienceSourceVersion } from '@/lib/experience-sources/types'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
 import { experienceError } from '../utils'
@@ -101,10 +101,7 @@ export default function ExperienceOriginalPreview({
           </Button>
         </div>
       ) : !blob ? (
-        <Skeleton
-          className='aspect-[210/297] w-full'
-          aria-label='正在读取原件'
-        />
+        <OriginalPreviewPlaceholder kind={kind} />
       ) : kind === 'pdf' ? (
         <PdfPreview blob={blob} />
       ) : kind === 'docx' ? (

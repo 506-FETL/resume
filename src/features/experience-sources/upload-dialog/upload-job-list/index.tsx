@@ -21,7 +21,7 @@ export function UploadJobList({
   const reduced = useReducedMotion()
 
   return (
-    <div className='mt-4 space-y-2' aria-live='polite'>
+    <div className='space-y-2 not-empty:mt-3' aria-live='polite'>
       {jobs.map((job, index) => (
         <motion.div
           key={job.operationId}

@@ -1,3 +1,4 @@
+import { PageTitle } from '@/components/layout/page-layout'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import React, { useRef, useState } from 'react'
@@ -71,11 +72,9 @@ export function SignUpForm({
     >
       <AnimatedContent animationKey={success ? 'success' : 'form'}>
         {success ? (
-          <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+          <Card className='gap-(--page-section-gap) overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
             <CardHeader className='gap-3 px-0'>
-              <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
-                验证邮箱
-              </h1>
+              <PageTitle>验证邮箱</PageTitle>
               <CardDescription>
                 请查收验证邮件，确认邮箱后再登录。
               </CardDescription>
@@ -89,11 +88,9 @@ export function SignUpForm({
             </CardContent>
           </Card>
         ) : (
-          <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+          <Card className='gap-(--page-section-gap) overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
             <CardHeader className='gap-3 px-0'>
-              <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
-                注册
-              </h1>
+              <PageTitle>注册</PageTitle>
             </CardHeader>
             <CardContent className='px-0'>
               <form onSubmit={handleSignUp}>

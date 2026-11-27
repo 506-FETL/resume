@@ -1,7 +1,6 @@
 import type { ReactNode } from 'react'
 import { useRef } from 'react'
 import { useInView } from 'motion/react'
-import { DashboardChartSkeleton } from '@/components/page-skeletons/dashboard'
 import { CHART_HEIGHT } from '../const'
 
 export function ChartViewport({ children }: { children: ReactNode }) {
@@ -10,7 +9,7 @@ export function ChartViewport({ children }: { children: ReactNode }) {
 
   return (
     <div ref={ref} className={CHART_HEIGHT}>
-      {visible ? children : <DashboardChartSkeleton />}
+      {visible && children}
     </div>
   )
 }

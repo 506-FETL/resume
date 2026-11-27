@@ -85,7 +85,7 @@ export function ShareOverviewSkeleton() {
 
 export function SharePageSkeleton() {
   return (
-    <PageLayout className='h-full min-h-0 gap-4 overflow-hidden py-4 sm:gap-6 sm:py-6 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:py-2'>
+    <PageLayout className='h-full min-h-0 overflow-hidden'>
       <div className='shrink-0 space-y-2'>
         <PageHeader
           title='分享管理'
