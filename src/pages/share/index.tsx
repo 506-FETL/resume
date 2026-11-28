@@ -24,7 +24,7 @@ export default function Management() {
   const reduceMotion = useReducedMotion()
 
   return (
-    <PageLayout className='h-full min-h-0 gap-4 overflow-hidden py-4 sm:gap-6 sm:py-6 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:py-2'>
+    <PageLayout className='h-full min-h-0 overflow-hidden'>
       <motion.div
         initial={false}
         animate={SHARE_MOTION.page.animate}
@@ -32,7 +32,7 @@ export default function Management() {
           ...SHARE_MOTION.page.transition,
           duration: reduceMotion ? 0 : SHARE_MOTION.page.transition.duration,
         }}
-        className='flex min-h-0 min-w-0 flex-1 flex-col gap-4 sm:gap-6 [@media(max-height:500px)]:gap-2'
+        className='flex min-h-0 min-w-0 flex-1 flex-col gap-(--page-section-gap)'
       >
         <div className='shrink-0 space-y-4 sm:space-y-6 [@media(max-height:500px)]:space-y-2'>
           <div className='empty:hidden [@media(max-height:500px)]:[&>div]:flex-nowrap [@media(max-height:500px)]:[&_a]:h-9'>

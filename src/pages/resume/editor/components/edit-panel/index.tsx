@@ -165,7 +165,11 @@ function EditPanel({
           className='relative flex h-full min-h-0 shrink-0 flex-col overflow-hidden border-l bg-background'
         >
           {/* 内层固定宽度：动画期间内容一次性按目标宽度布局，由外层裁剪呈现，避免 @container 列数跳变 */}
-          <div style={{ width }} className='flex h-full min-h-0 flex-col'>
+          <div
+            data-editor-panel-content
+            style={{ width }}
+            className='flex h-full min-h-0 flex-col'
+          >
             {/* 左边缘拖拽手柄：调整宽度比例 */}
             <div
               role='separator'

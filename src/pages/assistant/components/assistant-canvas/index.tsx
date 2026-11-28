@@ -167,7 +167,7 @@ function CanvasInner() {
 
 export default function AssistantCanvas() {
   const guiding = useFeatureGuidesStore(
-    (state) => state.active?.id === 'assistant-quote',
+    (state) => state.active?.id === 'assistant-quote' && state.active.step > 0,
   )
 
   const {

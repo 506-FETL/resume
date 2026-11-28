@@ -324,6 +324,7 @@ function EditorWorkspace({ currentUser, loading }: EditorWorkspaceProps) {
         <Suspense fallback={null}>
           <EditorGuides
             rootRef={documentRef}
+            editPanelRef={editPanelElementRef}
             contextKey={`${currentResumeId}:${commentReview.selectedKey}`}
             mobile={isMobile}
             commentEnabled={Boolean(

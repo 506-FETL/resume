@@ -55,7 +55,7 @@ function HeadBars({
   ] as const
 
   return (
-    <div className='[@media(max-height:500px)]:[&_h1]:text-xl [@media(max-height:500px)]:[&_header_p]:text-xs'>
+    <div className='[@media(max-height:500px)]:[&_header_p]:text-xs'>
       <PageHeader
         layout='compact'
         title='我的简历'

@@ -12,6 +12,7 @@ import {
   EmptyTitle,
 } from '@/components/ui/empty'
 import { RouteSkeleton } from '@/components/route-skeleton'
+import { PageLayout } from '@/components/layout/page-layout'
 import useUserStore from '@/store/user'
 
 interface AuthRequiredProps {
@@ -42,7 +43,7 @@ export function AuthRequired({
           label='正在确认登录状态'
         />
       ) : authStatus === 'anonymous' ? (
-        <div className='mx-auto flex min-h-80 w-full max-w-5xl items-center px-2 py-6 sm:min-h-105 sm:px-6'>
+        <PageLayout>
           <Empty className='min-h-80 rounded-2xl border bg-card px-6'>
             <EmptyHeader>
               <EmptyMedia variant='icon'>
@@ -62,7 +63,7 @@ export function AuthRequired({
               </Button>
             </EmptyContent>
           </Empty>
-        </div>
+        </PageLayout>
       ) : (
         children
       )}

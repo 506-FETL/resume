@@ -1,4 +1,4 @@
-import { useJobContextStore } from '@/lib/job-context'
+import { useJobContextStore } from '@/lib/job-context-store'
 import type { SharePurpose } from '@/lib/supabase/resume/share.types'
 import { sharePurposeDefaults } from '@/lib/share-purpose'
 import PurposeFields from '../purpose-fields'

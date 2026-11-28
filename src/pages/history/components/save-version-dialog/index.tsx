@@ -1,11 +1,11 @@
-import { historyComponent } from '../../utils/load-component'
 import type { ComponentProps } from 'react'
 import { deferDialog } from '@/components/deferred-dialog'
 import type SaveForm from './content'
 
 const DeferredSave = deferDialog(
-  historyComponent(() => import('./content'), 'SaveVersionDialog'),
+  () => import('./content'),
   '保存当前版本',
+  'SaveVersionDialog',
 )
 
 export default function SaveVersionDialog(

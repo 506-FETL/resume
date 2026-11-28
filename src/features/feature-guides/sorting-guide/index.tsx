@@ -1,22 +1,36 @@
+import type { RefObject } from 'react'
+import { useDesktopSortLayout } from './use-desktop-sort-layout'
+import { useResumeCheckStore } from '@/pages/resume/editor/store/checks'
 import GuidePresentation from '../components/guide-presentation'
 import { useFeatureGuide } from '../use-feature-guide'
 
 export default function SortingGuide({
   enabled,
+  editPanelRef,
   contextKey,
   mobile,
 }: {
   enabled: boolean
+  editPanelRef: RefObject<HTMLDivElement | null>
   contextKey: string
   mobile: boolean
 }) {
+  const editing = useResumeCheckStore((state) => state.tab === 'edit')
+
+  const layoutReady = useDesktopSortLayout(
+    editPanelRef,
+    enabled && editing && !mobile,
+  )
+
   const guide = useFeatureGuide({
     id: 'sorting',
-    enabled,
+    enabled: enabled && editing && (mobile || layoutReady),
     contextKey,
     steps: [
       {
-        target: '[data-feature-guide-sort]',
+        target: mobile
+          ? 'button[data-feature-guide-sort]'
+          : '[data-editor-section] [data-feature-guide-sort]',
         title: '把更重要的经历放前面',
         hint: mobile ? '这里能调整栏目顺序' : '栏目可以拖动排序',
         description: mobile

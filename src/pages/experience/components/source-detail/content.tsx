@@ -12,7 +12,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from '@/components/ui/collapsible'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import { ExperienceSourceReader } from '@/features/experience-sources/source-reader'
 import {
   formatSourceDate,
@@ -127,7 +127,7 @@ export default function SourceDetailContent({
           </Collapsible>
         )}
       </div>
-      {!detail && <Skeleton className='my-5 aspect-[210/297] w-full' />}
+      {!detail && <LoadingStatus label='正在读取资料内容' className='px-0' />}
       {detail?.version.fileName && (
         <ExperienceOriginalPreview
           key={detail.version.id}

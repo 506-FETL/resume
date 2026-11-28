@@ -1,6 +1,6 @@
 import { Infinity as InfinityIcon } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import { useAiQuota } from '@/hooks/use-ai-quota'
 import { cn } from '@/lib/utils'
 import { getQuotaTone, getUsedPercent } from './utils'
@@ -14,12 +14,10 @@ export function QuotaMeter({ className }: { className?: string }) {
 
   if (loading) {
     return (
-      <div
-        className={cn('flex items-center justify-center gap-2 py-1', className)}
-      >
-        <Skeleton className='h-3 w-24' />
-        <Skeleton className='h-1 w-16 rounded-full' />
-      </div>
+      <LoadingStatus
+        label='正在读取 AI 额度'
+        className={cn('min-h-6 py-1 text-center text-xs', className)}
+      />
     )
   }
 

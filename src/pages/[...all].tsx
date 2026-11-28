@@ -6,7 +6,7 @@ import { WORKSPACE_PATH } from '@/lib/workspace-path'
 
 export default function NotFound() {
   return (
-    <PageLayout width='narrow' className='flex min-h-[60svh] items-center'>
+    <PageLayout className='flex min-h-[60svh] items-center'>
       <section className='mx-auto w-full max-w-md space-y-6 py-12'>
         <p className='text-sm font-medium tabular-nums text-muted-foreground'>
           404

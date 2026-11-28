@@ -5,8 +5,9 @@ export type FeatureGuideId = 'comments' | 'assistant-quote' | 'sorting'
 
 interface FeatureGuidesState {
   dismissed: Record<string, FeatureGuideId[]>
-  active: { id: FeatureGuideId; session: string } | null
+  active: { id: FeatureGuideId; session: string; step: number } | null
   claim: (id: FeatureGuideId, session: string) => boolean
+  setStep: (session: string, step: number) => void
   release: (session: string) => void
   dismiss: (account: string, id: FeatureGuideId) => void
 }
@@ -19,9 +20,14 @@ export const useFeatureGuidesStore = create<FeatureGuidesState>()(
       claim: (id, session) => {
         if (get().active && get().active?.session !== session) return false
 
-        set({ active: { id, session } })
+        set({ active: { id, session, step: 0 } })
 
         return true
+      },
+      setStep: (session, step) => {
+        const { active } = get()
+
+        if (active?.session === session) set({ active: { ...active, step } })
       },
       release: (session) => {
         if (get().active?.session === session) set({ active: null })

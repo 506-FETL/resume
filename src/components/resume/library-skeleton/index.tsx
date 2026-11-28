@@ -6,10 +6,10 @@ export function ResumeLibrarySkeleton() {
     <PageLayout
       role='status'
       aria-label='正在加载简历'
-      className='h-full min-h-0 gap-4 overflow-hidden py-4 sm:gap-6 sm:py-6 [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:py-1'
+      className='h-full min-h-0 overflow-hidden'
     >
-      <div className='shrink-0 space-y-4 sm:space-y-6 [@media(max-height:500px)]:space-y-1'>
-        <div className='[@media(max-height:500px)]:[&_h1]:text-xl [@media(max-height:500px)]:[&_header_p]:text-xs'>
+      <div className='shrink-0 space-y-(--page-section-gap)'>
+        <div className='[@media(max-height:500px)]:[&_header_p]:text-xs'>
           <PageHeader
             layout='compact'
             title='我的简历'

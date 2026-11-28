@@ -8,7 +8,6 @@ import { PresencePage } from '@/components/motion/presence-item'
 import { MotionProvider } from '@/components/motion/motion-provider'
 import { dashboardShell } from '@/components/layout/load-dashboard-shell'
 import { DashboardOpening } from '@/components/layout/dashboard-opening'
-import { PageLoading } from '@/components/page-loading'
 import { RouteSkeleton } from '@/components/route-skeleton'
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
@@ -248,28 +247,16 @@ function App() {
               ) : (
                 <Suspense
                   fallback={
-                    isWorkspaceHome(location.pathname) ||
-                    isResumeLibrary(location.pathname) ||
-                    archiveRoute ||
-                    shareManagement ||
-                    trackerPage ||
-                    galleryPage ||
-                    optimizePage ||
-                    historyPage ||
-                    assistantPage ? (
-                      <DashboardOpening
-                        fullBleed={assistantPage && authStatus !== 'anonymous'}
-                      >
-                        <RouteSkeleton
-                          shellPending
-                          pathname={location.pathname}
-                          location={location}
-                          guest={authStatus === 'anonymous'}
-                        />
-                      </DashboardOpening>
-                    ) : (
-                      <PageLoading label='正在打开工作台' />
-                    )
+                    <DashboardOpening
+                      fullBleed={assistantPage && authStatus !== 'anonymous'}
+                    >
+                      <RouteSkeleton
+                        shellPending
+                        pathname={location.pathname}
+                        location={location}
+                        guest={authStatus === 'anonymous'}
+                      />
+                    </DashboardOpening>
                   }
                 >
                   <DashboardShell

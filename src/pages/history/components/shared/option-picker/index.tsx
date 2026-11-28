@@ -4,7 +4,7 @@ import type { OptionWindow } from '../../../store/option-window'
 import { useEffect, useRef, useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { ContentSkeleton } from '@/components/loading-skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -133,7 +133,7 @@ export default function HistoryOptionPicker<Row>({
             </DropdownMenuItem>
           </>
         ) : data.loading || !data.ready ? (
-          <ContentSkeleton label={`正在加载${label}`} rows={2} />
+          <LoadingStatus label={`正在加载${label}`} />
         ) : data.hasMore ? (
           <DropdownMenuItem
             onSelect={(event) => {

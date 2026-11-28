@@ -17,7 +17,7 @@ import {
   PopoverTrigger,
 } from '@/components/ui/popover'
 import { Textarea } from '@/components/ui/textarea'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import { useHistoryMotion } from '../../../hooks/use-history-motion'
 import { historyComponent } from '../../../utils/load-component'
 import VersionJobPicker from '../version-job-picker'
@@ -33,7 +33,10 @@ const Calendar = createDeferredComponent<
 >(
   historyComponent(() => import('@/components/ui/calendar'), 'Calendar'),
   '投递日期',
-  <Skeleton className='h-72 w-64' />,
+  <LoadingStatus
+    label='正在加载日历'
+    className='grid h-68 w-64 place-items-center'
+  />,
   { wrapFallback: false },
 )
 

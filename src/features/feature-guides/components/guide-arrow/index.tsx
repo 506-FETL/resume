@@ -4,6 +4,7 @@ import { useLayoutEffect, useRef, useState } from 'react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { DURATION } from '@/lib/motion'
 import { gsap, useGSAP, guideEnterEase, guideExitEase } from '../../motion'
+import { guidePositionContext } from '../../use-guide-anchor'
 import { getArrowPlacement } from './placement'
 
 export default function GuideArrow({
@@ -13,7 +14,7 @@ export default function GuideArrow({
   onDrawn,
 }: {
   target: HTMLElement | null
-  popover: HTMLElement | null
+  popover: HTMLElement
   active: boolean
   onDrawn: () => void
 }) {
@@ -30,21 +31,25 @@ export default function GuideArrow({
   const [located, setLocated] = useState(false)
 
   const reduced = useReducedMotion()
+  const anchor = popover.parentElement!
 
   useLayoutEffect(() => {
-    if (!target || !popover || !active) return
-
-    const anchor =
-      popover.closest<HTMLElement>('[data-radix-popper-content-wrapper]') ??
-      popover
+    if (!target || !active) return
 
     const update = () => {
+      const bounds = anchor.getBoundingClientRect()
+
       const placement = getArrowPlacement(
         target.getBoundingClientRect(),
-        anchor.getBoundingClientRect(),
+        bounds,
       )
 
-      svgRef.current!.style.transform = `translate3d(${placement.x - 36}px, ${placement.y - 17}px, 0) rotate(${placement.angle}deg)`
+      const scaleX = bounds.width / anchor.offsetWidth || 1
+      const scaleY = bounds.height / anchor.offsetHeight || 1
+      const left = (placement.x - bounds.left) / scaleX - 36
+      const top = (placement.y - bounds.top) / scaleY - 17
+
+      svgRef.current!.style.transform = `translate3d(${left}px, ${top}px, 0) rotate(${placement.angle}deg)`
 
       if (!locatedRef.current) {
         locatedRef.current = true
@@ -52,9 +57,14 @@ export default function GuideArrow({
       }
     }
 
-    const stop = autoUpdate(target, anchor, update, {
-      animationFrame: target.id !== 'assistant-canvas-trigger',
-    })
+    const stop = autoUpdate(
+      {
+        contextElement: guidePositionContext(target),
+        getBoundingClientRect: () => target.getBoundingClientRect(),
+      },
+      anchor,
+      update,
+    )
 
     const observer = new MutationObserver(update)
 
@@ -64,7 +74,7 @@ export default function GuideArrow({
       stop()
       observer.disconnect()
     }
-  }, [target, popover, active])
+  }, [target, active, anchor])
 
   useGSAP(
     () => {
@@ -141,7 +151,7 @@ export default function GuideArrow({
       ref={rootRef}
       data-feature-guide-ui
       aria-hidden
-      className='feature-guide-arrow pointer-events-none fixed inset-0 z-70'
+      className='feature-guide-arrow pointer-events-none absolute inset-0'
     >
       <svg
         ref={svgRef}
@@ -179,6 +189,6 @@ export default function GuideArrow({
         <path ref={tipRef} data-guide-arrow-tip d='M -4 -3 L 0 0 L -4 3' />
       </svg>
     </div>,
-    document.body,
+    anchor,
   )
 }

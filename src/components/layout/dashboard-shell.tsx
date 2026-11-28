@@ -4,11 +4,11 @@ import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { useState } from 'react'
 import { PresencePage } from '@/components/motion/presence-item'
 import { AppSidebar } from '@/components/dashboard/app-sidebar'
+import { Data } from '@/components/dashboard/const'
 import { SiteHeader } from '@/components/dashboard/site-header'
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar'
 import { DURATION, EASE } from '@/lib/motion'
 import { cn } from '@/lib/utils'
-import { WORKSPACE_PATH } from '@/lib/workspace-path'
 import { DASHBOARD_SIDEBAR_WIDTH, readSidebarOpen } from './sidebar-preference'
 
 interface DashboardShellProps {
@@ -24,23 +24,21 @@ export function DashboardShell({
 }: DashboardShellProps) {
   const reduceMotion = useReducedMotion()
 
-  // Only application pages opt in; resume document containers keep their own layout.
-  const usesPageLayout = [
-    WORKSPACE_PATH,
-    '/resume',
-    '/experience',
-    '/template',
-    '/share',
-    '/tracker',
-    '/history',
-    '/optimize',
-    '/profile',
-    '/changelog',
-    '/login',
-    '/sign-up',
-    '/forgot-password',
-    '/reset-password',
-  ].includes(routeKey.replace(/\/$/, ''))
+  const path = routeKey.replace(/\/$/, '')
+
+  const sidebarPage =
+    path === '/assistant' || Data.modules.some(({ url }) => url === path)
+
+  const usesPageLayout =
+    sidebarPage ||
+    [
+      '/profile',
+      '/changelog',
+      '/login',
+      '/sign-up',
+      '/forgot-password',
+      '/reset-password',
+    ].includes(path)
 
   const [sidebarOpen, setSidebarOpen] = useState(readSidebarOpen)
 
@@ -81,13 +79,7 @@ export function DashboardShell({
           tabIndex={-1}
           aria-label='页面内容'
           role='region'
-          className={cn(
-            'min-h-0 min-w-0 flex-1 outline-none',
-            fullBleed
-              ? 'overflow-hidden'
-              : 'overflow-y-auto overflow-x-clip [scrollbar-gutter:stable]',
-            !fullBleed && !usesPageLayout && 'p-4',
-          )}
+          className='relative isolate min-h-0 min-w-0 flex-1 overflow-hidden outline-none'
           style={
             usesPageLayout || fullBleed
               ? {
@@ -97,10 +89,10 @@ export function DashboardShell({
               : undefined
           }
         >
-          <AnimatePresence mode='wait' initial={false}>
+          <AnimatePresence mode={sidebarPage ? 'sync' : 'wait'} initial={false}>
             <PresencePage
               key={routeKey}
-              initial={{ opacity: reduceMotion ? 1 : 0 }}
+              initial={reduceMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{
                 opacity: 0,
@@ -113,9 +105,16 @@ export function DashboardShell({
                 duration: reduceMotion ? 0 : DURATION.base,
                 ease: EASE.out,
               }}
-              className='h-full min-h-0 w-full'
+              className={cn(
+                'absolute inset-0 z-1 bg-background [&[inert]]:z-0 motion-reduce:opacity-100! motion-reduce:[&[inert]]:hidden',
+                fullBleed
+                  ? 'overflow-hidden'
+                  : 'overflow-y-auto overflow-x-clip [scrollbar-gutter:stable]',
+                !fullBleed && !usesPageLayout && 'p-4',
+              )}
             >
-              {children}
+              {/* 页内列表和表单只处理自己的进出，由外层独立完成路由退场。 */}
+              <AnimatePresence initial={false}>{children}</AnimatePresence>
             </PresencePage>
           </AnimatePresence>
         </div>

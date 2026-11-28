@@ -1,6 +1,6 @@
 import { Infinity as InfinityIcon } from 'lucide-react'
 import { Progress } from '@/components/ui/progress'
-import { Skeleton } from '@/components/ui/skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import { useAiQuota } from '@/hooks/use-ai-quota'
 import { cn } from '@/lib/utils'
 import { getPlanBadge, getQuotaTone, getUsedPercent } from './utils'
@@ -14,10 +14,10 @@ export function QuotaMenuRow() {
 
   if (loading) {
     return (
-      <div className='flex flex-col gap-1.5 px-2 py-1.5'>
-        <Skeleton className='h-3 w-28' />
-        <Skeleton className='h-1.5 w-full rounded-full' />
-      </div>
+      <LoadingStatus
+        label='正在读取 AI 额度'
+        className='min-h-7 px-2 py-1.5 text-xs'
+      />
     )
   }
 

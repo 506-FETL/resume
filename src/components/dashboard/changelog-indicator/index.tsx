@@ -34,7 +34,7 @@ export function ChangelogIndicator({ className }: { className?: string }) {
           ease: EASE.out,
         }}
       >
-        <span className='sr-only'>有新更新</span>
+        <span className='sr-only'>有未读更新</span>
       </motion.span>
     </Badge>
   )

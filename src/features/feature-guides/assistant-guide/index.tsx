@@ -4,6 +4,7 @@ import GuidePresentation from '../components/guide-presentation'
 import SelectionDemo, { type GuideSelection } from '../selection'
 import { pickGuideSelection } from '../selection/geometry'
 import type { GuideStep } from '../types'
+import { findGuideTarget } from '../use-guide-anchor'
 import { useFeatureGuide } from '../use-feature-guide'
 import ReferenceDemo from './reference-demo'
 
@@ -18,7 +19,7 @@ const steps: GuideStep[] = [
   {
     target: '[data-feature-guide-canvas-header]',
     title: '在画布里找到原文',
-    description: '打开「简历」，就能对照原文和 AI 讨论。',
+    description: '在「简历预览」里，你可以对照原文和 AI 讨论。',
     animated: true,
     side: 'left',
   },
@@ -121,24 +122,27 @@ export default function AssistantGuide() {
 
     let frame = 0
     let finished = false
+    let inspectedRoot: HTMLElement | null = null
+    let inspectedStatus: string | undefined
     let previousBounds = ''
 
     const inspect = () => {
       if (finished) return
 
-      const root = document.querySelector<HTMLElement>(
-        '[data-feature-guide-preview-status]',
-      )
+      const root = findGuideTarget('[data-feature-guide-preview-status]')
 
       const status = root?.dataset.featureGuidePreviewStatus
 
+      if (!root) return
+      if (index === 1 && root === inspectedRoot && status === inspectedStatus)
+        return
       if (status !== 'ready' && status !== 'empty' && status !== 'error') return
 
-      const canvas = root!.closest<HTMLElement>('[data-assistant-canvas]')
+      const canvas = root.closest<HTMLElement>('[data-assistant-canvas]')
 
       const bounds = JSON.stringify([
         canvas?.getBoundingClientRect().toJSON(),
-        root!.getBoundingClientRect().toJSON(),
+        root.getBoundingClientRect().toJSON(),
       ])
 
       const opening = canvas
@@ -157,9 +161,12 @@ export default function AssistantGuide() {
         return
       }
 
-      const next = status === 'ready' ? pickGuideSelection(root!) : null
+      const next = status === 'ready' ? pickGuideSelection(root) : null
 
-      finished = true
+      // 空态、分页与已排版正文可能先后挂载；后到的正文仍可继续演示。
+      finished = index === 2
+      inspectedRoot = next || status !== 'ready' ? root : null
+      inspectedStatus = status
       setUnavailable(!next)
 
       if (index === 1) ready()
@@ -174,7 +181,12 @@ export default function AssistantGuide() {
 
     observer.observe(document.body, {
       attributes: true,
-      attributeFilter: ['data-feature-guide-preview-status'],
+      attributeFilter: [
+        'data-feature-guide-preview-status',
+        'data-feature-guide-canvas-resume',
+        'aria-hidden',
+        'inert',
+      ],
       childList: true,
       subtree: true,
     })
@@ -191,6 +203,7 @@ export default function AssistantGuide() {
     <>
       {selection && (
         <SelectionDemo
+          blocked={guide.blocked}
           selection={selection}
           phase='select'
           visible={guide.active && guide.index === 2}
@@ -198,10 +211,11 @@ export default function AssistantGuide() {
           actionLabel='引用到对话'
           onAction={guide.next}
           onReady={guide.ready}
-          onUnavailable={guide.close}
+          onUnavailable={guide.interrupt}
         />
       )}
       <ReferenceDemo
+        blocked={guide.blocked}
         visible={guide.active && guide.index === 3}
         quote={selection?.text ?? ''}
         onReady={guide.ready}

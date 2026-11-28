@@ -24,8 +24,10 @@ import type { ExperienceSourceReference } from '@/lib/experience-sources/types'
 import { ExperienceSourceError } from '@/lib/experience-sources/types'
 import { persistExperienceUpload } from '@/lib/experience-sources/upload'
 import { useExperienceSourcesStore } from '@/store/experience-sources'
+import { useReducedMotion } from '@/hooks/use-reduced-motion'
+import { cn } from '@/lib/utils'
 import { Upload } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useLayoutEffect, useRef, useState } from 'react'
 import { experienceError } from '../utils'
 
 export type { ExperienceUploadDialogProps } from './types'
@@ -44,6 +46,7 @@ function UploadDialogContent({
   initialTab = 'files',
   sourceId,
 }: ExperienceUploadDialogProps) {
+  const reduced = useReducedMotion()
   const [tab, setTab] = useState<UploadTab>(initialTab)
   const [title, setTitle] = useState('')
   const [text, setText] = useState('')
@@ -51,6 +54,13 @@ function UploadDialogContent({
   const [saving, setSaving] = useState(false)
   const savingRef = useRef(false)
   const [fileError, setFileError] = useState<string | null>(null)
+
+  const panelClass = cn(
+    'col-start-1 row-start-1 min-w-0 data-[state=inactive]:invisible data-[state=inactive]:opacity-0',
+    !reduced &&
+      'transition-opacity duration-(--ui-motion-fast) ease-(--ui-motion-enter-ease)',
+  )
+
   const onCompleteRef = useRef(onComplete)
   const pasteDraftRef = useRef({ title, text })
 
@@ -76,7 +86,19 @@ function UploadDialogContent({
 
   onCompleteRef.current = onComplete
 
-  useEffect(() => {
+  // 在浮层隔离背景前移入焦点；切换表单时不再干预用户的光标。
+  const focusEntryTab = useCallback(
+    (body: HTMLDivElement | null) => {
+      body
+        ?.querySelector<HTMLButtonElement>(
+          `[role="tab"][data-tab-value="${initialTab}"]`,
+        )
+        ?.focus({ preventScroll: true })
+    },
+    [initialTab],
+  )
+
+  useLayoutEffect(() => {
     if (open) setTab(initialTab)
   }, [open, initialTab])
 
@@ -248,9 +270,9 @@ function UploadDialogContent({
       returnFocusTo={returnFocusTo}
       open={open}
       onOpenChange={onOpenChange}
-      contentClassName='h-[min(40rem,60dvh)] max-h-[85dvh] sm:max-w-[560px] [--drawer-content-height:min(40rem,85dvh)]! [--drawer-content-max-height:85dvh]!'
+      contentClassName='gap-0 max-h-[85dvh] sm:max-w-lg [--drawer-content-height:auto]! [--drawer-content-max-height:85dvh]!'
     >
-      <ResponsiveDialogHeader className='shrink-0 px-6 pt-6 pb-3'>
+      <ResponsiveDialogHeader className='shrink-0 px-5 pt-4 pb-3 md:pr-12 md:pt-5'>
         <ResponsiveDialogTitle>
           {sourceId ? '上传新版本' : '添加职业档案'}
         </ResponsiveDialogTitle>
@@ -258,9 +280,12 @@ function UploadDialogContent({
           选择文件或粘贴文字，然后保存到职业档案。
         </ResponsiveDialogDescription>
       </ResponsiveDialogHeader>
-      <div className='min-h-0 flex-1 overflow-y-auto px-6 pb-4'>
+      <div
+        ref={open ? focusEntryTab : undefined}
+        className='min-h-0 overflow-y-auto overscroll-contain px-5 pb-4'
+      >
         <Tabs
-          className='h-full'
+          className='gap-3'
           value={tab}
           onValueChange={(value) => setTab(value as UploadTab)}
         >
@@ -272,67 +297,90 @@ function UploadDialogContent({
               粘贴文字
             </TabsTrigger>
           </TabsList>
-          <TabsContent value='files' className='pt-3 content-center'>
-            <FileUpload
-              disabled={saving}
-              value={jobs.flatMap((job) => (job.file ? [job.file] : []))}
-              label='选择职业档案文件'
-              maxSize={EXPERIENCE_MAX_BYTES}
-              multiple={!sourceId}
-              maxFiles={sourceId ? 1 : undefined}
-              onAccept={addFiles}
-              onFileReject={(file) =>
-                setFileError(
-                  `${file.name}：${file.size > EXPERIENCE_MAX_BYTES ? '文件超过 10 MB。' : '更新版本时请一次选择一份文件。'}`,
-                )
-              }
+          <div className='grid'>
+            <TabsContent
+              value='files'
+              forceMount
+              inert={tab !== 'files'}
+              className={cn(panelClass, 'flex flex-col')}
             >
-              <FileUploadDropzone className='min-h-44 gap-3'>
-                <Upload className='size-7 text-muted-foreground' aria-hidden />
-                <p className='text-sm'>拖入文件，或选择本机文件</p>
-                <p className='text-xs text-muted-foreground'>
-                  单份文件不超过 10 MB
+              <FileUpload
+                className='flex-1'
+                disabled={saving}
+                value={jobs.flatMap((job) => (job.file ? [job.file] : []))}
+                label='选择职业档案文件'
+                maxSize={EXPERIENCE_MAX_BYTES}
+                multiple={!sourceId}
+                maxFiles={sourceId ? 1 : undefined}
+                onAccept={addFiles}
+                onFileReject={(file) =>
+                  setFileError(
+                    `${file.name}：${file.size > EXPERIENCE_MAX_BYTES ? '文件超过 10 MB。' : '更新版本时请一次选择一份文件。'}`,
+                  )
+                }
+              >
+                <FileUploadDropzone className='grid flex-1 grid-cols-[minmax(0,1fr)_auto] gap-x-3 rounded-lg border p-4 sm:grid-cols-[auto_minmax(0,1fr)_auto]'>
+                  <Upload
+                    className='hidden size-5 text-muted-foreground sm:block'
+                    aria-hidden
+                  />
+                  <div className='min-w-0 space-y-1'>
+                    <p className='text-sm font-medium'>
+                      <span className='hidden md:inline'>将文件拖到这里</span>
+                      <span className='md:hidden'>从设备添加文件</span>
+                    </p>
+                    <p className='text-xs text-muted-foreground'>
+                      {sourceId
+                        ? '每次一份，最大 10 MB'
+                        : '可多选，每份限 10 MB'}
+                    </p>
+                  </div>
+                  <FileUploadTrigger asChild>
+                    <Button variant='outline'>选择文件</Button>
+                  </FileUploadTrigger>
+                </FileUploadDropzone>
+              </FileUpload>
+              {fileError && (
+                <p role='alert' className='mt-2 text-sm text-destructive'>
+                  {fileError}
                 </p>
-                <FileUploadTrigger asChild>
-                  <Button variant='outline'>选择文件</Button>
-                </FileUploadTrigger>
-              </FileUploadDropzone>
-            </FileUpload>
-            {fileError && (
-              <p role='alert' className='mt-2 text-sm text-destructive'>
-                {fileError}
-              </p>
-            )}
-          </TabsContent>
-          <TabsContent value='paste' className='space-y-3 pt-3 content-center'>
-            <div className='space-y-2'>
-              <Label htmlFor='experience-title'>资料名称（选填）</Label>
-              <Input
-                id='experience-title'
-                disabled={saving || unresolvedPaste}
-                value={title}
-                maxLength={160}
-                onChange={(event) => setTitle(event.target.value)}
-                placeholder='例如：项目复盘'
-              />
-            </div>
-            <div className='space-y-2'>
-              <Label htmlFor='experience-text'>资料内容</Label>
-              <Textarea
-                id='experience-text'
-                className='min-h-44 max-h-64'
-                disabled={saving || unresolvedPaste}
-                value={text}
-                maxLength={60000}
-                onChange={(event) => setText(event.target.value)}
-                placeholder='粘贴职业背景、工作经历、项目记录等内容'
-              />
-            </div>
-          </TabsContent>
+              )}
+            </TabsContent>
+            <TabsContent
+              value='paste'
+              forceMount
+              inert={tab !== 'paste'}
+              className={cn(panelClass, 'space-y-2.5')}
+            >
+              <div className='space-y-2'>
+                <Label htmlFor='experience-title'>资料名称（选填）</Label>
+                <Input
+                  id='experience-title'
+                  disabled={saving || unresolvedPaste}
+                  value={title}
+                  maxLength={160}
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder='例如：项目复盘'
+                />
+              </div>
+              <div className='space-y-2'>
+                <Label htmlFor='experience-text'>资料内容</Label>
+                <Textarea
+                  id='experience-text'
+                  className='h-20 min-h-20 resize-none field-sizing-fixed'
+                  disabled={saving || unresolvedPaste}
+                  value={text}
+                  maxLength={60000}
+                  onChange={(event) => setText(event.target.value)}
+                  placeholder='粘贴职业背景、工作经历、项目记录等内容'
+                />
+              </div>
+            </TabsContent>
+          </div>
         </Tabs>
         <UploadJobList jobs={jobs} saving={saving} setJobs={setJobs} />
       </div>
-      <ResponsiveDialogFooter>
+      <ResponsiveDialogFooter className='px-5 py-3 max-md:pb-[max(0.75rem,env(safe-area-inset-bottom))]'>
         <Button disabled={saving || !canSave} onClick={save}>
           {saving && <Spinner />}
           {saving

@@ -22,6 +22,7 @@ import { DURATION } from '@/lib/motion'
 import { guideEnterEase, gsap, useGSAP } from '../motion'
 
 interface CommentDemoProps {
+  blocked: boolean
   phase: 'intro' | 'send' | null
   quote: string
   onClose: () => void
@@ -44,6 +45,7 @@ function readMobile() {
 
 export default function CommentDemo({
   phase,
+  blocked,
   quote,
   onClose,
   onReady,
@@ -184,6 +186,7 @@ export default function CommentDemo({
         ref={setContent}
         data-feature-guide-ui
         data-feature-guide-demo='comment'
+        data-guide-blocked={blocked || undefined}
         initialFocus={false}
         finalFocus={false}
         className='print:hidden'

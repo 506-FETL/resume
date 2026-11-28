@@ -15,7 +15,7 @@ import {
   Send,
   Users,
 } from 'lucide-react'
-import { PageLayout } from '@/components/layout/page-layout'
+import { PageLayout, PageTitle } from '@/components/layout/page-layout'
 import { LoadingRegion } from '@/components/loading-skeleton'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -145,15 +145,10 @@ export function TrackerPageSkeleton() {
   const isMobile = useIsMobile()
 
   return (
-    <PageLayout
-      workspace
-      className='min-h-0 gap-4 md:gap-2 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:py-2'
-    >
-      <header className='flex shrink-0 items-center justify-between gap-2'>
+    <PageLayout workspace>
+      <header className='flex shrink-0 items-start justify-between gap-2'>
         <div className='flex min-w-0 flex-col gap-x-4 md:flex-row md:items-center'>
-          <h1 className='text-2xl leading-8 font-semibold tracking-tight'>
-            求职跟进
-          </h1>
+          <PageTitle>求职跟进</PageTitle>
           <div className='flex items-center gap-1 text-xs text-muted-foreground'>
             {isMobile && (
               <>

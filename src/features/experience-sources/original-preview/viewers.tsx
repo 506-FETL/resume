@@ -1,5 +1,5 @@
 import { createDeferredComponent } from '@/components/deferred-content'
-import { Skeleton } from '@/components/ui/skeleton'
+import { OriginalPreviewPlaceholder } from './placeholder'
 import { loadPdfEngine } from './pdf-engine'
 
 export const PdfPreview = createDeferredComponent(
@@ -12,27 +12,27 @@ export const PdfPreview = createDeferredComponent(
     return viewer
   },
   'PDF 预览',
-  <Skeleton className='aspect-[210/297] w-full' />,
+  <OriginalPreviewPlaceholder kind='pdf' />,
   { wrapFallback: false },
 )
 
 export const DocxPreview = createDeferredComponent(
   () => import('./docx-preview'),
   'DOCX 预览',
-  <Skeleton className='aspect-[210/297] w-full' />,
+  <OriginalPreviewPlaceholder kind='docx' />,
   { wrapFallback: false },
 )
 
 export const SpreadsheetPreview = createDeferredComponent(
   () => import('./spreadsheet-preview'),
   '表格预览',
-  <Skeleton className='h-80 w-full' />,
+  <OriginalPreviewPlaceholder kind='spreadsheet' />,
   { wrapFallback: false },
 )
 
 export const ImagePreview = createDeferredComponent(
   () => import('./image-preview'),
   '图片预览',
-  <Skeleton className='aspect-[4/3] w-full' />,
+  <OriginalPreviewPlaceholder kind='image' />,
   { wrapFallback: false },
 )

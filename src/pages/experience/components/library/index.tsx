@@ -19,6 +19,7 @@ import { CONTENT_SWITCH } from '@/lib/motion'
 import { cn } from '@/lib/utils'
 import { EXPERIENCE_GRID_CLASS } from '../../const'
 import { useExperienceList } from '../../hooks/use-experience-list'
+import { DeferredExperienceUploadDialog } from '@/features/experience-sources/deferred-upload-dialog'
 import { useExperiencePageStore } from '../../store'
 import LibraryToolbar from '../library-toolbar'
 import LibrarySelection from '../library-selection'
@@ -119,7 +120,7 @@ export default function ExperienceLibrary({
 
   return (
     <div className='flex min-h-0 min-w-0 flex-1 flex-col gap-5'>
-      <div className='shrink-0'>
+      <div className='flex shrink-0 flex-col gap-(--page-section-gap)'>
         <PageHeader
           title='职业档案'
           actions={
@@ -127,6 +128,8 @@ export default function ExperienceLibrary({
               <Button
                 variant='outline'
                 disabled={deleting}
+                onPointerEnter={DeferredExperienceUploadDialog.preload}
+                onFocus={DeferredExperienceUploadDialog.preload}
                 onClick={() => openUpload('paste')}
               >
                 粘贴文字
@@ -134,6 +137,8 @@ export default function ExperienceLibrary({
               <Button
                 data-experience-upload
                 disabled={deleting}
+                onPointerEnter={DeferredExperienceUploadDialog.preload}
+                onFocus={DeferredExperienceUploadDialog.preload}
                 onClick={() => openUpload('files')}
               >
                 <Upload />
@@ -142,8 +147,8 @@ export default function ExperienceLibrary({
             </>
           }
         />
+        <LibraryToolbar />
       </div>
-      <LibraryToolbar />
       <div className='shrink-0'>
         <div className='flex min-h-8 items-center justify-between gap-3 text-xs text-muted-foreground'>
           <p aria-live='polite'>
@@ -237,12 +242,22 @@ export default function ExperienceLibrary({
                       </Button>
                     ) : (
                       <>
-                        <Button onClick={() => openUpload('files')}>
+                        <Button
+                          onPointerEnter={
+                            DeferredExperienceUploadDialog.preload
+                          }
+                          onFocus={DeferredExperienceUploadDialog.preload}
+                          onClick={() => openUpload('files')}
+                        >
                           <Upload />
                           上传资料
                         </Button>
                         <Button
                           variant='outline'
+                          onPointerEnter={
+                            DeferredExperienceUploadDialog.preload
+                          }
+                          onFocus={DeferredExperienceUploadDialog.preload}
                           onClick={() => openUpload('paste')}
                         >
                           粘贴文字

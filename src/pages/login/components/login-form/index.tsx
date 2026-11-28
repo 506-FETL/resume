@@ -1,3 +1,4 @@
+import { PageTitle } from '@/components/layout/page-layout'
 import { AnimatePresence, motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import React, { useState } from 'react'
@@ -51,11 +52,9 @@ export function LoginForm({ redirect, className, ...props }: LoginFormProps) {
 
   return (
     <div className={cn('flex flex-col gap-6', className)} {...props}>
-      <Card className='gap-8 overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
+      <Card className='gap-(--page-section-gap) overflow-visible rounded-none bg-transparent py-0 shadow-none ring-0'>
         <CardHeader className='gap-3 px-0'>
-          <h1 className='text-2xl leading-tight font-semibold tracking-tight sm:text-[1.75rem]'>
-            登录
-          </h1>
+          <PageTitle>登录</PageTitle>
         </CardHeader>
         <CardContent className='px-0'>
           <form onSubmit={handleLogin}>

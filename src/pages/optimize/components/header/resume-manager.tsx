@@ -12,7 +12,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { ContentSkeleton } from '@/components/loading-skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import { cn } from '@/lib/utils'
 import useAtsStore from '../../store'
 import { ResumeItem } from './resume-item'
@@ -72,7 +72,7 @@ export function ResumeManager() {
             }
           >
             {initialLoading ? (
-              <ContentSkeleton label='正在加载简历列表' rows={3} />
+              <LoadingStatus label='正在加载简历列表' />
             ) : (
               <div className='space-y-4'>
                 {groups.map(({ label, source, page }) => (
@@ -107,7 +107,7 @@ export function ResumeManager() {
                       ))}
                     </AnimatedContent>
                     {page.loading && !page.items.length && (
-                      <ContentSkeleton label={`正在加载${label}`} rows={2} />
+                      <LoadingStatus label={`正在加载${label}`} />
                     )}
                     {(page.error || page.hasMore) && (
                       <div className='flex items-center justify-between gap-3 text-xs text-muted-foreground'>

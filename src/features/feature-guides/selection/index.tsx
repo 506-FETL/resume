@@ -12,6 +12,7 @@ import { readGuideRects } from './geometry'
 export type { GuideSelection } from './types'
 
 interface SelectionDemoProps {
+  blocked: boolean
   selection: GuideSelection
   phase: 'select' | 'action' | 'highlight'
   actionLabel: string
@@ -24,6 +25,7 @@ interface SelectionDemoProps {
 
 export default function SelectionDemo({
   selection,
+  blocked,
   phase,
   actionLabel,
   onAction,
@@ -46,7 +48,10 @@ export default function SelectionDemo({
   const bounds = getBounds(rects)
 
   const actionShown =
-    (phase === 'action' || (phase === 'select' && selectionComplete)) && visible
+    (phase === 'action' || (phase === 'select' && selectionComplete)) &&
+    visible &&
+    !blocked &&
+    rects.length > 0
 
   const shape = rects
     .map((rect) =>
@@ -67,7 +72,7 @@ export default function SelectionDemo({
   useLayoutEffect(() => {
     const root = rootRef.current
 
-    if (!root || !visible) return
+    if (!root || !visible || blocked) return
 
     unavailableRef.current = false
 
@@ -80,7 +85,7 @@ export default function SelectionDemo({
           : nextRects,
       )
 
-      if (nextRects.length === 0 && !unavailableRef.current) {
+      if (!selection.element.isConnected && !unavailableRef.current) {
         unavailableRef.current = true
         onUnavailableRef.current?.()
       }
@@ -103,7 +108,7 @@ export default function SelectionDemo({
       window.visualViewport?.removeEventListener('resize', update)
       window.visualViewport?.removeEventListener('scroll', update)
     }
-  }, [selection, visible])
+  }, [blocked, selection, visible])
 
   useGSAP(
     () => {
@@ -240,6 +245,7 @@ export default function SelectionDemo({
     <div
       ref={rootRef}
       data-feature-guide-ui
+      data-guide-blocked={blocked || undefined}
       className='pointer-events-none fixed z-[61] print:hidden'
       style={{ ...bounds, visibility: rects.length ? 'visible' : 'hidden' }}
     >

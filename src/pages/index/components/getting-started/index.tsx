@@ -45,15 +45,15 @@ export default function GettingStarted({
             id='getting-started-title'
             className='text-xl font-semibold tracking-tight sm:text-2xl'
           >
-            创建你的第一份简历
+            打造你的第一份简历
           </h2>
           <p className='mt-3 max-w-lg text-sm leading-6 text-muted-foreground'>
-            可以导入旧简历，也可以选择示例开始写。
+            可以导入 也可以从空白开始创建
           </p>
           <div className='mt-5 flex flex-wrap gap-2'>
             <Button onClick={onCreate} disabled={!onCreate}>
               <FilePlus2 aria-hidden />
-              创建第一份简历
+              创建简历
             </Button>
             <Button asChild variant='outline'>
               <Link to='/template'>
@@ -80,13 +80,6 @@ export default function GettingStarted({
         </ol>
       </div>
       <div className='flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t bg-muted/20 px-5 py-3 text-xs leading-5 text-muted-foreground sm:px-6'>
-        {isAuthenticated ? (
-          <p>已经有想投的岗位？可以先记到求职看板里。</p>
-        ) : (
-          <p>
-            不登录也能使用，简历会保存在这个浏览器里。清理浏览器数据前，记得导出备份或登录同步。
-          </p>
-        )}
         <Link
           to={isAuthenticated ? '/tracker' : '/login?redirect=%2Fresume'}
           className='inline-flex shrink-0 items-center gap-1 rounded-sm text-foreground underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'

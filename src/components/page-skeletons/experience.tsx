@@ -7,6 +7,7 @@ import {
   InputGroupAddon,
   InputGroupInput,
 } from '@/components/ui/input-group'
+import { LoadingStatus } from '@/components/loading-status'
 import { Skeleton } from '@/components/ui/skeleton'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { EXPERIENCE_GRID_CLASS } from '@/pages/experience/const'
@@ -23,7 +24,7 @@ export function ExperienceReadingSkeleton() {
       <div className='mx-auto w-full max-w-[65ch] space-y-4 px-1'>
         <Skeleton className='h-8 w-1/2' />
         <Skeleton className='h-4 w-1/3' />
-        <Skeleton className='aspect-[210/297] w-full' />
+        <LoadingStatus label='正在读取资料内容' className='px-0' />
       </div>
     </PageLayout>
   )
@@ -67,51 +68,63 @@ export function ExperienceRowsSkeleton({
 export function ExperiencePageSkeleton() {
   return (
     <PageLayout workspace className='gap-5'>
-      <PageHeader
-        title='职业档案'
-        actions={
-          <>
-            <Button variant='outline' disabled>
-              粘贴文字
+      <div className='flex shrink-0 flex-col gap-(--page-section-gap)'>
+        <PageHeader
+          title='职业档案'
+          actions={
+            <>
+              <Button variant='outline' disabled>
+                粘贴文字
+              </Button>
+              <Button disabled>
+                <Upload />
+                上传资料
+              </Button>
+            </>
+          }
+        />
+        <div className='grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 @min-[700px]/workspace:grid-cols-[auto_minmax(0,1fr)_auto]'>
+          <Tabs value='all'>
+            <TabsList variant='line'>
+              <TabsTrigger value='all' disabled>
+                全部
+              </TabsTrigger>
+              <TabsTrigger value='files' disabled>
+                文件
+              </TabsTrigger>
+              <TabsTrigger value='paste' disabled>
+                文字
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+          <InputGroup className='col-span-2 row-start-2 @min-[700px]/workspace:col-span-1 @min-[700px]/workspace:col-start-2 @min-[700px]/workspace:row-start-1 @min-[700px]/workspace:max-w-sm @min-[700px]/workspace:justify-self-end'>
+            <InputGroupAddon>
+              <Search aria-hidden />
+            </InputGroupAddon>
+            <InputGroupInput placeholder='搜索资料名称' disabled />
+          </InputGroup>
+          <ButtonGroup
+            aria-label='资料显示方式'
+            className='col-start-2 row-start-1 @min-[700px]/workspace:col-start-3'
+          >
+            <Button
+              variant='outline'
+              size='icon'
+              disabled
+              aria-label='网格视图'
+            >
+              <Grid2X2 />
             </Button>
-            <Button disabled>
-              <Upload />
-              上传资料
+            <Button
+              variant='outline'
+              size='icon'
+              disabled
+              aria-label='列表视图'
+            >
+              <List />
             </Button>
-          </>
-        }
-      />
-      <div className='grid shrink-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-3 @min-[700px]/workspace:grid-cols-[auto_minmax(0,1fr)_auto]'>
-        <Tabs value='all'>
-          <TabsList variant='line'>
-            <TabsTrigger value='all' disabled>
-              全部
-            </TabsTrigger>
-            <TabsTrigger value='files' disabled>
-              文件
-            </TabsTrigger>
-            <TabsTrigger value='paste' disabled>
-              文字
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-        <InputGroup className='col-span-2 row-start-2 @min-[700px]/workspace:col-span-1 @min-[700px]/workspace:col-start-2 @min-[700px]/workspace:row-start-1 @min-[700px]/workspace:max-w-sm @min-[700px]/workspace:justify-self-end'>
-          <InputGroupAddon>
-            <Search aria-hidden />
-          </InputGroupAddon>
-          <InputGroupInput placeholder='搜索资料名称' disabled />
-        </InputGroup>
-        <ButtonGroup
-          aria-label='资料显示方式'
-          className='col-start-2 row-start-1 @min-[700px]/workspace:col-start-3'
-        >
-          <Button variant='outline' size='icon' disabled aria-label='网格视图'>
-            <Grid2X2 />
-          </Button>
-          <Button variant='outline' size='icon' disabled aria-label='列表视图'>
-            <List />
-          </Button>
-        </ButtonGroup>
+          </ButtonGroup>
+        </div>
       </div>
       <div className='flex min-h-8 shrink-0 items-center justify-between gap-3 text-xs text-muted-foreground'>
         <span>正在读取资料</span>

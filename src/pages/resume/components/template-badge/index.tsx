@@ -5,7 +5,6 @@ import { useEffect, useRef } from 'react'
 import { inView, useIsPresent } from 'motion/react'
 import AnimatedContent from '@/components/motion/animated-content'
 import { Badge } from '@/components/ui/badge'
-import { Skeleton } from '@/components/ui/skeleton'
 import { DURATION } from '@/lib/motion'
 import useResumeListStore from '../../store'
 
@@ -47,7 +46,7 @@ export default function TemplateBadge({
   return (
     <div ref={badgeRef} className='min-w-0 max-w-full'>
       <AnimatedContent
-        animationKey={`${templateId}:${label}:${loading ? 'loading' : resource?.status}`}
+        animationKey={`${templateId}:${label}`}
         className='min-h-5 min-w-0'
       >
         <div
@@ -58,20 +57,12 @@ export default function TemplateBadge({
             asChild
             variant='secondary'
             aria-label={title}
+            aria-busy={loading}
             className='max-w-full min-w-0 shrink transition-none'
           >
             <div>
-              {loading ? (
-                <div role='status'>
-                  <span className='sr-only'>正在加载模板名称</span>
-                  <Skeleton className='h-3 w-16' />
-                </div>
-              ) : (
-                <>
-                  <LayoutTemplate className='shrink-0' aria-hidden />
-                  <span className='truncate'>{label}</span>
-                </>
-              )}
+              <LayoutTemplate className='shrink-0' aria-hidden />
+              <span className='truncate'>{label}</span>
             </div>
           </Badge>
           {templateId && resource?.status === 'error' && (

@@ -196,10 +196,7 @@ function TrackerContent() {
 
   return (
     <>
-      <PageLayout
-        workspace
-        className='min-h-0 gap-4 md:gap-2 [@media(max-height:500px)]:gap-2 [@media(max-height:500px)]:py-2'
-      >
+      <PageLayout workspace>
         <TrackerHeader />
         <main
           aria-label='职位工作区'

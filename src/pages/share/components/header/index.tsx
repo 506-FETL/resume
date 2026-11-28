@@ -3,6 +3,7 @@ import { PageHeader } from '@/components/layout/page-layout'
 import { Button } from '@/components/ui/button'
 import useShareStore from '../../store'
 import Overview from '../overview'
+import { CreateShareDialog } from '../create-dialog/deferred'
 
 export default function Header() {
   const noResumes = useShareStore(
@@ -20,6 +21,8 @@ export default function Header() {
           <Button
             className='h-9 shrink-0 px-3 text-xs sm:text-sm'
             data-share-dialog-fallback=''
+            onPointerEnter={CreateShareDialog.preload}
+            onFocus={CreateShareDialog.preload}
             onClick={() => open(true)}
             disabled={noResumes}
           >

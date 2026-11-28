@@ -1,4 +1,4 @@
-import { ContentSkeleton } from '@/components/loading-skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import { Button } from '@/components/ui/button'
 import type { ReactNode } from 'react'
 import type { useOptionPage } from '../../hooks/use-option-page'
@@ -34,8 +34,7 @@ export function OptionResults({
       </div>
     )
 
-  if (result.loading)
-    return <ContentSkeleton rows={3} label={`正在加载${label}`} />
+  if (result.loading) return <LoadingStatus label={`正在加载${label}`} />
 
   if (!result.items.length && showEmpty)
     return (

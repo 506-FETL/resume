@@ -158,8 +158,8 @@ export default function ResumePage() {
 
   return (
     <>
-      <PageLayout className='h-full min-h-0 gap-4 overflow-hidden py-4 sm:gap-6 sm:py-6 [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:py-1'>
-        <div className='shrink-0 space-y-4 sm:space-y-6 [@media(max-height:500px)]:space-y-1'>
+      <PageLayout className='h-full min-h-0 overflow-hidden'>
+        <div className='shrink-0 space-y-(--page-section-gap)'>
           <div className='space-y-4 sm:space-y-6 [@media(max-height:500px)]:max-h-[calc(100dvh-16rem)] [@media(max-height:500px)]:space-y-1 [@media(max-height:500px)]:overflow-y-auto [@media(max-height:500px)]:overscroll-contain'>
             <div className='empty:hidden [@media(max-height:500px)]:[&>div]:flex-nowrap [@media(max-height:500px)]:[&_a]:h-9'>
               <JobContextBar />

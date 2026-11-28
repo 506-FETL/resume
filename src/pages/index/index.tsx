@@ -126,7 +126,7 @@ export default function DashboardPage() {
 
   return (
     <PageLayout>
-      <div className='relative flex min-w-0 flex-col gap-8'>
+      <div className='relative flex min-w-0 flex-col gap-(--page-section-gap)'>
         <div>
           <Header onCreate={openCreate} createDisabled={mode === 'pending'} />
         </div>
@@ -136,7 +136,7 @@ export default function DashboardPage() {
           animationKey={mode}
           mode='popLayout'
         >
-          <div className='flex min-w-0 flex-col gap-8'>
+          <div className='flex min-w-0 flex-col gap-(--page-section-gap)'>
             {mode === 'pending' ? (
               <DashboardPageSkeleton contentOnly />
             ) : (

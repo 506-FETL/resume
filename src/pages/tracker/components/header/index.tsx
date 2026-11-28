@@ -1,3 +1,4 @@
+import { PageTitle } from '@/components/layout/page-layout'
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useIsMobile } from '@/hooks/use-mobile'
@@ -22,11 +23,9 @@ export default function TrackerHeader() {
 
   if (isMobile) {
     return (
-      <header className='flex shrink-0 items-center justify-between gap-2'>
+      <header className='flex shrink-0 items-start justify-between gap-2'>
         <div className='min-w-0'>
-          <h1 className='text-2xl leading-8 font-semibold tracking-tight'>
-            求职跟进
-          </h1>
+          <PageTitle>求职跟进</PageTitle>
           <div className='flex items-center gap-1 text-xs text-muted-foreground'>
             <span className='tabular-nums'>
               {busy || error ? '—' : stats.total} 个职位
@@ -48,11 +47,9 @@ export default function TrackerHeader() {
   }
 
   return (
-    <header className='flex shrink-0 items-center justify-between gap-2'>
+    <header className='flex shrink-0 items-start justify-between gap-2'>
       <div className='flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1 sm:gap-x-4'>
-        <h1 className='text-xl leading-8 font-semibold tracking-tight sm:text-2xl'>
-          求职跟进
-        </h1>
+        <PageTitle>求职跟进</PageTitle>
         <ResponseRate />
         {retry}
       </div>

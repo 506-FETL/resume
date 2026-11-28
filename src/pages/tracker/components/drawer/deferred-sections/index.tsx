@@ -1,5 +1,5 @@
 import { createDeferredComponent } from '@/components/deferred-content'
-import { ContentSkeleton } from '@/components/loading-skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import type { ComponentProps } from 'react'
 
 export const DrawerStageDetail = createDeferredComponent<
@@ -18,10 +18,9 @@ export const TrackerCalendar = createDeferredComponent<
       default: Calendar,
     })),
   '日期选择器',
-  <ContentSkeleton
-    label='正在加载日期选择器'
-    rows={5}
-    className='min-h-64 min-w-60 p-4'
+  <LoadingStatus
+    label='正在加载日历'
+    className='grid h-68 w-64 place-items-center'
   />,
   { wrapFallback: false },
 )

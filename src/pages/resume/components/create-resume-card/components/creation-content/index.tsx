@@ -1,6 +1,6 @@
 import { createDeferredComponent } from '@/components/deferred-content'
 import CatalogSkeleton from '@/pages/template/components/catalog-skeleton'
-import { FormSkeleton } from '@/components/loading-skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import useResumeListStore from '@/pages/resume/store'
@@ -21,8 +21,6 @@ import type { CreationStep } from '../../types'
 const ImportPreview = createDeferredComponent(
   () => import('../import-preview'),
   '导入结果',
-  <FormSkeleton label='正在加载导入结果' className='px-0' />,
-  { wrapFallback: false },
 )
 
 const TemplatePicker = createDeferredComponent(
@@ -175,10 +173,7 @@ export default function CreationContent({
           </p>
         </div>
         {!draftReady ? (
-          <FormSkeleton
-            label='正在读取草稿'
-            className='min-h-[min(16rem,60dvh)] px-0'
-          />
+          <LoadingStatus label='正在读取草稿' className='px-0' />
         ) : (
           <>
             <div

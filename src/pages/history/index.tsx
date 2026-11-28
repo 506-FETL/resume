@@ -50,7 +50,7 @@ function History() {
     <PageLayout
       workspace
       {...surfaceProps}
-      className={`${surfaceProps.className} min-h-0 overflow-hidden [@media(max-height:500px)]:gap-1 [@media(max-height:500px)]:py-1`}
+      className={`${surfaceProps.className} overflow-hidden`}
     >
       <div className='shrink-0 empty:hidden [@media(max-height:500px)]:[&>div]:flex-nowrap'>
         <JobContextBar />

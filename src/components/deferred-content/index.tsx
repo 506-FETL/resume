@@ -3,7 +3,7 @@ import type { MotionProps } from 'motion/react'
 import { motion } from 'motion/react'
 import { lazy, Suspense, useState } from 'react'
 import { ErrorBoundary } from 'react-error-boundary'
-import { FormSkeleton } from '@/components/loading-skeleton'
+import { LoadingStatus } from '@/components/loading-status'
 import { Button } from '@/components/ui/button'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { fadeInUp } from '@/lib/motion'
@@ -15,7 +15,7 @@ interface DeferredModule<Props> {
 export function createDeferredComponent<Props extends object>(
   loader: () => Promise<DeferredModule<Props>>,
   label: string,
-  fallback?: ReactNode,
+  fallback?: ReactNode | ((props: Props) => ReactNode),
   options?: { wrapFallback?: boolean },
 ): ComponentType<Props> & {
   preload: () => Promise<DeferredModule<Props>>
@@ -75,12 +75,14 @@ export function createDeferredComponent<Props extends object>(
       >
         <Suspense
           fallback={
-            options?.wrapFallback === false ? (
+            typeof fallback === 'function' ? (
+              fallback(props)
+            ) : fallback === undefined ? (
+              <LoadingStatus label={`正在加载${label}`} />
+            ) : options?.wrapFallback === false ? (
               fallback
             ) : (
-              <motion.div {...feedbackMotion} className='py-3 text-center'>
-                {fallback ?? <FormSkeleton label={`正在加载${label}`} />}
-              </motion.div>
+              <div className='py-3 text-center'>{fallback}</div>
             )
           }
         >

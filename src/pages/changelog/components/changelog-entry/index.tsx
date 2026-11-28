@@ -4,21 +4,10 @@ import type { ChangelogEntry as ChangelogEntryType } from '../../types'
 import { motion } from 'motion/react'
 import { useReducedMotion } from '@/hooks/use-reduced-motion'
 import { isValidElement } from 'react'
-import { createDeferredComponent } from '@/components/deferred-content'
-import { Skeleton } from '@/components/ui/skeleton'
+import { CodeSnippet } from '@/components/ui/code-snippet'
 import { DURATION, EASE } from '@/lib/motion'
 import { formatDate } from '../../utils'
 import { MilestoneEntry } from '../milestone-entry'
-
-const CodeSnippet = createDeferredComponent(
-  () =>
-    import('@/components/ui/code-snippet').then(({ CodeSnippet }) => ({
-      default: CodeSnippet,
-    })),
-  '代码片段',
-  <Skeleton className='my-2 h-16' />,
-  { wrapFallback: false },
-)
 
 function MdxPre({ children }: { children?: ReactNode }) {
   if (!isValidElement<{ className?: string; children?: string }>(children)) {

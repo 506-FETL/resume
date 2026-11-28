@@ -88,7 +88,9 @@ export default function ShareDrawer({
                 ? returnFocusRef.current
                 : true
           }
-          className='min-w-0 overflow-clip p-0'
+          // 分包首次挂载时已打开，此时 Base UI 不会设置 data-starting-style。
+          className='min-w-0 overflow-clip p-0 data-open:starting:transform-(--closed-transform)'
+          overlayClassName='data-open:starting:opacity-0'
           style={
             {
               '--drawer-content-height': '100%',

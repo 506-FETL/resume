@@ -8,10 +8,12 @@ import { DURATION } from '@/lib/motion'
 import { gsap, guideEnterEase, guideExitEase, useGSAP } from '../motion'
 
 export default function ReferenceDemo({
+  blocked,
   visible,
   quote,
   onReady,
 }: {
+  blocked: boolean
   visible: boolean
   quote: string
   onReady: () => void
@@ -82,6 +84,7 @@ export default function ReferenceDemo({
       ref={rootRef}
       data-feature-guide-ui
       data-feature-guide-demo='reference'
+      data-guide-blocked={blocked || undefined}
       aria-hidden={!visible}
       className='feature-guide-reference pointer-events-none fixed z-60 space-y-2 rounded-xl bg-popover p-3 shadow-sm ring-1 ring-border'
       style={{
