@@ -31,11 +31,17 @@ function WorkspaceLink({ compact = false }: { compact?: boolean }) {
 }
 
 export default function PublicHomepage() {
-  const hero = useDeskMotion()
   const { role, selectRole } = useHomeReading()
+  const homeRef = useDeskMotion()
 
   return (
-    <div className='public-home' id='top' style={timing} tabIndex={-1}>
+    <div
+      ref={homeRef}
+      className='public-home'
+      id='top'
+      style={timing}
+      tabIndex={-1}
+    >
       <a href='#main' className='home-skip'>
         跳到正文
       </a>
@@ -51,11 +57,7 @@ export default function PublicHomepage() {
       </header>
       <main id='main' tabIndex={-1}>
         <div className='cover-runway'>
-          <section
-            className='home-hero'
-            aria-labelledby='home-title'
-            ref={hero}
-          >
+          <section className='home-hero' aria-labelledby='home-title'>
             <div className='cover-spine' aria-hidden='true'>
               <i />
               <i />

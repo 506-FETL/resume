@@ -1,4 +1,5 @@
 import { StrictMode } from 'react'
+import { preload } from 'react-dom'
 import { createRoot } from 'react-dom/client'
 import { dashboardShell } from '@/components/layout/load-dashboard-shell'
 import { isAssistantPage, selectAssistantPage } from '@/lib/assistant-route'
@@ -107,6 +108,17 @@ const root = createRoot(document.getElementById('root')!)
 
 async function loadPage() {
   if (isPublicHome) {
+    for (const font of [
+      new URL('./home/assets/sketch-cjk.woff2', import.meta.url),
+      new URL('./home/assets/sketch-latin.woff2', import.meta.url),
+    ]) {
+      preload(font.href, {
+        as: 'font',
+        type: 'font/woff2',
+        crossOrigin: 'anonymous',
+      })
+    }
+
     const { default: PublicHomepage } = await import('./home')
 
     return <PublicHomepage />

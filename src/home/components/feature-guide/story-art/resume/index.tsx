@@ -94,7 +94,9 @@ export function Resume({ role }: { role: DemoRole }) {
             </text>
           </g>
         </g>
-        <RubberStamp />
+        <g data-art='stamp-tool'>
+          <RubberStamp />
+        </g>
       </g>
     </g>
   )

@@ -63,7 +63,9 @@ export function StoryArt({ role }: { role: DemoRole }) {
         </g>
         <g data-paper-travel=''>
           <g clipPath={`url(#${pocketClipId})`}>
-            <Resume role={role} />
+            <g data-cover-insert=''>
+              <Resume role={role} />
+            </g>
           </g>
         </g>
         <VersionIndex />

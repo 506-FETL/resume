@@ -1,3 +1,5 @@
+import { RubberStamp } from '../feature-guide/story-art/rubber-stamp'
+
 const ink = '#202324'
 
 export function FolderBack() {
@@ -134,37 +136,56 @@ export function FolderPocket() {
         </text>
       </g>
       <g
-        transform='rotate(12 429 277)'
-        stroke='#2248a3'
-        fill='none'
-        strokeLinecap='round'
-        strokeLinejoin='round'
+        data-cover-postmark=''
+        transform='translate(430 278) rotate(8)'
+        fill='#254465'
       >
         <path
-          d='M372 279c0-17 25-31 58-31 35 0 61 12 61 28 0 18-26 33-60 33s-59-12-59-30Z'
-          strokeWidth='4'
-          strokeDasharray='105 2 38 3 147'
-        />
-        <path
-          d='M378 279c0-13 22-24 52-25 29 0 54 8 55 23 0 13-22 24-52 26-31 1-54-8-55-24Z'
-          strokeWidth='1.4'
-        />
-        <path
-          d='m385 277 29-10-8 20-6-8-15-2Zm15 2 14-12'
-          fill='#f5c555'
+          d='M-42 32V1c0-23 18-41 42-41S42-23 42 1v31q0 6-5 6l-74 1q-5 0-5-7Z'
+          fill='none'
+          stroke='#254465'
           strokeWidth='2'
         />
+        <path
+          fillRule='evenodd'
+          d='M-36-2c2-19 17-32 36-32S34-21 36-2C22-5 11-4 0 2-12-4-23-5-36-2Z
+             M-7-11a7 7 0 1 0 14 0 7 7 0 1 0-14 0Z
+             M-1-22l-.4-6.5h2.8L1-22Z
+             M-9.8-19.7l-4.5-5.2-1.8 1.6 5.1 4.7Z
+             M9.8-19.7l4.5-5.2 1.8 1.6-5.1 4.7Z
+             M-14.4-12.5l-7.3-2.1-.6 2.1 7.6 1.2Z
+             M14.4-12.5l7.3-2.1.6 2.1-7.6 1.2Z'
+        />
+        <path
+          fillRule='evenodd'
+          d='M-32 1q18-2 30.8 5.7L-1 18q-13-7.8-31-6.7Z
+             M-27 4q10.9-.3 19.6 4.4-9.6-3.1-19.6-2.8Z
+             M32 1Q14-.9 1.2 6.7L1 18q13-7.8 31-6.7Z
+             M27 4q-10.9-.3-19.6 4.4Q17 5.3 27 5.6Z'
+        />
+        <path
+          d='M-35 4v10q20-1 35 7 15-8 35-7V4M-27 28.5h9m36 0h9'
+          fill='none'
+          stroke='#254465'
+          strokeWidth='1.8'
+          strokeLinecap='round'
+          strokeLinejoin='round'
+        />
         <text
-          x='444'
-          y='288'
+          x='0'
+          y='34'
           textAnchor='middle'
-          fill='#2248a3'
-          stroke='none'
-          fontSize='22'
+          fontSize='13'
           fontWeight='700'
+          letterSpacing='1'
         >
           001
         </text>
+      </g>
+      <g data-cover-stamp='' visibility='hidden'>
+        <g transform='translate(430 278) rotate(25) scale(1.3) translate(-354 -331)'>
+          <RubberStamp />
+        </g>
       </g>
     </g>
   )

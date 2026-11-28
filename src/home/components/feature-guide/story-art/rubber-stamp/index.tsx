@@ -2,7 +2,7 @@ import { ink } from '../const'
 
 export function RubberStamp() {
   return (
-    <g data-art='stamp-tool' stroke={ink} strokeWidth='2.2'>
+    <g stroke={ink} strokeWidth='2.2'>
       <g transform='translate(17 13) rotate(-13 337 318)'>
         <path d='m295 307 80-1-1.5 14-77 1Z' fill='#242d44' />
         <path d='m292 294 84-1 2 17-87 1Z' fill='#c87943' />
