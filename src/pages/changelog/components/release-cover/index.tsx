@@ -11,11 +11,6 @@ export function ReleaseCover({ release }: { release: ChangelogFrontmatter }) {
   return (
     <header className='release-cover'>
       <div className='release-masthead'>
-        <h2 id={`release-${release.version}`}>
-          <span className='release-brand'>GResume</span>
-          <span className='sr-only'> {release.version} </span>
-          <span className='release-announcement'>正式发布</span>
-        </h2>
         <time dateTime={release.date}>{formatDate(release.date)}</time>
       </div>
       <div className='release-cover-body'>

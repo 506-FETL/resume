@@ -1,5 +1,4 @@
 .release-story {
-  --release-paper: #f5f3ed;
   --release-ink: #292b28;
   --release-accent: #a4472e;
   --release-secondary: #66655e;
@@ -9,7 +8,6 @@
 }
 
 .dark .release-story {
-  --release-paper: #24251f;
   --release-ink: #f0eee5;
   --release-accent: #e5a189;
   --release-secondary: #b7b5aa;
@@ -19,7 +17,6 @@
   padding: 28px 36px 40px;
   border-radius: var(--radius-lg);
   color: var(--release-ink);
-  background: var(--release-paper);
 }
 
 .release-masthead {
